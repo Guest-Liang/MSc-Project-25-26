@@ -1,0 +1,13 @@
+name = "msc-project-workers"
+main = "src/index.js"
+compatibility_date = "2025-11-25"
+compatibility_flags = ["nodejs_compat"]
+
+[vars]
+JWT_SECRET = "9f5cde2d28f62634a2cd90fa44aa5f83d405bf2a7e53a4090be0dcac9ffd0b6b"
+
+[[d1_databases]]
+binding = "MScPJ_DB"
+database_name = "msc-project-25-26"
+database_id = "735dfb2d-1996-4047-89c4-44885fbdcda6"
+
