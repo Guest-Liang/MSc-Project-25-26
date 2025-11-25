@@ -22,13 +22,13 @@ export async function orderRoutes(request, env) {
   if (url.pathname === "/admin/orderLogs" && request.method === "GET") {
     const auth = request.headers.get("Authorization")
     if (!auth)
-      jsonResponse(null, ERR.NO_PERMISSION)
+      return jsonResponse(null, ERR.NO_PERMISSION)
 
     const token = auth.replace("Bearer ", "")
     const payload = await verifyToken(token, env.JWT_SECRET)
 
     if (!payload || payload.role !== "admin")
-      jsonResponse(null, ERR.NO_PERMISSION)
+      return jsonResponse(null, ERR.NO_PERMISSION)
 
     const params = url.searchParams
 
