@@ -1,3 +1,4 @@
+import { ERR } from "../errors.js"
 import { jsonResponse } from "../utils/response.js"
 import { verifyToken } from "../utils/jwt.js"
 
@@ -14,20 +15,20 @@ export async function orderRoutes(request, env) {
 
     return order
       ? jsonResponse(order)
-      : jsonResponse(null, { code: "ORDER_NOT_FOUND", message: "Order does not exist" }, 404)
+      : jsonResponse(null, ERR.ORDER_NOT_FOUND)
   }
 
   // 查询工单日志 Query Order Logs
   if (url.pathname === "/admin/orderLogs" && request.method === "GET") {
     const auth = request.headers.get("Authorization")
     if (!auth)
-      return jsonResponse(null, { code: "NO_PERMISSION", message: "Permission required" }, 403)
+      jsonResponse(null, ERR.NO_PERMISSION)
 
     const token = auth.replace("Bearer ", "")
     const payload = await verifyToken(token, env.JWT_SECRET)
 
     if (!payload || payload.role !== "admin")
-      return jsonResponse(null, { code: "NO_PERMISSION", message: "No permission" }, 403)
+      jsonResponse(null, ERR.NO_PERMISSION)
 
     const params = url.searchParams
 
@@ -78,7 +79,6 @@ export async function orderRoutes(request, env) {
 
     return jsonResponse(rows.results)
   }
-
 
   return null
 }

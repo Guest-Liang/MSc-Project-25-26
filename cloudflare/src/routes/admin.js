@@ -1,3 +1,4 @@
+import { ERR } from "../errors.js"
 import { jsonResponse } from "../utils/response.js"
 import { verifyToken } from "../utils/jwt.js"
 
@@ -40,10 +41,10 @@ export async function adminRoutes(request, env) {
     ).bind(userId).first()
 
   if (!worker)
-    return jsonResponse(null, { code: "WORKER_NOT_FOUND", message: "The worker does not exist!" }, 400)
+    return jsonResponse(null, ERR.WORKER_NOT_FOUND)
 
   if (worker.role !== "worker")
-    return jsonResponse(null, { code: "NOT_A_WORKER", message: "The specified user is not a worker." }, 400)
+    return jsonResponse(null, ERR.WORKER_NOT_FOUND)
 
     await env.MScPJ_DB.prepare(
       "UPDATE orders SET assigned_to = ?, status = 'assigned', updated_at = datetime('now') WHERE id = ?"

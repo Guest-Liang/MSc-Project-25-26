@@ -1,3 +1,4 @@
+import { ERR } from "../errors.js"
 import { jsonResponse } from "../utils/response.js"
 import { hashPassword, verifyPassword } from "../utils/bcrypt.js"
 import { sign } from "../utils/jwt.js"
@@ -14,10 +15,10 @@ export async function authRoutes(request, env) {
     ).bind(username).first()
 
     if (!user)
-      return jsonResponse(null, { code: "USER_NOT_EXIST", message: "User not exist" }, 400)
+      return jsonResponse(null, ERR.USER_NOT_EXIST)
 
     if (!await verifyPassword(password, user.password_hash))
-      return jsonResponse(null, { code: "WRONG_PASSWORD", message: "Wrong Password" }, 401)
+      return jsonResponse(null, ERR.WRONG_PASSWORD)
 
     const token = await sign({ id: user.id, role: user.role }, env.JWT_SECRET)
     return jsonResponse({ token, role: user.role })
@@ -39,12 +40,12 @@ export async function authRoutes(request, env) {
   if (url.pathname === "/auth/register-worker" && request.method === "POST") {
     const auth = request.headers.get("Authorization")
     if (!auth)
-      return jsonResponse(null, { code: "NO_PERMISSION", message: "Admin Permissions needed" }, 403)
+      return jsonResponse(null, ERR.ADMIN_REQUIRED)
 
     const token = auth.replace("Bearer ", "")
     const payload = await verifyToken(token, env.JWT_SECRET)
     if (!payload || payload.role !== "admin")
-      return jsonResponse(null, { code: "NO_PERMISSION", message: "No permission" }, 403)
+      return jsonResponse(null, ERR.NO_PERMISSION)
 
     const { username, password } = await request.json()
     const hash = await hashPassword(password)
