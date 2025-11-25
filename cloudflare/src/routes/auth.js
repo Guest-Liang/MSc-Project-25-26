@@ -1,7 +1,7 @@
 import { ERR } from "../utils/errors.js"
 import { jsonResponse } from "../utils/response.js"
 import { hashPassword, verifyPassword } from "../utils/bcrypt.js"
-import { sign } from "../utils/jwt.js"
+import { sign, verifyToken } from "../utils/jwt.js"
 
 export async function authRoutes(request, env) {
   const url = new URL(request.url)
