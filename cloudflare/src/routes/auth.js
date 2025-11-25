@@ -34,5 +34,25 @@ export async function authRoutes(request, env) {
     return jsonResponse({ ok: true })
   }
 
+  // 注册工人 Register Worker (Admin only)
+  if (url.pathname === "/auth/register-worker" && request.method === "POST") {
+    const auth = request.headers.get("Authorization")
+    if (!auth) return jsonResponse({ error: "Admin Permissions needed" }, 403)
+
+    const token = auth.replace("Bearer ", "")
+    const payload = await verifyToken(token, env.JWT_SECRET)
+    if (!payload || payload.role !== "admin")
+      return jsonResponse({ error: "No permission" }, 403)
+
+    const { username, password } = await request.json()
+    const hash = await hashPassword(password)
+
+    await env.MScPJ_DB.prepare(
+      "INSERT INTO users (username, password_hash, role, created_at) VALUES (?, ?, 'worker', datetime('now'))"
+    ).bind(username, hash).run()
+
+    return jsonResponse({ ok: true })
+  }
+
   return null
 }

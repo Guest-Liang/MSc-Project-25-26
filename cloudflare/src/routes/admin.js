@@ -17,16 +17,33 @@ export async function adminRoutes(request, env) {
   if (url.pathname === "/admin/orders/create" && request.method === "POST") {
     const { title, description, tag } = await request.json()
 
-    await env.MScPJ_DB.prepare(
+    const result = await env.MScPJ_DB.prepare(
       "INSERT INTO orders (title, description, nfc_tag, status, created_at) VALUES (?, ?, ?, 'created', datetime('now'))"
     ).bind(title, description, tag).run()
 
-    return jsonResponse({ ok: true })
+    const orderId = result.meta.last_row_id
+
+    await env.MScPJ_DB.prepare(
+      "INSERT INTO order_logs (order_id, action, operator_id, timestamp) VALUES (?, 'created', ?, datetime('now'))"
+    ).bind(orderId, payload.id).run()
+
+    return jsonResponse({ ok: true, orderId })
   }
 
   // 派工 Assign Orders
   if (url.pathname === "/admin/orders/assign" && request.method === "POST") {
     const { orderId, userId } = await request.json()
+
+    // 检查工人是否存在并且为 worker Check if the user exists and is a worker.
+    const worker = await env.MScPJ_DB.prepare(
+      "SELECT id, role FROM users WHERE id = ?"
+    ).bind(userId).first()
+
+    if (!worker)
+      return jsonResponse({ error: "The worker does not exist!" }, 400)
+
+    if (worker.role !== "worker")
+      return jsonResponse({ error: "The specified user is not a worker." }, 400)
 
     await env.MScPJ_DB.prepare(
       "UPDATE orders SET assigned_to = ?, status = 'assigned', updated_at = datetime('now') WHERE id = ?"
