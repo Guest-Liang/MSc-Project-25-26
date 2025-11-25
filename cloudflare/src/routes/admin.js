@@ -7,12 +7,12 @@ export async function adminRoutes(request, env) {
 
   // 身份验证 Authorization
   const auth = request.headers.get("Authorization")
-  if (!auth) return jsonResponse(null, ERR.TOKEN_MISSING)
+  if (!auth) return null
 
   const token = auth.replace("Bearer ", "")
   const payload = await verifyToken(token, env.JWT_SECRET)
 
-  if (!payload || payload.role !== "admin") return jsonResponse(null, ERR.NO_PERMISSION)
+  if (!payload || payload.role !== "admin") return null
 
   // 创建工单 Create Orders
   if (url.pathname === "/admin/orders/create" && request.method === "POST") {
