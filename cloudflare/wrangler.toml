@@ -11,3 +11,17 @@ binding = "MScPJ_DB"
 database_name = "msc-project-25-26"
 database_id = "735dfb2d-1996-4047-89c4-44885fbdcda6"
 
+[observability]
+enabled = false
+head_sampling_rate = 1
+
+[observability.logs]
+enabled = true
+head_sampling_rate = 1
+persist = true
+invocation_logs = true
+
+[observability.traces]
+enabled = false
+persist = true
+head_sampling_rate = 1
