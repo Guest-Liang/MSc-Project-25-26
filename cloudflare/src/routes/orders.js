@@ -12,19 +12,22 @@ export async function orderRoutes(request, env) {
       "SELECT * FROM orders WHERE nfc_tag = ?"
     ).bind(tagId).first()
 
-    return jsonResponse(order ?? { error: "Order does not exist" }, order ? 200 : 404)
+    return order
+      ? jsonResponse(order)
+      : jsonResponse(null, { code: "ORDER_NOT_FOUND", message: "Order does not exist" }, 404)
   }
 
   // 查询工单日志 Query Order Logs
   if (url.pathname === "/admin/orderLogs" && request.method === "GET") {
     const auth = request.headers.get("Authorization")
-    if (!auth) return jsonResponse({ error: "Permission required" }, 403)
+    if (!auth)
+      return jsonResponse(null, { code: "NO_PERMISSION", message: "Permission required" }, 403)
 
     const token = auth.replace("Bearer ", "")
     const payload = await verifyToken(token, env.JWT_SECRET)
 
     if (!payload || payload.role !== "admin")
-      return jsonResponse({ error: "No permission" }, 403)
+      return jsonResponse(null, { code: "NO_PERMISSION", message: "No permission" }, 403)
 
     const params = url.searchParams
 

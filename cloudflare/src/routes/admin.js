@@ -27,7 +27,7 @@ export async function adminRoutes(request, env) {
       "INSERT INTO order_logs (order_id, action, operator_id, timestamp) VALUES (?, 'created', ?, datetime('now'))"
     ).bind(orderId, payload.id).run()
 
-    return jsonResponse({ ok: true, orderId })
+    return jsonResponse({ orderId })
   }
 
   // 派工 Assign Orders
@@ -39,11 +39,11 @@ export async function adminRoutes(request, env) {
       "SELECT id, role FROM users WHERE id = ?"
     ).bind(userId).first()
 
-    if (!worker)
-      return jsonResponse({ error: "The worker does not exist!" }, 400)
+  if (!worker)
+    return jsonResponse(null, { code: "WORKER_NOT_FOUND", message: "The worker does not exist!" }, 400)
 
-    if (worker.role !== "worker")
-      return jsonResponse({ error: "The specified user is not a worker." }, 400)
+  if (worker.role !== "worker")
+    return jsonResponse(null, { code: "NOT_A_WORKER", message: "The specified user is not a worker." }, 400)
 
     await env.MScPJ_DB.prepare(
       "UPDATE orders SET assigned_to = ?, status = 'assigned', updated_at = datetime('now') WHERE id = ?"
@@ -54,7 +54,7 @@ export async function adminRoutes(request, env) {
       "INSERT INTO order_logs (order_id, action, operator_id, timestamp) VALUES (?, 'assigned', ?, datetime('now'))"
     ).bind(orderId, payload.id).run()
 
-    return jsonResponse({ ok: true })
+    return jsonResponse({ assigned: true })
   }
 
   return null

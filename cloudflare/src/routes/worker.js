@@ -33,7 +33,7 @@ export async function workerRoutes(request, env) {
       "INSERT INTO order_logs (order_id, action, operator_id, timestamp) VALUES (?, 'completed', ?, datetime('now'))"
     ).bind(orderId, payload.id).run()
 
-    return jsonResponse({ ok: true })
+    return jsonResponse({ completed: true })
   }
 
   return null

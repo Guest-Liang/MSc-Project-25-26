@@ -13,10 +13,11 @@ export async function authRoutes(request, env) {
       "SELECT * FROM users WHERE username = ?"
     ).bind(username).first()
 
-    if (!user) return jsonResponse({ error: "User not exist" }, 400)
+    if (!user)
+      return jsonResponse(null, { code: "USER_NOT_EXIST", message: "User not exist" }, 400)
 
     if (!await verifyPassword(password, user.password_hash))
-      return jsonResponse({ error: "Wrong Password" }, 401)
+      return jsonResponse(null, { code: "WRONG_PASSWORD", message: "Wrong Password" }, 401)
 
     const token = await sign({ id: user.id, role: user.role }, env.JWT_SECRET)
     return jsonResponse({ token, role: user.role })
@@ -31,18 +32,19 @@ export async function authRoutes(request, env) {
       "INSERT INTO users (username, password_hash, role, created_at) VALUES (?, ?, 'admin', datetime('now'))"
     ).bind(username, hash).run()
 
-    return jsonResponse({ ok: true })
+    return jsonResponse({ created: true })
   }
 
   // 注册工人 Register Worker (Admin only)
   if (url.pathname === "/auth/register-worker" && request.method === "POST") {
     const auth = request.headers.get("Authorization")
-    if (!auth) return jsonResponse({ error: "Admin Permissions needed" }, 403)
+    if (!auth)
+      return jsonResponse(null, { code: "NO_PERMISSION", message: "Admin Permissions needed" }, 403)
 
     const token = auth.replace("Bearer ", "")
     const payload = await verifyToken(token, env.JWT_SECRET)
     if (!payload || payload.role !== "admin")
-      return jsonResponse({ error: "No permission" }, 403)
+      return jsonResponse(null, { code: "NO_PERMISSION", message: "No permission" }, 403)
 
     const { username, password } = await request.json()
     const hash = await hashPassword(password)
@@ -51,7 +53,7 @@ export async function authRoutes(request, env) {
       "INSERT INTO users (username, password_hash, role, created_at) VALUES (?, ?, 'worker', datetime('now'))"
     ).bind(username, hash).run()
 
-    return jsonResponse({ ok: true })
+    return jsonResponse({ created: true })
   }
 
   return null
