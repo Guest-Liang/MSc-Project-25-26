@@ -1,4 +1,4 @@
-import { ERR } from "../errors.js"
+import { ERR } from "../utils/error.js"
 import { jsonResponse } from "../utils/response.js"
 import { verifyToken } from "../utils/jwt.js"
 
