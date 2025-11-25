@@ -6,12 +6,12 @@ export async function workerRoutes(request, env) {
   const url = new URL(request.url)
 
   const auth = request.headers.get("Authorization")
-  if (!auth) return jsonResponse(null, ERR.TOKEN_MISSING)
+  if (!auth) return null
 
   const token = auth.replace("Bearer ", "")
   const payload = await verifyToken(token, env.JWT_SECRET)
 
-  if (!payload || payload.role !== "worker") return jsonResponse(null, ERR.NO_PERMISSION)
+  if (!payload || payload.role !== "worker") return null
 
   // 查看自己的工单 See their orders
   if (url.pathname === "/worker/orders" && request.method === "GET") {
