@@ -1,59 +1,65 @@
+import { Hono } from "hono"
 import { ERR } from "../utils/errors.js"
-import { jsonResponse } from "../utils/response.js"
 import { verifyToken } from "../utils/jwt.js"
 
-export async function adminRoutes(request, env) {
-  const url = new URL(request.url)
+export const adminRoutes = new Hono()
 
-  // 身份验证 Authorization
-  const auth = request.headers.get("Authorization")
-  if (!auth) return null
+// Admin 权限中间件 Admin Middleware
+adminRoutes.use("*", async (c, next) => {
+  const auth = c.req.header("Authorization")
+  if (!auth)
+    return c.json(ERR.ADMIN_REQUIRED)
 
   const token = auth.replace("Bearer ", "")
-  const payload = await verifyToken(token, env.JWT_SECRET)
+  const payload = await verifyToken(token, c.env.JWT_SECRET)
 
-  if (!payload || payload.role !== "admin") return null
+  if (!payload || payload.role !== "admin")
+    return c.json(ERR.NO_PERMISSION)
 
-  // 创建工单 Create Orders
-  if (url.pathname === "/admin/orders/create" && request.method === "POST") {
-    const { title, description, tag } = await request.json()
+  c.set("user", payload)
 
-    const result = await env.MScPJ_DB.prepare(
-      "INSERT INTO orders (title, description, nfc_tag, status, created_at) VALUES (?, ?, ?, 'created', datetime('now'))"
-    ).bind(title, description, tag).run()
+  await next()
+})
 
-    const orderId = result.meta.last_row_id
 
-    await env.MScPJ_DB.prepare(
-      "INSERT INTO order_logs (order_id, action, operator_id, timestamp) VALUES (?, 'created', ?, datetime('now'))"
-    ).bind(orderId, payload.id).run()
+// 创建工单 Create Orders
+adminRoutes.post("/orders/create", async (c) => {
+  const { title, description, tag } = await c.req.json()
+  const user = c.get("user")
 
-    return jsonResponse({ orderId })
-  }
+  const result = await c.env.MScPJ_DB.prepare(
+    "INSERT INTO orders (title, description, nfc_tag, status, created_at) VALUES (?, ?, ?, 'created', datetime('now'))"
+  ).bind(title, description, tag).run()
 
-  // 派工 Assign Orders
-  if (url.pathname === "/admin/orders/assign" && request.method === "POST") {
-    const { orderId, userId } = await request.json()
+  const orderId = result.meta.last_row_id
 
-    // 检查工人是否存在并且为 worker Check if the user exists and is a worker.
-    const worker = await env.MScPJ_DB.prepare(
-      "SELECT id, role FROM users WHERE id = ?"
-    ).bind(userId).first()
+  await c.env.MScPJ_DB.prepare(
+    "INSERT INTO order_logs (order_id, action, operator_id, timestamp) VALUES (?, 'created', ?, datetime('now'))"
+  ).bind(orderId, user.id).run()
 
-    if (!worker || worker.role !== "worker")
-      return jsonResponse(null, ERR.WORKER_NOT_FOUND)
+  return c.json({ success: true, data: { orderId } })
+})
 
-    await env.MScPJ_DB.prepare(
-      "UPDATE orders SET assigned_to = ?, status = 'assigned', updated_at = datetime('now') WHERE id = ?"
-    ).bind(userId, orderId).run()
 
-    // 写入日志 Write logs
-    await env.MScPJ_DB.prepare(
-      "INSERT INTO order_logs (order_id, action, operator_id, timestamp) VALUES (?, 'assigned', ?, datetime('now'))"
-    ).bind(orderId, payload.id).run()
+// 派工 Assign Orders
+adminRoutes.post("/orders/assign", async (c) => {
+  const { orderId, userId } = await c.req.json()
+  const user = c.get("user")
 
-    return jsonResponse({ assigned: true })
-  }
+  const worker = await c.env.MScPJ_DB.prepare(
+    "SELECT id, role FROM users WHERE id = ?"
+  ).bind(userId).first()
 
-  return null
-}
+  if (!worker || worker.role !== "worker")
+    return c.json(ERR.WORKER_NOT_FOUND)
+
+  await c.env.MScPJ_DB.prepare(
+    "UPDATE orders SET assigned_to = ?, status = 'assigned', updated_at = datetime('now') WHERE id = ?"
+  ).bind(userId, orderId).run()
+
+  await c.env.MScPJ_DB.prepare(
+    "INSERT INTO order_logs (order_id, action, operator_id, timestamp) VALUES (?, 'assigned', ?, datetime('now'))"
+  ).bind(orderId, user.id).run()
+
+  return c.json({ success: true, data: { assigned: true } })
+})

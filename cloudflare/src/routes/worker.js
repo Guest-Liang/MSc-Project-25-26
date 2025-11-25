@@ -1,54 +1,66 @@
+import { Hono } from "hono"
 import { ERR } from "../utils/errors.js"
-import { jsonResponse } from "../utils/response.js"
 import { verifyToken } from "../utils/jwt.js"
 
-export async function workerRoutes(request, env) {
-  const url = new URL(request.url)
+export const workerRoutes = new Hono()
 
-  const auth = request.headers.get("Authorization")
-  if (!auth) return null
+workerRoutes.use("*", async (c, next) => {
+  const auth = c.req.header("Authorization")
+  if (!auth)
+    return c.json(ERR.TOKEN_MISSING)
 
   const token = auth.replace("Bearer ", "")
-  const payload = await verifyToken(token, env.JWT_SECRET)
+  const payload = await verifyToken(token, c.env.JWT_SECRET)
 
-  if (!payload || payload.role !== "worker") return null
+  if (!payload)
+    return c.json(ERR.TOKEN_INVALID)
 
-  // 查看自己的工单 See their orders
-  if (url.pathname === "/worker/orders" && request.method === "GET") {
-    const list = await env.MScPJ_DB.prepare(
-      "SELECT * FROM orders WHERE assigned_to = ?"
-    ).bind(payload.id).all()
+  if (payload.role !== "worker")
+    return c.json(ERR.NO_PERMISSION)
 
-    return jsonResponse(list.results)
-  }
+  c.set("user", payload)
 
-  // 完成工单 Complete Orders
-  if (url.pathname === "/worker/orders/complete" && request.method === "POST") {
-    const { orderId } = await request.json()
+  await next()
+})
 
-    const order = await env.MScPJ_DB.prepare(
-      "SELECT * FROM orders WHERE id = ?"
-    ).bind(orderId).first()
 
-    if (!order)
-      return jsonResponse(null, ERR.ORDER_NOT_FOUND)
+// 查看工人自己的工单 View the worker's own work order
+workerRoutes.get("/orders", async (c) => {
+  const user = c.get("user")
 
-    if (order.assigned_to !== payload.id)
-      return jsonResponse(null, ERR.ORDER_NOT_OWNED)
+  const list = await c.env.MScPJ_DB.prepare(
+    "SELECT * FROM orders WHERE assigned_to = ?"
+  ).bind(user.id).all()
 
-    if (order.status !== "assigned")
-      return jsonResponse(null, ERR.ORDER_NOT_COMPLETABLE)
+  return c.json({ success: true, data: list.results })
+})
 
-    await env.MScPJ_DB.prepare(
-      "UPDATE orders SET status = 'completed', updated_at = datetime('now') WHERE id = ?"
-    ).bind(orderId).run()
 
-    await env.MScPJ_DB.prepare(
-      "INSERT INTO order_logs (order_id, action, operator_id, timestamp) VALUES (?, 'completed', ?, datetime('now'))"
-    ).bind(orderId, payload.id).run()
+// 设置工单完成状态 Set work order completion status
+workerRoutes.post("/orders/complete", async (c) => {
+  const user = c.get("user")
+  const { orderId } = await c.req.json()
 
-    return jsonResponse({ completed: true })
-  }
+  const order = await c.env.MScPJ_DB.prepare(
+    "SELECT * FROM orders WHERE id = ?"
+  ).bind(orderId).first()
 
-  return null
-}
+  if (!order)
+    return c.json(ERR.ORDER_NOT_FOUND)
+
+  if (order.assigned_to !== user.id)
+    return c.json(ERR.ORDER_NOT_OWNED)
+
+  if (order.status !== "assigned")
+    return c.json(ERR.ORDER_NOT_COMPLETABLE)
+
+  await c.env.MScPJ_DB.prepare(
+    "UPDATE orders SET status = 'completed', updated_at = datetime('now') WHERE id = ?"
+  ).bind(orderId).run()
+
+  await c.env.MScPJ_DB.prepare(
+    "INSERT INTO order_logs (order_id, action, operator_id, timestamp) VALUES (?, 'completed', ?, datetime('now'))"
+  ).bind(orderId, user.id).run()
+
+  return c.json({ success: true, data: { completed: true } })
+})

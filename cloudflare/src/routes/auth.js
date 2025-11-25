@@ -1,61 +1,60 @@
+import { Hono } from "hono"
 import { ERR } from "../utils/errors.js"
-import { jsonResponse } from "../utils/response.js"
 import { hashPassword, verifyPassword } from "../utils/bcrypt.js"
 import { sign, verifyToken } from "../utils/jwt.js"
 
-export async function authRoutes(request, env) {
-  const url = new URL(request.url)
+export const authRoutes = new Hono()
 
-  // 登录 Login
-  if (url.pathname === "/auth/login" && request.method === "POST") {
-    const { username, password } = await request.json()
+// 登录 Login
+authRoutes.post("/login", async (c) => {
+  const { username, password } = await c.req.json()
 
-    const user = await env.MScPJ_DB.prepare(
-      "SELECT * FROM users WHERE username = ?"
-    ).bind(username).first()
+  const user = await c.env.MScPJ_DB.prepare(
+    "SELECT * FROM users WHERE username = ?"
+  ).bind(username).first()
 
-    if (!user)
-      return jsonResponse(null, ERR.USER_NOT_EXIST)
+  if (!user)
+    return c.json(ERR.USER_NOT_EXIST)
 
-    if (!await verifyPassword(password, user.password_hash))
-      return jsonResponse(null, ERR.WRONG_PASSWORD)
+  if (!await verifyPassword(password, user.password_hash))
+    return c.json(ERR.WRONG_PASSWORD)
 
-    const token = await sign({ id: user.id, role: user.role }, env.JWT_SECRET)
-    return jsonResponse({ token, role: user.role })
-  }
+  const token = await sign({ id: user.id, role: user.role }, c.env.JWT_SECRET)
+  return c.json({ success: true, data: { token, role: user.role } })
+})
 
-  // 注册管理员（用于初始化） Register Admin for Initialization
-  if (url.pathname === "/auth/register-admin" && request.method === "POST") {
-    const { username, password } = await request.json()
-    const hash = await hashPassword(password)
 
-    await env.MScPJ_DB.prepare(
-      "INSERT INTO users (username, password_hash, role, created_at) VALUES (?, ?, 'admin', datetime('now'))"
-    ).bind(username, hash).run()
+// 注册管理员 Register Admin (Initialization)
+authRoutes.post("/register-admin", async (c) => {
+  const { username, password } = await c.req.json()
+  const hash = await hashPassword(password)
 
-    return jsonResponse({ created: true })
-  }
+  await c.env.MScPJ_DB.prepare(
+    "INSERT INTO users (username, password_hash, role, created_at) VALUES (?, ?, 'admin', datetime('now'))"
+  ).bind(username, hash).run()
 
-  // 注册工人 Register Worker (Admin only)
-  if (url.pathname === "/auth/register-worker" && request.method === "POST") {
-    const auth = request.headers.get("Authorization")
-    if (!auth)
-      return jsonResponse(null, ERR.ADMIN_REQUIRED)
+  return c.json({ success: true, data: { created: true } })
+})
 
-    const token = auth.replace("Bearer ", "")
-    const payload = await verifyToken(token, env.JWT_SECRET)
-    if (!payload || payload.role !== "admin")
-      return jsonResponse(null, ERR.NO_PERMISSION)
 
-    const { username, password } = await request.json()
-    const hash = await hashPassword(password)
+// 注册工人 Register Worker (Admin only)
+authRoutes.post("/register-worker", async (c) => {
+  const auth = c.req.header("Authorization")
+  if (!auth)
+    return c.json(ERR.ADMIN_REQUIRED)
 
-    await env.MScPJ_DB.prepare(
-      "INSERT INTO users (username, password_hash, role, created_at) VALUES (?, ?, 'worker', datetime('now'))"
-    ).bind(username, hash).run()
+  const token = auth.replace("Bearer ", "")
+  const payload = await verifyToken(token, c.env.JWT_SECRET)
 
-    return jsonResponse({ created: true })
-  }
+  if (!payload || payload.role !== "admin")
+    return c.json(ERR.NO_PERMISSION)
 
-  return null
-}
+  const { username, password } = await c.req.json()
+  const hash = await hashPassword(password)
+
+  await c.env.MScPJ_DB.prepare(
+    "INSERT INTO users (username, password_hash, role, created_at) VALUES (?, ?, 'worker', datetime('now'))"
+  ).bind(username, hash).run()
+
+  return c.json({ success: true, data: { created: true } })
+})
