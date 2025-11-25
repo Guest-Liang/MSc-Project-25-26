@@ -26,6 +26,19 @@ export async function workerRoutes(request, env) {
   if (url.pathname === "/worker/orders/complete" && request.method === "POST") {
     const { orderId } = await request.json()
 
+    const order = await env.MScPJ_DB.prepare(
+      "SELECT * FROM orders WHERE id = ?"
+    ).bind(orderId).first()
+
+    if (!order)
+      return jsonResponse(null, ERR.ORDER_NOT_FOUND)
+
+    if (order.assigned_to !== payload.id)
+      return jsonResponse(null, ERR.ORDER_NOT_OWNED)
+
+    if (order.status !== "assigned")
+      return jsonResponse(null, ERR.ORDER_NOT_COMPLETABLE)
+
     await env.MScPJ_DB.prepare(
       "UPDATE orders SET status = 'completed', updated_at = datetime('now') WHERE id = ?"
     ).bind(orderId).run()
