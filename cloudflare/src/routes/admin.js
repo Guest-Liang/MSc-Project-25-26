@@ -40,11 +40,8 @@ export async function adminRoutes(request, env) {
       "SELECT id, role FROM users WHERE id = ?"
     ).bind(userId).first()
 
-  if (!worker)
-    return jsonResponse(null, ERR.WORKER_NOT_FOUND)
-
-  if (worker.role !== "worker")
-    return jsonResponse(null, ERR.WORKER_NOT_FOUND)
+    if (!worker || worker.role !== "worker")
+      return jsonResponse(null, ERR.WORKER_NOT_FOUND)
 
     await env.MScPJ_DB.prepare(
       "UPDATE orders SET assigned_to = ?, status = 'assigned', updated_at = datetime('now') WHERE id = ?"

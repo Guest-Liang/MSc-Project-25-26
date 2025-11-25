@@ -15,6 +15,7 @@ export const ERR = {
   // Worker (3000–3999)
   WORKER_NOT_FOUND: { code: 3001, message: "Worker does not exist" },
   NOT_A_WORKER: { code: 3002, message: "The specified user is not a worker" },
+  ORDER_NOT_OWNED: { code: 3003, message: "Order does not belong to this worker" },
 
   // Order (4000–4999)
   ORDER_NOT_FOUND: { code: 4001, message: "Order does not exist" },
