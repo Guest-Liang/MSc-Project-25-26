@@ -7,6 +7,9 @@ export const ERR = {
   WRONG_PASSWORD: { code: 1002, message: "Wrong password" },
   TOKEN_MISSING: { code: 1003, message: "Token missing" },
   TOKEN_INVALID: { code: 1004, message: "Invalid token" },
+  USER_ALREADY_EXISTS: { code: 1005, message: "User already exists" },
+  PASSWORD_UPDATED: { code: 1006, message: "Password updated" },
+
 
   // Permission (2000–2999)
   NO_PERMISSION: { code: 2001, message: "No permission" },

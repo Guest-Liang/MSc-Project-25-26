@@ -30,6 +30,23 @@ authRoutes.post("/register-admin", async (c) => {
   const { username, password } = await c.req.json()
   const hash = await hashPassword(password)
 
+  const existing = await c.env.MScPJ_DB.prepare(
+    "SELECT password_hash FROM users WHERE username = ?"
+  ).bind(username).first()
+
+  if (existing) {
+    const same = await verifyPassword(password, existing.password_hash)
+    if (same)
+      return jsonResponse(null, ERR.USER_ALREADY_EXISTS)
+
+    const newHash = await hashPassword(password)
+    await c.env.MScPJ_DB.prepare(
+      "UPDATE users SET password_hash = ?, updated_at = datetime('now') WHERE username = ?"
+    ).bind(newHash, username).run()
+
+    return jsonResponse(null, ERR.PASSWORD_UPDATED)
+  }
+
   await c.env.MScPJ_DB.prepare(
     "INSERT INTO users (username, password_hash, role, created_at) VALUES (?, ?, 'admin', datetime('now'))"
   ).bind(username, hash).run()
@@ -52,6 +69,24 @@ authRoutes.post("/register-worker", async (c) => {
 
   const { username, password } = await c.req.json()
   const hash = await hashPassword(password)
+
+  const existing = await c.env.MScPJ_DB.prepare(
+    "SELECT password_hash FROM users WHERE username = ?"
+  ).bind(username).first()
+
+  if (existing) {
+    const same = await verifyPassword(password, existing.password_hash)
+    if (same)
+      return jsonResponse(null, ERR.USER_ALREADY_EXISTS)
+
+    const newHash = await hashPassword(password)
+    await c.env.MScPJ_DB.prepare(
+      "UPDATE users SET password_hash = ?, updated_at = datetime('now') WHERE username = ?"
+    ).bind(newHash, username).run()
+
+    return jsonResponse(null, ERR.PASSWORD_UPDATED)
+  }
+
 
   await c.env.MScPJ_DB.prepare(
     "INSERT INTO users (username, password_hash, role, created_at) VALUES (?, ?, 'worker', datetime('now'))"
