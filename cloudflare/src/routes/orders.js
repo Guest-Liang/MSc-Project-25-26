@@ -69,3 +69,70 @@ orderRoutes.get("/logs", requireAdmin, async (c) => {
 
   return jsonResponse(rows.results)
 })
+
+// 查询工单（支持多条件筛选） Search Orders
+orderRoutes.get("/search", requireAdmin, async (c) => {
+  const params = c.req.query()
+  let conditions = []
+  let values = []
+
+  // 模糊匹配字段 Fuzzy matching fields
+  if (params.title) {
+    conditions.push("title LIKE ?")
+    values.push(`%${params.title}%`)
+  }
+
+  if (params.description) {
+    conditions.push("description LIKE ?")
+    values.push(`%${params.description}%`)
+  }
+
+  if (params.tag) {
+    conditions.push("nfc_tag LIKE ?")
+    values.push(`%${params.tag}%`)
+  }
+
+  // status 精确匹配多个 exact match (multiple)
+  if (params.status) {
+    const sts = params.status.split(",").map(s => s.trim()).filter(s => s.length > 0)
+    if (sts.length > 0) {
+      conditions.push(`status IN (${sts.map(() => "?").join(",")})`)
+      values.push(...sts)
+    }
+  }
+
+  // assigned_to 精确匹配多个 exact match (multiple)
+  if (params.assigned) {
+    const ids = params.assigned.split(",").map(i => i.trim()).filter(i => i.length > 0)
+    if (ids.length > 0) {
+      conditions.push(`assigned_to IN (${ids.map(() => "?").join(",")})`)
+      values.push(...ids)
+    }
+  }
+
+  // created_at 时间范围 Time range
+  if (params.createdStart) {
+    conditions.push("created_at >= ?")
+    values.push(params.createdStart)
+  }
+  if (params.createdEnd) {
+    conditions.push("created_at <= ?")
+    values.push(params.createdEnd)
+  }
+
+  // updated_at 时间范围 Time range
+  if (params.updatedStart) {
+    conditions.push("updated_at >= ?")
+    values.push(params.updatedStart)
+  }
+  if (params.updatedEnd) {
+    conditions.push("updated_at <= ?")
+    values.push(params.updatedEnd)
+  }
+
+  const where = conditions.length > 0 ? `WHERE ${conditions.join(" AND ")}` : ""
+  const sql = `SELECT * FROM orders ${where} ORDER BY updated_at DESC`
+
+  const rows = await c.env.MScPJ_DB.prepare(sql).bind(...values).all()
+  return jsonResponse(rows.results)
+})

@@ -86,7 +86,7 @@ Authorization: Bearer <worker-token>
 ```json
 { "orderId": 1 }
 ```
-
+---
 # 📄 工单接口 / Orders APIs
 ## **GET /orders/logs**
 查询工单日志（可以筛选）   
@@ -104,3 +104,24 @@ Authorization: Bearer <admin-token>
 | operator | `1,3` | 操作人（用户ID） | Operator (User ID) |
 | startTime | `2025-01-01 00:00:00` | 查询此时间之后（含），精确到秒 | Query for times after this date. (Included) |
 | endTime  | `2025-01-31 23:59:59`  | 查询此时间之前（含），精确到秒 | Query for times before this date. (Included) |
+
+## **GET /orders/search**
+查询工单（支持多条件筛选）
+Search work orders with filter options
+### **Headers**
+```
+Authorization: Bearer <admin-token>
+```
+### **Query Params（可选 Optional）**
+
+| 参数 Params | 示例 Examples | 说明 | Description |
+| --- | --- | --- | --- |
+| title        |  `AC`                        | 按标题模糊匹配 | Fuzzy match on title |
+| description  | `water`                      | 按描述模糊匹配 | Fuzzy match on description |
+| tag          | `room101` / `nfc123`         | 按NFC标签模糊匹配 | Fuzzy match on nfc_tag |
+| status       | `created,assigned,completed` | 多状态筛选，精确匹配 | Exact match, multiple states allowed |
+| assigned     | `1,3`                        | 多个工人ID，可组合 | Multiple assigned worker IDs |
+| createdStart | `2025-01-01 00:00:00`        | 创建时间开始（含） | Created time ≥ this value |
+| createdEnd   | `2025-01-31 23:59:59`        | 创建时间结束（含） | Created time ≤ this value |
+| updatedStart | `2025-02-01 00:00:00`        | 更新时间开始（含） | Updated time ≥ this value |
+| updatedEnd   | `2025-02-10 23:59:59`        | 更新时间结束（含） | Updated time ≤ this value |
