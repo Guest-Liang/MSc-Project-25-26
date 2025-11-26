@@ -47,6 +47,16 @@ adminRoutes.post("/orders/assign", async (c) => {
   ).bind(orderId).first()
   if (!order) return jsonResponse(null, ERR.ORDER_NOT_FOUND) // 工单未找到
 
+  if (userId === null) {
+    await c.env.MScPJ_DB.prepare(
+      "UPDATE orders SET assigned_to = NULL, status = 'created', updated_at = datetime('now') WHERE id = ?"
+    ).bind(orderId).run()
+    await c.env.MScPJ_DB.prepare(
+      "INSERT INTO order_logs (order_id, action, operator_id, timestamp) VALUES (?, 'unassigned', ?, datetime('now'))"
+    ).bind(orderId, user.id).run()
+    return jsonResponse({ unassigned: true })
+  }
+
   await c.env.MScPJ_DB.prepare(
     "UPDATE orders SET assigned_to = ?, status = 'assigned', updated_at = datetime('now') WHERE id = ?"
   ).bind(userId, orderId).run()

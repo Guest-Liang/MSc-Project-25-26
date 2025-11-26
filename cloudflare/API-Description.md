@@ -100,7 +100,7 @@ Authorization: Bearer <admin-token>
 | 参数 Params | 示例值 Examples | 说明 | Description |
 | --- | --- | --- | --- |
 | orderId | `1,2,3` | 多个 ID 用逗号分隔 | Multiple IDs separated by commas |
-| status | `created,assigned,completed` | 多个状态可组合 | Multiple states can be combined |
+| status | `created,(un)assigned,completed` | 多个状态 | Multiple states can be combined |
 | operator | `1,3` | 操作人（用户ID） | Operator (User ID) |
 | startTime | `2025-01-01 00:00:00` | 查询此时间之后（含），精确到秒 | Query for times after this date. (Included) |
 | endTime  | `2025-01-31 23:59:59`  | 查询此时间之前（含），精确到秒 | Query for times before this date. (Included) |
@@ -113,15 +113,19 @@ Search work orders with filter options
 Authorization: Bearer <admin-token>
 ```
 ### **Query Params（可选 Optional）**
+注意：`NULL` 不能与 `assigned` 中的常规 ID 组合使用。  
+查询必须仅包含 `NULL` 或仅包含数字ID。  
+Note: `NULL` cannot be combined with regular IDs in the `assigned` filter.  
+The query must contain either `NULL` alone or numeric IDs only.  
 
 | 参数 Params | 示例 Examples | 说明 | Description |
 | --- | --- | --- | --- |
-| title        |  `AC`                        | 按标题模糊匹配 | Fuzzy match on title |
-| description  | `water`                      | 按描述模糊匹配 | Fuzzy match on description |
-| tag          | `room101` / `nfc123`         | 按NFC标签模糊匹配 | Fuzzy match on nfc_tag |
-| status       | `created,assigned,completed` | 多状态筛选，精确匹配 | Exact match, multiple states allowed |
-| assigned     | `1,3`                        | 多个工人ID，可组合 | Multiple assigned worker IDs |
-| createdStart | `2025-01-01 00:00:00`        | 创建时间开始（含） | Created time ≥ this value |
-| createdEnd   | `2025-01-31 23:59:59`        | 创建时间结束（含） | Created time ≤ this value |
-| updatedStart | `2025-02-01 00:00:00`        | 更新时间开始（含） | Updated time ≥ this value |
-| updatedEnd   | `2025-02-10 23:59:59`        | 更新时间结束（含） | Updated time ≤ this value |
+| title        |  `AC`                            | 按标题模糊匹配 | Fuzzy match on title |
+| description  | `water`                          | 按描述模糊匹配 | Fuzzy match on description |
+| tag          | `room101` / `nfc123`             | 按NFC标签模糊匹配 | Fuzzy match on nfc_tag |
+| status       | `created,(un)assigned,completed` | 多状态筛选，精确匹配 | Exact match, multiple states allowed |
+| assigned     | `1,3` / `NULL`                   | 多个工人ID，支持NULL查询 | Multiple worker IDs, support `NULL` query. |
+| createdStart | `2025-01-01 00:00:00`            | 创建时间开始（含） | Created time ≥ this value |
+| createdEnd   | `2025-01-31 23:59:59`            | 创建时间结束（含） | Created time ≤ this value |
+| updatedStart | `2025-02-01 00:00:00`            | 更新时间开始（含） | Updated time ≥ this value |
+| updatedEnd   | `2025-02-10 23:59:59`            | 更新时间结束（含） | Updated time ≤ this value |

@@ -116,10 +116,14 @@ orderRoutes.get("/search", requireAdmin, async (c) => {
 
   // assigned_to 精确匹配多个 exact match (multiple)
   if (params.assigned) {
-    const ids = params.assigned.split(",").map(i => i.trim()).filter(i => i.length > 0)
-    if (ids.length > 0) {
-      conditions.push(`assigned_to IN (${ids.map(() => "?").join(",")})`)
-      values.push(...ids)
+    if (params.assigned === "NULL") {
+      conditions.push("assigned_to IS NULL")
+    } else {
+      const ids = params.assigned.split(",").map(i => i.trim()).filter(i => i.length > 0)
+      if (ids.length > 0) {
+        conditions.push(`assigned_to IN (${ids.map(() => "?").join(",")})`)
+        values.push(...ids)
+      }
     }
   }
 
