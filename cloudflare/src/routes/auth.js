@@ -2,6 +2,7 @@ import { Hono } from "hono"
 import { ERR } from "../utils/errors.js"
 import { hashPassword, verifyPassword } from "../utils/bcrypt.js"
 import { sign, verifyToken } from "../utils/jwt.js"
+import { jsonResponse } from "../utils/response.js"
 
 export const authRoutes = new Hono()
 
@@ -14,13 +15,13 @@ authRoutes.post("/login", async (c) => {
   ).bind(username).first()
 
   if (!user)
-    return c.json(ERR.USER_NOT_EXIST)
+    return jsonResponse(null, ERR.USER_NOT_EXIST)
 
   if (!await verifyPassword(password, user.password_hash))
-    return c.json(ERR.WRONG_PASSWORD)
+    return jsonResponse(null, ERR.WRONG_PASSWORD)
 
   const token = await sign({ id: user.id, role: user.role }, c.env.JWT_SECRET)
-  return c.json({ success: true, data: { token, role: user.role } })
+  return jsonResponse({ token, role: user.role })
 })
 
 
@@ -33,7 +34,7 @@ authRoutes.post("/register-admin", async (c) => {
     "INSERT INTO users (username, password_hash, role, created_at) VALUES (?, ?, 'admin', datetime('now'))"
   ).bind(username, hash).run()
 
-  return c.json({ success: true, data: { created: true } })
+  return jsonResponse({ created: true })
 })
 
 
@@ -41,13 +42,13 @@ authRoutes.post("/register-admin", async (c) => {
 authRoutes.post("/register-worker", async (c) => {
   const auth = c.req.header("Authorization")
   if (!auth)
-    return c.json(ERR.ADMIN_REQUIRED)
+    return jsonResponse(null, ERR.ADMIN_REQUIRED)
 
   const token = auth.replace("Bearer ", "")
   const payload = await verifyToken(token, c.env.JWT_SECRET)
 
   if (!payload || payload.role !== "admin")
-    return c.json(ERR.NO_PERMISSION)
+    return jsonResponse(null, ERR.NO_PERMISSION)
 
   const { username, password } = await c.req.json()
   const hash = await hashPassword(password)
@@ -56,5 +57,5 @@ authRoutes.post("/register-worker", async (c) => {
     "INSERT INTO users (username, password_hash, role, created_at) VALUES (?, ?, 'worker', datetime('now'))"
   ).bind(username, hash).run()
 
-  return c.json({ success: true, data: { created: true } })
+  return jsonResponse({ created: true })
 })

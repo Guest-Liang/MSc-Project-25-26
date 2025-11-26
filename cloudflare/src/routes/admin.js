@@ -1,6 +1,7 @@
 import { Hono } from "hono"
 import { ERR } from "../utils/errors.js"
 import { verifyToken } from "../utils/jwt.js"
+import { jsonResponse } from "../utils/response.js"
 
 export const adminRoutes = new Hono()
 
@@ -8,13 +9,13 @@ export const adminRoutes = new Hono()
 adminRoutes.use("*", async (c, next) => {
   const auth = c.req.header("Authorization")
   if (!auth)
-    return c.json(ERR.ADMIN_REQUIRED)
+    return jsonResponse(null, ERR.ADMIN_REQUIRED)
 
   const token = auth.replace("Bearer ", "")
   const payload = await verifyToken(token, c.env.JWT_SECRET)
 
   if (!payload || payload.role !== "admin")
-    return c.json(ERR.NO_PERMISSION)
+    return jsonResponse(null, ERR.NO_PERMISSION)
 
   c.set("user", payload)
 
@@ -37,7 +38,7 @@ adminRoutes.post("/orders/create", async (c) => {
     "INSERT INTO order_logs (order_id, action, operator_id, timestamp) VALUES (?, 'created', ?, datetime('now'))"
   ).bind(orderId, user.id).run()
 
-  return c.json({ success: true, data: { orderId } })
+  return jsonResponse({ orderId })
 })
 
 
@@ -51,7 +52,7 @@ adminRoutes.post("/orders/assign", async (c) => {
   ).bind(userId).first()
 
   if (!worker || worker.role !== "worker")
-    return c.json(ERR.WORKER_NOT_FOUND)
+    return jsonResponse(null, ERR.WORKER_NOT_FOUND)
 
   await c.env.MScPJ_DB.prepare(
     "UPDATE orders SET assigned_to = ?, status = 'assigned', updated_at = datetime('now') WHERE id = ?"
@@ -61,5 +62,5 @@ adminRoutes.post("/orders/assign", async (c) => {
     "INSERT INTO order_logs (order_id, action, operator_id, timestamp) VALUES (?, 'assigned', ?, datetime('now'))"
   ).bind(orderId, user.id).run()
 
-  return c.json({ success: true, data: { assigned: true } })
+  return jsonResponse({ assigned: true })
 })

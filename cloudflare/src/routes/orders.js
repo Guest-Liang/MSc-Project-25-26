@@ -1,6 +1,7 @@
 import { Hono } from "hono"
 import { ERR } from "../utils/errors.js"
 import { verifyToken } from "../utils/jwt.js"
+import { jsonResponse } from "../utils/response.js"
 
 export const orderRoutes = new Hono()
 
@@ -13,8 +14,8 @@ orderRoutes.get("/byTag/:tagId", async (c) => {
   ).bind(tagId).first()
 
   return order
-    ? c.json({ success: true, data: order })
-    : c.json(ERR.ORDER_NOT_FOUND)
+    ? jsonResponse(order)
+    : jsonResponse(null, ERR.ORDER_NOT_FOUND)
 })
 
 
@@ -22,13 +23,13 @@ orderRoutes.get("/byTag/:tagId", async (c) => {
 orderRoutes.get("/logs", async (c) => {
   const auth = c.req.header("Authorization")
   if (!auth)
-    return c.json(ERR.NO_PERMISSION)
+    return jsonResponse(null, ERR.NO_PERMISSION)
 
   const token = auth.replace("Bearer ", "")
   const payload = await verifyToken(token, c.env.JWT_SECRET)
 
   if (!payload || payload.role !== "admin")
-    return c.json(ERR.NO_PERMISSION)
+    return jsonResponse(null, ERR.NO_PERMISSION)
 
   const params = c.req.query()
   let conditions = []
@@ -76,5 +77,5 @@ orderRoutes.get("/logs", async (c) => {
 
   const rows = await c.env.MScPJ_DB.prepare(sql).bind(...values).all()
 
-  return c.json({ success: true, data: rows.results })
+  return jsonResponse(rows.results)
 })

@@ -2,10 +2,10 @@
 
 ## 📖 简介 / Introduction
 
-**中文**
+**中文**  
 如你所见，这是一个硕士项目
 
-**English**
+**English**  
 As you can see, this is a MSc Project.
 
 ## 🌍 本地化翻译 / Localization
@@ -24,3 +24,64 @@ This project uses [Crowdin](https://zh.crowdin.com/project/nfcworkflow) as a cli
 - [Android Studio](https://developer.android.com/studio)  
 - [Crowdin](https://crowdin.com/)  
 - [Cloudflare](https://www.cloudflare.com/)  
+
+## 🧑‍💻 开发指南 & 使用手册 / Development & Instruction
+
+### 🗄️ 数据库初始化 / Database initialization (Cloudflare D1)
+
+手动创建数据库表（Cloudflare Dashboard → D1 SQL 数据库→ 控制台）  
+
+Manually create database tables (Cloudflare Dashboard → D1 SQL Database → Console)  
+
+```sql
+CREATE TABLE users (
+  id INTEGER PRIMARY KEY,
+  username TEXT,
+  password_hash TEXT,
+  role TEXT,
+  created_at TEXT
+);
+
+CREATE TABLE orders (
+  id INTEGER PRIMARY KEY,
+  title TEXT,
+  description TEXT,
+  nfc_tag TEXT,
+  status TEXT,
+  assigned_to INTEGER,
+  created_at TEXT,
+  updated_at TEXT
+);
+
+CREATE TABLE order_logs (
+  id INTEGER PRIMARY KEY,
+  order_id INTEGER,
+  action TEXT,
+  operator_id INTEGER,
+  timestamp TEXT
+);
+```
+
+### 部署到 / Deploy to <img src="https://cf-assets.www.cloudflare.com/dzlvafdwdttg/69wNwfiY5mFmgpd9eQFW6j/d5131c08085a977aa70f19e7aada3fa9/1pixel-down__1_.svg" width="120" alt="Cloudflare 彩色标识">
+
+GitHub → Cloudflare 绑定后，构建配置如下：
+
+After binding with GitHub → Cloudflare, the build configuration is as follows:
+
+#### 构建命令 / Build command
+
+```
+pnpm install
+```
+
+#### 部署命令 / Deployment command
+
+```
+npx wrangler deploy
+```
+
+#### 根目录 / Root directory
+
+```
+/cloudflare
+```
