@@ -9,7 +9,8 @@ export async function sign(payload, secret) {
   )
 
   const header = btoa(JSON.stringify({ alg: "HS256", typ: "JWT" }))
-  const body = btoa(JSON.stringify(payload))
+  const exp = Math.floor(Date.now() / 1000) + 60 * 20  // 20分钟 20 mins
+  const body = btoa(JSON.stringify({ ...payload, exp }))
 
   const sig = await crypto.subtle.sign(
     "HMAC",
@@ -42,7 +43,11 @@ export async function verifyToken(token, secret) {
     )
 
     if (!valid) return null
-    return JSON.parse(atob(body))
+    const data = JSON.parse(atob(body))
+
+    if (data.exp && data.exp < Math.floor(Date.now() / 1000))
+      return null
+    return data
   } catch {
     return null
   }

@@ -1,27 +1,12 @@
 import { Hono } from "hono"
+import { requireAdmin } from "../middleware/auth.js"
 import { ERR } from "../utils/status.js"
-import { verifyToken } from "../utils/jwt.js"
 import { jsonResponse } from "../utils/response.js"
 
 export const adminRoutes = new Hono()
 
 // Admin 权限中间件 Admin Middleware
-adminRoutes.use("*", async (c, next) => {
-  const auth = c.req.header("Authorization")
-  if (!auth)
-    return jsonResponse(null, ERR.ADMIN_REQUIRED)
-
-  const token = auth.replace("Bearer ", "")
-  const payload = await verifyToken(token, c.env.JWT_SECRET)
-
-  if (!payload || payload.role !== "admin")
-    return jsonResponse(null, ERR.NO_PERMISSION)
-
-  c.set("user", payload)
-
-  await next()
-})
-
+adminRoutes.use("*", requireAdmin)
 
 // 创建工单 Create Orders
 adminRoutes.post("/orders/create", async (c) => {
@@ -29,7 +14,7 @@ adminRoutes.post("/orders/create", async (c) => {
   const user = c.get("user")
 
   const result = await c.env.MScPJ_DB.prepare(
-    "INSERT INTO orders (title, description, nfc_tag, status, created_at) VALUES (?, ?, ?, 'created', datetime('now'))"
+    "INSERT INTO orders (title, description, nfc_tag, status, created_at, update_at) VALUES (?, ?, ?, 'created', datetime('now'), datetime('now'))"
   ).bind(title, description, tag).run()
 
   const orderId = result.meta.last_row_id
@@ -41,7 +26,6 @@ adminRoutes.post("/orders/create", async (c) => {
   return jsonResponse({ orderId })
 })
 
-
 // 派工 Assign Orders
 adminRoutes.post("/orders/assign", async (c) => {
   const { orderId, userId } = await c.req.json()
@@ -50,9 +34,13 @@ adminRoutes.post("/orders/assign", async (c) => {
   const worker = await c.env.MScPJ_DB.prepare(
     "SELECT id, role FROM users WHERE id = ?"
   ).bind(userId).first()
+  if (!worker) return jsonResponse(null, ERR.WORKER_NOT_FOUND)
+  if (worker.role !== "worker") return jsonResponse(null, ERR.NOT_A_WORKER)
 
-  if (!worker || worker.role !== "worker")
-    return jsonResponse(null, ERR.WORKER_NOT_FOUND)
+  const order = await c.env.MScPJ_DB.prepare(
+    "SELECT id, status FROM orders WHERE id = ?"
+  ).bind(orderId).first()
+  if (!order) return jsonResponse(null, ERR.ORDER_NOT_FOUND)
 
   await c.env.MScPJ_DB.prepare(
     "UPDATE orders SET assigned_to = ?, status = 'assigned', updated_at = datetime('now') WHERE id = ?"

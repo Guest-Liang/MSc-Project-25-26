@@ -8,6 +8,7 @@ export const ERR = {
   TOKEN_MISSING: { code: 1003, message: "Token missing" },
   TOKEN_INVALID: { code: 1004, message: "Invalid token" },
   USER_ALREADY_EXISTS: { code: 1005, message: "User already exists" },
+  TOKEN_REVOKED: { code: 1006, message: "Token has been revoked" },
 
   // Permission (2000–2999)
   NO_PERMISSION: { code: 2001, message: "No permission" },
@@ -28,5 +29,6 @@ export const ERR = {
 }
 
 export const INFO = {
-  PASSWORD_UPDATED: { code: 1006, message: "Password updated" }
+  PASSWORD_UPDATED: { code: 101, message: "Password updated" },
+  LOGOUT_SUCCESS: { code: 0, message: "Logout success" }
 }

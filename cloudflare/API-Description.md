@@ -9,7 +9,7 @@ All APIs return data in JSON format and using a standardized format.
   "error": { "code": number, "message": string } | null
 }
 ```
-错误代码请参考：`cloudflare/src/utils/errors.js`
+错误代码请参考：`cloudflare/src/utils/status.js`
 
 ---
 
@@ -21,6 +21,10 @@ User login, returned JWT.
 ```json
 { "username": "admin", "password": "123456" }
 ```
+
+## **POST /auth/logout**
+用户退出登录  
+User logout.   
 
 ## **POST /auth/register-admin**
 注册管理员账号   
@@ -61,25 +65,7 @@ Assign work orders to workers.
   "userId": 2
 }
 ```
-
-## **GET /admin/orderLogs**
-查询工单日志（可以筛选）   
-Query work order logs (filterable)
-### Headers
-```
-Authorization: Bearer <admin-token>
-```
-### Query Params（可选）
-
-| 参数  | 示例  |
-| --------- | ------------------------------- |
-| orderId   | `1,2,3`                         |
-| status    | `created,assigned,completed`    |
-| operator  | `1,3`                           |
-| before    | `2025-01-01`                    |
-| after     | `2024-12-01`                    |
-| from & to | `from=2024-12-01&to=2024-12-31` |
-
+---
 # 👷 工人接口 / Worker APIs
 ## **GET /worker/orders**
 查看自己被指派的工单   
@@ -101,9 +87,20 @@ Authorization: Bearer <worker-token>
 { "orderId": 1 }
 ```
 
-# 📱 NFC 接口
-## **GET /orders/byTag/{tagId}**
-通过 NFC 标签查询工单。
+# 📄 工单接口 / Orders APIs
+## **GET /orders/logs**
+查询工单日志（可以筛选）   
+Query work order logs (filterable)
+### Headers
 ```
-GET /orders/byTag/NFC_TAG_123
+Authorization: Bearer <admin-token>
 ```
+### Query Params（可选）
+
+| 参数 Params | 示例值 Examples | 说明 | Description |
+| --- | --- | --- | --- |
+| orderId | `1,2,3` | 多个 ID 用逗号分隔 | Multiple IDs separated by commas |
+| status | `created,assigned,completed` | 多个状态可组合 | Multiple states can be combined |
+| operator | `1,3` | 操作人（用户ID） | Operator (User ID) |
+| startTime | `2025-01-01 00:00:00` | 查询此时间之后（含），精确到秒 | Query for times after this date. (Included) |
+| endTime  | `2025-01-31 23:59:59`  | 查询此时间之前（含），精确到秒 | Query for times before this date. (Included) |

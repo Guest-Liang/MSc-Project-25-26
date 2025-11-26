@@ -44,7 +44,8 @@ CREATE TABLE users (
   password_hash TEXT,
   role TEXT,
   created_at TEXT,
-  updated_at TEXT
+  updated_at TEXT,
+  token TEXT
 );
 
 CREATE TABLE orders (
