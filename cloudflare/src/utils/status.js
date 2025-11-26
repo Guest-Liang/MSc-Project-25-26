@@ -22,6 +22,7 @@ export const ERR = {
   // Order (4000–4999)
   ORDER_NOT_FOUND: { code: 4001, message: "Order does not exist" },
   ORDER_NOT_COMPLETABLE: { code: 4002, message: "Order cannot be completed" },
+  ORDER_TITLE_EXISTS: { code: 4003, message: "Order with this title already exists" },
 
   // System (5000–5999)
   DB_ERROR: { code: 5001, message: "Database error" },
