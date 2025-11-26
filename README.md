@@ -1,5 +1,9 @@
 # MSc Project 25-26
 
+## <img alt="WakaTime Logo" src="https://wakatime.com/static/img/wakatime.svg" width="25"> Wakatime badge
+
+[![wakatime](https://wakatime.com/badge/github/Guest-Liang/MSc-Project-25-26.svg)](https://wakatime.com/badge/github/Guest-Liang/MSc-Project-25-26)
+
 ## 📖 简介 / Introduction
 
 **中文**  
