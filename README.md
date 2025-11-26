@@ -43,7 +43,8 @@ CREATE TABLE users (
   username TEXT,
   password_hash TEXT,
   role TEXT,
-  created_at TEXT
+  created_at TEXT,
+  updated_at TEXT
 );
 
 CREATE TABLE orders (
