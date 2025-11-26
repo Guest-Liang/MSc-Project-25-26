@@ -1,6 +1,7 @@
 import { Hono } from "hono"
 import { requireAdmin } from "../middleware/auth.js"
 import { jsonResponse } from "../utils/response.js"
+import { ERR } from "../utils/status.js"
 
 export const orderRoutes = new Hono()
 
@@ -23,6 +24,10 @@ orderRoutes.get("/logs", requireAdmin, async (c) => {
   const params = c.req.query()
   let conditions = []
   let values = []
+
+  // 检查时间范围 Precheck time range
+  if (params.startTime && params.endTime && params.startTime > params.endTime)
+    return jsonResponse(null, ERR.INVALID_TIME_RANGE)
 
   // orderId: "1,2,3"
   if (params.orderId) {
@@ -75,6 +80,14 @@ orderRoutes.get("/search", requireAdmin, async (c) => {
   const params = c.req.query()
   let conditions = []
   let values = []
+
+  // 检查时间范围 Precheck time range
+  if (params.createdStart && params.createdEnd && params.createdStart > params.createdEnd) {
+    return jsonResponse(null, ERR.INVALID_TIME_RANGE)
+  }
+  if (params.updatedStart && params.updatedEnd && params.updatedStart > params.updatedEnd) {
+    return jsonResponse(null, ERR.INVALID_TIME_RANGE)
+  }
 
   // 模糊匹配字段 Fuzzy matching fields
   if (params.title) {
