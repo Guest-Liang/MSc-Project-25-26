@@ -1,22 +1,23 @@
 import { Hono } from "hono"
 import { ERR } from "../utils/errors.js"
 import { verifyToken } from "../utils/jwt.js"
+import { jsonResponse } from "../utils/response.js"
 
 export const workerRoutes = new Hono()
 
 workerRoutes.use("*", async (c, next) => {
   const auth = c.req.header("Authorization")
   if (!auth)
-    return c.json(ERR.TOKEN_MISSING)
+    return jsonResponse(null, ERR.TOKEN_MISSING)
 
   const token = auth.replace("Bearer ", "")
   const payload = await verifyToken(token, c.env.JWT_SECRET)
 
   if (!payload)
-    return c.json(ERR.TOKEN_INVALID)
+    return jsonResponse(null, ERR.TOKEN_INVALID)
 
   if (payload.role !== "worker")
-    return c.json(ERR.NO_PERMISSION)
+    return jsonResponse(null, ERR.NO_PERMISSION)
 
   c.set("user", payload)
 
@@ -46,13 +47,13 @@ workerRoutes.post("/orders/complete", async (c) => {
   ).bind(orderId).first()
 
   if (!order)
-    return c.json(ERR.ORDER_NOT_FOUND)
+    return jsonResponse(null, ERR.ORDER_NOT_FOUND)
 
   if (order.assigned_to !== user.id)
-    return c.json(ERR.ORDER_NOT_OWNED)
+    return jsonResponse(null, ERR.ORDER_NOT_OWNED)
 
   if (order.status !== "assigned")
-    return c.json(ERR.ORDER_NOT_COMPLETABLE)
+    return jsonResponse(null, ERR.ORDER_NOT_COMPLETABLE)
 
   await c.env.MScPJ_DB.prepare(
     "UPDATE orders SET status = 'completed', updated_at = datetime('now') WHERE id = ?"
@@ -62,5 +63,5 @@ workerRoutes.post("/orders/complete", async (c) => {
     "INSERT INTO order_logs (order_id, action, operator_id, timestamp) VALUES (?, 'completed', ?, datetime('now'))"
   ).bind(orderId, user.id).run()
 
-  return c.json({ success: true, data: { completed: true } })
+  return jsonResponse({ completed: true })
 })
