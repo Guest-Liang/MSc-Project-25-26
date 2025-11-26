@@ -1,5 +1,5 @@
 import { Hono } from "hono"
-import { ERR } from "../utils/errors.js"
+import { ERR, INFO } from "../utils/status.js"
 import { hashPassword, verifyPassword } from "../utils/bcrypt.js"
 import { sign, verifyToken } from "../utils/jwt.js"
 import { jsonResponse } from "../utils/response.js"
@@ -44,7 +44,7 @@ authRoutes.post("/register-admin", async (c) => {
       "UPDATE users SET password_hash = ?, updated_at = datetime('now') WHERE username = ?"
     ).bind(newHash, username).run()
 
-    return jsonResponse(null, ERR.PASSWORD_UPDATED)
+    return jsonResponse(INFO.PASSWORD_UPDATED)
   }
 
   await c.env.MScPJ_DB.prepare(
@@ -84,7 +84,7 @@ authRoutes.post("/register-worker", async (c) => {
       "UPDATE users SET password_hash = ?, updated_at = datetime('now') WHERE username = ?"
     ).bind(newHash, username).run()
 
-    return jsonResponse(null, ERR.PASSWORD_UPDATED)
+    return jsonResponse(INFO.PASSWORD_UPDATED)
   }
 
 

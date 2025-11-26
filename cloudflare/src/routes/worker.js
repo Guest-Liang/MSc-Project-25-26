@@ -1,5 +1,5 @@
 import { Hono } from "hono"
-import { ERR } from "../utils/errors.js"
+import { ERR } from "../utils/status.js"
 import { verifyToken } from "../utils/jwt.js"
 import { jsonResponse } from "../utils/response.js"
 

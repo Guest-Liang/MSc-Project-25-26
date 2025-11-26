@@ -8,8 +8,6 @@ export const ERR = {
   TOKEN_MISSING: { code: 1003, message: "Token missing" },
   TOKEN_INVALID: { code: 1004, message: "Invalid token" },
   USER_ALREADY_EXISTS: { code: 1005, message: "User already exists" },
-  PASSWORD_UPDATED: { code: 1006, message: "Password updated" },
-
 
   // Permission (2000–2999)
   NO_PERMISSION: { code: 2001, message: "No permission" },
@@ -27,4 +25,8 @@ export const ERR = {
   // System (5000–5999)
   DB_ERROR: { code: 5001, message: "Database error" },
   INTERNAL_ERROR: { code: 5002, message: "Internal server error" }
+}
+
+export const INFO = {
+  PASSWORD_UPDATED: { code: 1006, message: "Password updated" }
 }
