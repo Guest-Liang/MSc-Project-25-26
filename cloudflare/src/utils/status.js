@@ -40,4 +40,5 @@ export const INFO = {
   ORDER_SET_STATUS_SUCCESS: { code: 9008, message: "Set work order completion success" },
   TOKEN_STILL_VALID: { code: 9009, message: "Token is still valid" },
   ORDER_CREATED_SUCCESS: { code: 9010, message: "Order created successfully" },
+  TOKEN_GENERATED_SUCCESS: { code: 9011, message: "Token generated successfully" },
 }

@@ -46,7 +46,7 @@ authRoutes.post("/login", async (c) => {
   ).bind(token, user.id).run()
 
   return jsonResponse({
-    ...INFO.TOKEN_STILL_VALID,
+    ...INFO.TOKEN_GENERATED_SUCCESS,
     data:{
       token,
       role: user.role
