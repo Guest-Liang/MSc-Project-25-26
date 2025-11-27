@@ -1,6 +1,6 @@
 import { Hono } from "hono"
 import { requireAdmin } from "../middleware/auth.js"
-import { ERR } from "../utils/status.js"
+import { ERR, INFO } from "../utils/status.js"
 import { jsonResponse } from "../utils/response.js"
 
 export const adminRoutes = new Hono()
@@ -28,7 +28,10 @@ adminRoutes.post("/orders/create", async (c) => {
     "INSERT INTO order_logs (order_id, action, operator_id, timestamp) VALUES (?, 'created', ?, datetime('now'))"
   ).bind(orderId, user.id).run()
 
-  return jsonResponse({ orderId })
+  return jsonResponse({
+    ...INFO.ORDER_CREATED_SUCCESS,
+    data: { "orderId": orderId }
+  })
 })
 
 // 派工 Assign Orders
@@ -54,7 +57,7 @@ adminRoutes.post("/orders/assign", async (c) => {
     await c.env.MScPJ_DB.prepare(
       "INSERT INTO order_logs (order_id, action, operator_id, timestamp) VALUES (?, 'unassigned', ?, datetime('now'))"
     ).bind(orderId, user.id).run()
-    return jsonResponse({ unassigned: true })
+    return jsonResponse(INFO.ORDER_UNASSIGNED_SUCCESS)
   }
 
   await c.env.MScPJ_DB.prepare(
@@ -65,5 +68,5 @@ adminRoutes.post("/orders/assign", async (c) => {
     "INSERT INTO order_logs (order_id, action, operator_id, timestamp) VALUES (?, 'assigned', ?, datetime('now'))"
   ).bind(orderId, user.id).run()
 
-  return jsonResponse({ assigned: true })
+  return jsonResponse(INFO.ORDER_ASSIGNED_SUCCESS)
 })

@@ -5,10 +5,19 @@ All APIs return data in JSON format and using a standardized format.
 ```json
 {
   "success": true | false,
-  "data": {} | null,
-  "error": { "code": number, "message": string } | null
+  "code": number,
+  "message": string,
+  "data": {} | [] | null
 }
-```
+```  
+
+| 字段 | 类型 | 说明 | Description |
+| --- | --- | --- | --- |
+| `success` | boolean               | 请求是否成功 | Whether the request succeeded |
+| `code`    | number                | 成功或错误码 | Success / error code |
+| `message` | string                | 对应消息 | Human-readable message |
+| `data`    | object / array / null | 返回数据内容 | Returned payload |
+
 错误代码请参考：`cloudflare/src/utils/status.js`
 
 ---

@@ -1,7 +1,4 @@
 export const ERR = {
-  // Success
-  SUCCESS: { code: 0, message: "Success" },
-
   // User & Auth (1000–1999)
   USER_NOT_EXIST: { code: 1001, message: "User does not exist" },
   WRONG_PASSWORD: { code: 1002, message: "Wrong password" },
@@ -31,6 +28,16 @@ export const ERR = {
 }
 
 export const INFO = {
-  PASSWORD_UPDATED: { code: 101, message: "Password updated" },
-  LOGOUT_SUCCESS: { code: 0, message: "Logout success" }
+  SUCCESS: { code: 0, message: "Success" },
+  LOGIN_SUCCESS: { code: 9000, message: "Login success" },
+  LOGOUT_SUCCESS: { code: 9001, message: "Logout success" },
+  SQL_QUERY_SUCCESS: { code: 9002, message: "SQL query success" },
+  PASSWORD_UPDATED: { code: 9003, message: "Password updated" },
+  ORDER_ASSIGNED_SUCCESS: { code: 9004, message: "Order assigned success" },
+  ORDER_UNASSIGNED_SUCCESS: { code: 9005, message: "Order unassigned success" },
+  ADMIN_CREATED_SUCCESS: { code: 9006, message: "Admin created success" },
+  WORKER_CREATED_SUCCESS: { code: 9007, message: "Worker created success" },
+  ORDER_SET_STATUS_SUCCESS: { code: 9008, message: "Set work order completion success" },
+  TOKEN_STILL_VALID: { code: 9009, message: "Token is still valid" },
+  ORDER_CREATED_SUCCESS: { code: 9010, message: "Order created successfully" },
 }

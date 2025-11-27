@@ -1,29 +1,52 @@
-export function jsonResponse(data = null, error = null) {
+export function jsonResponse(input = null, error = null) {
   const hasError = !!error
 
-  let code = 0
-  let message = ""
-
   if (hasError) {
-    if (typeof error === "number") {
-      code = error
-    } else if (typeof error === "string") {
-      code = 1
-      message = error
-    } else {
-      code = typeof error.code === "number" ? error.code : 1
-      message = error.message || ""
+    const { code, message } = error
+    return new Response(JSON.stringify({
+      success: false,
+      code,
+      message,
+      data: null
+    }), {
+      status: 200,
+      headers: { "Content-Type": "application/json" }
+    })
+  }
+
+  let code = 0
+  let message = "Success"
+  let data = {}
+
+  // input 的几种情况：
+  // 1. INFO.xxx → { code, message }
+  // 2. { code, message, data }
+  // 3. { data, message }
+  // 4. 普通对象/数组
+  // 5. null
+
+  if (input === null || input === undefined) { } // 默认: Success + {}
+  else if (Array.isArray(input)) { data = input }
+  else if (typeof input === "object") {
+    // 1: INFO.xxx 或自定义 code + message
+    if (typeof input.code === "number" && typeof input.message === "string") {
+      code = input.code
+      message = input.message
+      data = input.data ?? {}
     }
+    // 2: 普通对象作为 data Ordinary objects as data
+    else { data = input }
   }
+  // 其他类型 Other types
+  else { data = { value: input } }
 
-  const body = {
-    success: !hasError,
-    data: hasError ? null : data,
-    error: hasError ? { code, message } : null,
-  }
-
-  return new Response(JSON.stringify(body), {
+  return new Response(JSON.stringify({
+    success: true,
+    code,
+    message,
+    data
+  }), {
     status: 200,
-    headers: { "Content-Type": "application/json" },
+    headers: { "Content-Type": "application/json" }
   })
 }

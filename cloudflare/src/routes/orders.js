@@ -1,7 +1,7 @@
 import { Hono } from "hono"
 import { requireAdmin } from "../middleware/auth.js"
 import { jsonResponse } from "../utils/response.js"
-import { ERR } from "../utils/status.js"
+import { ERR, INFO } from "../utils/status.js"
 
 export const orderRoutes = new Hono()
 
@@ -72,7 +72,10 @@ orderRoutes.get("/logs", requireAdmin, async (c) => {
 
   const rows = await c.env.MScPJ_DB.prepare(sql).bind(...values).all()
 
-  return jsonResponse(rows.results)
+  return jsonResponse({
+    ...INFO.SQL_QUERY_SUCCESS,
+    data: rows.results
+  })
 })
 
 // 查询工单（支持多条件筛选） Search Orders
@@ -151,5 +154,8 @@ orderRoutes.get("/search", requireAdmin, async (c) => {
   const sql = `SELECT * FROM orders ${where} ORDER BY updated_at DESC`
 
   const rows = await c.env.MScPJ_DB.prepare(sql).bind(...values).all()
-  return jsonResponse(rows.results)
+  return jsonResponse({
+    ...INFO.SQL_QUERY_SUCCESS,
+    data: rows.results
+  })
 })

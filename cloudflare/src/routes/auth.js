@@ -28,7 +28,13 @@ authRoutes.post("/login", async (c) => {
       ).bind(user.id).first()
 
       if (dbUser && dbUser.token === user.token) {
-        return jsonResponse({ token: user.token, role: user.role })
+        return jsonResponse({
+          ...INFO.TOKEN_STILL_VALID,
+          data: {
+            token: user.token, 
+            role: user.role
+          }
+        })
       }
     }
   }
@@ -39,7 +45,13 @@ authRoutes.post("/login", async (c) => {
     "UPDATE users SET token = ?, updated_at = datetime('now') WHERE id = ?"
   ).bind(token, user.id).run()
 
-  return jsonResponse({ token, role: user.role })
+  return jsonResponse({
+    ...INFO.TOKEN_STILL_VALID,
+    data:{
+      token,
+      role: user.role
+    }
+  })
 })
 
 // 登出 Logout
@@ -79,7 +91,7 @@ authRoutes.post("/register-admin", async (c) => {
     "INSERT INTO users (username, password_hash, role, created_at, updated_at) VALUES (?, ?, 'admin', datetime('now'), datetime('now'))"
   ).bind(username, hash).run()
 
-  return jsonResponse({ created: true })
+  return jsonResponse(INFO.ADMIN_CREATED_SUCCESS)
 })
 
 // 注册工人 Register Worker (Admin only)
@@ -107,5 +119,5 @@ authRoutes.post("/register-worker", requireAdmin, async (c) => {
     "INSERT INTO users (username, password_hash, role, created_at, updated_at) VALUES (?, ?, 'worker', datetime('now'), datetime('now'))"
   ).bind(username, hash).run()
 
-  return jsonResponse({ created: true })
+  return jsonResponse(INFO.WORKER_CREATED_SUCCESS)
 })

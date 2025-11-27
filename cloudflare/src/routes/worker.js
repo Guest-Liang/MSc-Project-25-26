@@ -1,6 +1,6 @@
 import { Hono } from "hono"
 import { requireWorker } from "../middleware/auth.js"
-import { ERR } from "../utils/status.js"
+import { ERR, INFO } from "../utils/status.js"
 import { jsonResponse } from "../utils/response.js"
 
 export const workerRoutes = new Hono()
@@ -16,7 +16,10 @@ workerRoutes.get("/orders", async (c) => {
     "SELECT * FROM orders WHERE assigned_to = ? ORDER BY updated_at DESC"
   ).bind(user.id).all()
 
-  return jsonResponse(list.results)
+  return jsonResponse({
+    ...INFO.SQL_QUERY_SUCCESS,
+    data: list.results
+  })
 })
 
 // 设置工单完成状态 Set work order completion status
@@ -42,5 +45,5 @@ workerRoutes.post("/orders/complete", async (c) => {
     "INSERT INTO order_logs (order_id, action, operator_id, timestamp) VALUES (?, 'completed', ?, datetime('now'))"
   ).bind(orderId, user.id).run()
 
-  return jsonResponse({ completed: true })
+  return jsonResponse(INFO.ORDER_SET_STATUS_SUCCESS)
 })
