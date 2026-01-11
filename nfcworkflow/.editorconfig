@@ -1,0 +1,12 @@
+root = true
+
+[*.{kt,kts}]
+ij_kotlin_name_count_to_use_star_import = 99
+ij_kotlin_packages_to_use_import_on_demand = unset
+ij_kotlin_imports_layout = *,java.**,javax.**,kotlin.**,android.**,androidx.**,^
+# 末尾 ^ 表示每组之间空行
+
+[*.java]
+ij_java_names_count_to_use_import_on_demand = 99
+ij_java_class_count_to_use_import_on_demand = 99
+ij_java_imports_layout = *,java.**,javax.**,org.**,com.**,android.**,androidx.**,^

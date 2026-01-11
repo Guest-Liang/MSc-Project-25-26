@@ -1,0 +1,28 @@
+<resources>
+    <string name="app_name">NFCWorkFlow</string>
+
+    <!-- nav -->
+    <string name="tab_home">主页</string>
+    <string name="tab_settings">设置</string>
+    <string name="tab_logs">日志</string>
+
+    <!-- settings -->
+    <string name="appearance_title">外观设置</string>
+    <string name="theme_title">主题模式</string>
+    <string name="theme_system">跟随系统</string>
+    <string name="theme_dark">深色</string>
+    <string name="theme_light">浅色</string>
+
+    <string name="language_title">语言设置</string>
+    <string name="language">语言</string>
+    <string name="lang_auto">自动</string>
+    <string name="lang_zh">中文</string>
+    <string name="lang_en">英文</string>
+
+    <string name="dynamic_color_desc">跟随系统主题色</string>
+    <string name="dynamic_color_title">动态取色</string>
+
+    <!-- home -->
+    <string name="example_switch_group_title">示例开关组</string>
+    <string name="example_switch_title">示例开关</string>
+</resources>
