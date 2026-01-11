@@ -42,7 +42,7 @@ fun HomeScreen(navController: NavController) {
                         SwitchItem(
                             icon = Icons.Default.Info,
                             title = stringResource(id = R.string.example_switch_title),
-                            subtitle = "This is an example switch",
+                            subtitle = stringResource(R.string.example_switch_desc),
                             isChecked = false,
                             onCheckedChange = {}
                         )

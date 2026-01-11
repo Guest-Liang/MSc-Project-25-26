@@ -23,6 +23,8 @@
     <string name="dynamic_color_title">动态取色</string>
 
     <!-- home -->
-    <string name="example_switch_group_title">示例开关组</string>
+    <string name="example_switch_group_title">示例开关组</string
     <string name="example_switch_title">示例开关</string>
+    <string name="example_switch_desc">这是一个示例开关</string>
+
 </resources>
