@@ -1,6 +1,7 @@
 package icu.guestliang.nfcworkflow.ui
 
 import icu.guestliang.nfcworkflow.R
+import icu.guestliang.nfcworkflow.logging.AppLogger
 import icu.guestliang.nfcworkflow.ui.components.SwitchGroup
 import icu.guestliang.nfcworkflow.ui.components.SwitchItem
 import androidx.compose.foundation.layout.Arrangement
@@ -16,12 +17,16 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 
 @Composable
 fun HomeScreen(navController: NavController) {
+    val context = LocalContext.current
+    AppLogger.debug(context, "HomeScreen recomposed", "UI")
+
     Scaffold(
         modifier = Modifier.fillMaxSize(),
         containerColor = MaterialTheme.colorScheme.background
@@ -42,9 +47,11 @@ fun HomeScreen(navController: NavController) {
                         SwitchItem(
                             icon = Icons.Default.Info,
                             title = stringResource(id = R.string.example_switch_title),
-                            subtitle = stringResource(R.string.example_switch_desc),
+                            subtitle = stringResource(id = R.string.example_switch_desc),
                             isChecked = false,
-                            onCheckedChange = {}
+                            onCheckedChange = {
+                                AppLogger.debug(navController.context, "Switch changed: $it", "Home")
+                            }
                         )
                     )
                 )

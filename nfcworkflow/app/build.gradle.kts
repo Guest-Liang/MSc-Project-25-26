@@ -16,7 +16,7 @@ android {
         applicationId = "icu.guestliang.nfcworkflow"
         minSdk = 31
         targetSdk = 36
-        versionCode = 1
+        versionCode = gitCommitCount()
         versionName = "0.0.1"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
@@ -25,7 +25,8 @@ android {
 
     buildTypes {
         release {
-            isMinifyEnabled = false
+            isMinifyEnabled = true
+            isShrinkResources = true
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
@@ -90,3 +91,24 @@ dependencies {
 
     implementation(libs.androidx.lifecycle.viewmodel.compose)
 }
+
+fun gitCommitCount(): Int {
+    println("rootProject.projectDir=" + rootProject.projectDir.absolutePath)
+    fun run(vararg args: String): Int {
+        val p = ProcessBuilder(listOf("git", *args))
+            .directory(rootProject.projectDir)
+            .redirectErrorStream(true)
+            .start()
+        val out = p.inputStream.bufferedReader().readText().trim()
+        val code = p.waitFor()
+        if (code != 0) return 0
+        return out.toIntOrNull() ?: 0
+    }
+
+    val scoped = run("rev-list", "--count", "HEAD", "--", ".")
+    if (scoped > 0) return scoped
+
+    val all = run("rev-list", "--count", "HEAD")
+    return if (all > 0) all else 1
+}
+
