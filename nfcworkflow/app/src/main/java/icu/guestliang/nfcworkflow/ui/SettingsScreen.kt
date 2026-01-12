@@ -3,6 +3,7 @@ package icu.guestliang.nfcworkflow.ui
 import icu.guestliang.nfcworkflow.R
 import icu.guestliang.nfcworkflow.data.PrefsDataStore
 import icu.guestliang.nfcworkflow.data.ThemeMode
+import icu.guestliang.nfcworkflow.logging.AppLogger
 import icu.guestliang.nfcworkflow.ui.theme.Dimensions
 import kotlinx.coroutines.launch
 import android.content.Intent
@@ -52,6 +53,7 @@ import androidx.compose.ui.res.stringResource
 @Composable
 fun SettingsScreen() {
     val ctx = LocalContext.current
+    AppLogger.debug(ctx, "SettingsScreen recomposed", "UI")
     val scope = rememberCoroutineScope()
     val prefs by PrefsDataStore.flow(ctx).collectAsState(initial = null)
 
@@ -79,7 +81,10 @@ fun SettingsScreen() {
                 icon = Icons.Default.DarkMode,
                 title = themeTitle,
                 subtitle = themeSubtitle,
-                onClick = { showThemeDialog = true }
+                onClick = {
+                    showThemeDialog = true
+                    AppLogger.info(ctx, "Opening theme settings", "Settings")
+                }
             )
 
             SettingsDivider()
@@ -90,7 +95,10 @@ fun SettingsScreen() {
                 summary = stringResource(id = R.string.dynamic_color_desc),
                 checked = prefs!!.dynamicColor,
                 onChange = { enabled ->
-                    scope.launch { PrefsDataStore.setDynamicColor(ctx, enabled) }
+                    scope.launch {
+                        AppLogger.info(ctx, "Dynamic color changed: $enabled", "Settings")
+                        PrefsDataStore.setDynamicColor(ctx, enabled)
+                    }
                 }
             )
         }
@@ -103,13 +111,17 @@ fun SettingsScreen() {
                 onClick = {
                     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
                         try {
+                            AppLogger.info(ctx, "Opening app locale settings", "Settings")
                             val intent = Intent(Settings.ACTION_APP_LOCALE_SETTINGS).apply {
                                 data = Uri.fromParts("package", ctx.packageName, null)
                             }
                             ctx.startActivity(intent)
-                        } catch (_: Exception) {}
+                        } catch (e: Exception) {
+                            AppLogger.error(ctx, e, "Failed to open app locale settings", "Settings")
+                        }
                     } else {
                         // 兜底：打开系统语言设置
+                        AppLogger.info(ctx, "Opening system locale settings", "Settings")
                         val fallback = Intent(Settings.ACTION_LOCALE_SETTINGS).apply {
                             addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
                         }
@@ -134,9 +146,15 @@ fun SettingsScreen() {
             selectedIndex = selectedIndex,
             onOptionSelected = { index ->
                 val mode = options[index].first
-                scope.launch { PrefsDataStore.updateTheme(ctx, mode) }
+                scope.launch {
+                    AppLogger.info(ctx, "Theme changed: $mode", "Settings")
+                    PrefsDataStore.updateTheme(ctx, mode)
+                }
             },
-            onDismiss = { showThemeDialog = false }
+            onDismiss = {
+                showThemeDialog = false
+                AppLogger.info(ctx, "Closing theme settings", "Settings")
+            }
         )
     }
 }

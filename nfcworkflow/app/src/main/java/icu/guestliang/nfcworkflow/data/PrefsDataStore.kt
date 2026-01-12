@@ -1,5 +1,6 @@
 package icu.guestliang.nfcworkflow.data
 
+import icu.guestliang.nfcworkflow.logging.AppLogger
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 import android.content.Context
@@ -18,7 +19,13 @@ object PrefsDataStore {
 
     fun flow(context: Context): Flow<AppPrefs> = context.dataStore.data.map { p ->
         AppPrefs(
-            theme = p[KEY_THEME]?.let { runCatching { ThemeMode.valueOf(it) }.getOrNull() } ?: ThemeMode.SYSTEM,
+            theme = p[KEY_THEME]?.let { themeName ->
+                runCatching { ThemeMode.valueOf(themeName) }
+                    .getOrElse { e ->
+                        AppLogger.error(context, e, "Failed to parse theme mode", "Prefs")
+                        ThemeMode.SYSTEM
+                    }
+            } ?: ThemeMode.SYSTEM,
             showLogsTab = p[KEY_SHOW_LOGS] ?: true,
             autoRefreshLogs = p[KEY_LOG_AUTO] ?: true,
             dynamicColor = p[KEY_DYNAMIC_COLOR] ?: true,
