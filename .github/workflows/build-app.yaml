@@ -69,7 +69,6 @@ jobs:
           path: nfcworkflow/app/build/outputs/apk/release/*.apk
 
       - name: Create GitHub Release
-        if: github.ref == 'refs/heads/main'
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ steps.relinfo.outputs.tag }}
