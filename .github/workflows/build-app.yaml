@@ -2,7 +2,7 @@ name: 构建 Android APK
 
 on:
   push:
-    branches: [ "dev", "main" ]
+    branches: [ "main" ]
     paths:
       - "nfcworkflow/**"
       - ".github/workflows/build-app.yaml"
@@ -19,7 +19,6 @@ jobs:
       - name: Get current time
         id: date
         run: |
-            # 设置为东八区北京时间 (可选)
             export TZ='Asia/Shanghai'
             echo "BUILD_TIME=$(date +'%Y-%m-%d %H:%M:%S')" >> $GITHUB_OUTPUT
 
