@@ -1,0 +1,86 @@
+name: 构建 Android APK
+
+on:
+  push:
+    branches: [ "dev", "main", "ci-test" ]
+    paths:
+      - "nfcworkflow/**"
+      - ".github/workflows/build-app.yaml"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+          cache: gradle
+
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v4
+
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Decode keystore
+        working-directory: nfcworkflow
+        env:
+          KEYSTORE_B64: ${{ secrets.ANDROID_KEYSTORE_B64 }}
+        run: |
+          echo "$KEYSTORE_B64" | base64 -d > release.jks
+
+      - name: Build signed Release APK
+        working-directory: nfcworkflow
+        env:
+          ANDROID_KEYSTORE_PATH: ${{ github.workspace }}/nfcworkflow/release.jks
+          ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+        run: |
+          chmod +x ./gradlew
+          ./gradlew --no-daemon clean assembleRelease
+
+      - name: Compute release info
+        id: relinfo
+        run: |
+          APK_PATH=$(ls -1 nfcworkflow/app/build/outputs/apk/release/*.apk | head -n 1)
+          APK_NAME=$(basename "$APK_PATH")
+          echo "apk_path=$APK_PATH" >> "$GITHUB_OUTPUT"
+          echo "apk_name=$APK_NAME" >> "$GITHUB_OUTPUT"
+          echo "tag=v${GITHUB_RUN_NUMBER}" >> "$GITHUB_OUTPUT"
+          echo "title=NFCWorkFlow v${GITHUB_RUN_NUMBER}" >> "$GITHUB_OUTPUT"
+
+      - name: Upload Release APK (artifact)
+        uses: actions/upload-artifact@v4
+        with:
+          name: apk-release-signed
+          path: nfcworkflow/app/build/outputs/apk/release/*.apk
+
+      - name: Create GitHub Release
+        if: github.ref == 'refs/heads/main'
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.relinfo.outputs.tag }}
+          name: ${{ steps.relinfo.outputs.title }}
+          generate_release_notes: true
+          body: |
+            ### 📱 构建信息
+            - 构建分支: ${{ github.ref_name }}
+            - 构建时间: ${{ github.run_started_at }}
+          draft: false
+          prerelease: false
+          files: ${{ steps.relinfo.outputs.apk_path }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
