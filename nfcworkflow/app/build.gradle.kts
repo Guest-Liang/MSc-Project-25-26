@@ -1,23 +1,20 @@
-import org.jetbrains.kotlin.gradle.dsl.JvmTarget
+import com.android.build.api.dsl.ApplicationExtension
 
 plugins {
     alias(libs.plugins.android.application)
-    alias(libs.plugins.kotlin.android)
-    id("org.jetbrains.kotlin.plugin.compose") version "2.3.10"
+    alias(libs.plugins.kotlin.compose)
 }
 
-android {
+configure<ApplicationExtension> {
     namespace = "icu.guestliang.nfcworkflow"
-    compileSdk {
-        version = release(36)
-    }
+    compileSdk = 36
 
     defaultConfig {
         applicationId = "icu.guestliang.nfcworkflow"
         minSdk = 31
         targetSdk = 36
         versionCode = gitCommitCount()
-        versionName = "0.0.2"
+        versionName = libs.versions.app.version.get()
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables { useSupportLibrary = true }
@@ -25,17 +22,10 @@ android {
 
     signingConfigs {
         create("release") {
-            val ksPath = System.getenv("ANDROID_KEYSTORE_PATH")
-            val ksPass = System.getenv("ANDROID_KEYSTORE_PASSWORD")
-            val keyAlias = System.getenv("ANDROID_KEY_ALIAS")
-            val keyPass = System.getenv("ANDROID_KEY_PASSWORD")
-
-            if (!ksPath.isNullOrBlank()) {
-                storeFile = file(ksPath)
-                storePassword = ksPass
-                this.keyAlias = keyAlias
-                keyPassword = keyPass
-            }
+            storeFile = System.getenv("ANDROID_KEYSTORE_PATH")?.let { file(it) }
+            storePassword = System.getenv("ANDROID_KEYSTORE_PASSWORD")
+            keyAlias = System.getenv("ANDROID_KEY_ALIAS")
+            keyPassword = System.getenv("ANDROID_KEY_PASSWORD")
         }
     }
 
@@ -50,32 +40,29 @@ android {
             )
         }
     }
-    tasks.withType<org.jetbrains.kotlin.gradle.tasks.KotlinCompile>().configureEach {
-        compilerOptions {
-            jvmTarget.set(JvmTarget.JVM_21)
-        }
-    }
     buildFeatures {
         compose = true
         buildConfig = true
+        resValues = true
     }
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_21
         targetCompatibility = JavaVersion.VERSION_21
     }
-    applicationVariants.all {
-        outputs.all {
+}
+kotlin {
+    jvmToolchain(21)
+}
+androidComponents {
+    onVariants { variant ->
+        variant.outputs.forEach { output ->
             val appName = "NFCWorkFlow"
-            val versionName = defaultConfig.versionName
-            val versionCode = defaultConfig.versionCode
-            val outputFileName = "${appName}_v${versionName}(${versionCode}).apk"
-            if (this is com.android.build.gradle.internal.api.BaseVariantOutputImpl) {
-                this.outputFileName = outputFileName
-            }
+            val vName = libs.versions.app.version.get()
+            val vCode = gitCommitCount()
+            (output as? com.android.build.api.variant.impl.VariantOutputImpl)?.outputFileName?.set("${appName}_v${vName}_${vCode}-${variant.name}.apk")
         }
     }
 }
-
 dependencies {
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.appcompat)
@@ -129,3 +116,10 @@ fun gitCommitCount(): Int {
     return if (all > 0) all else 1
 }
 
+configurations.matching { it.name == "composeMappingProducerClasspath" }.configureEach {
+    resolutionStrategy.eachDependency {
+        if (requested.group == "org.jetbrains.kotlin" && requested.name == "compose-group-mapping") {
+            useVersion(libs.versions.kotlin.get())
+        }
+    }
+}

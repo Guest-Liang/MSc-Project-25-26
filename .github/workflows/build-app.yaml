@@ -47,6 +47,42 @@ jobs:
         run: |
           echo "$KEYSTORE_B64" | base64 -d > release.jks
 
+      - name: Compute release info (apk names + tag)
+        id: relinfo
+        run: |
+          set -euo pipefail
+
+          # 1) versionName：从 libs.versions.toml 读 app-version
+          VERSION_NAME=$(sed -nE 's/^[[:space:]]*app-version[[:space:]]*=[[:space:]]*"([^"]+)".*/\1/p' nfcworkflow/gradle/libs.versions.toml | head -n 1)
+
+          if [[ -z "${VERSION_NAME:-}" ]]; then
+            echo "Failed to read app-version from libs.versions.toml"
+            exit 1
+          fi
+
+          # 2) versionCode：与 Gradle 里的 gitCommitCount 逻辑一致（scoped 优先）
+          SCOPED=$(git rev-list --count HEAD -- nfcworkflow 2>/dev/null || echo 0)
+          if [[ "$SCOPED" -gt 0 ]]; then
+            VERSION_CODE="$SCOPED"
+          else
+            ALL=$(git rev-list --count HEAD 2>/dev/null || echo 0)
+            VERSION_CODE=$([[ "$ALL" -gt 0 ]] && echo "$ALL" || echo 1)
+          fi
+
+          echo "version_name=$VERSION_NAME" >> "$GITHUB_OUTPUT"
+          echo "version_code=$VERSION_CODE" >> "$GITHUB_OUTPUT"
+          echo "tag=v${VERSION_NAME}+${VERSION_CODE}" >> "$GITHUB_OUTPUT"
+          echo "title=NFCWorkFlow v${VERSION_NAME} (${VERSION_CODE})" >> "$GITHUB_OUTPUT"
+
+      - name: Fail if tag already exists
+        run: |
+          set -euo pipefail
+          git fetch --tags --force
+          if git show-ref --tags --verify --quiet "refs/tags/${{ steps.relinfo.outputs.tag }}"; then
+            echo "Tag already exists: ${{ steps.relinfo.outputs.tag }}"
+            exit 1
+          fi
+
       - name: Build signed Release APK
         working-directory: nfcworkflow
         env:
@@ -56,52 +92,20 @@ jobs:
           ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
         run: |
           chmod +x ./gradlew
-          ./gradlew --no-daemon clean assembleRelease
-
-      - name: Compute release info (normalize apk name)
-        id: relinfo
-        run: |
-          APK_PATH=$(ls -1 nfcworkflow/app/build/outputs/apk/release/*.apk | head -n 1)
-          APK_NAME=$(basename "$APK_PATH")
-
-          RAW=${APK_NAME#NFCWorkFlow_v}
-          RAW=${RAW%.apk}
-
-          if [[ "$RAW" =~ ^(.+)\(([0-9]+)\)$ ]]; then
-            VERSION_NAME="${BASH_REMATCH[1]}"
-            VERSION_CODE="${BASH_REMATCH[2]}"
-          elif [[ "$RAW" =~ ^(.+)\.([0-9]+)$ ]]; then
-            VERSION_NAME="${BASH_REMATCH[1]}"
-            VERSION_CODE="${BASH_REMATCH[2]}"
-          else
-            VERSION_NAME="0.0.0"
-            VERSION_CODE="${GITHUB_RUN_NUMBER}"
-          fi
-
-          TARGET_NAME="NFCWorkFlow_v${VERSION_NAME}(${VERSION_CODE}).apk"
-          if [[ "$APK_NAME" != "$TARGET_NAME" ]]; then
-            mv "$APK_PATH" "nfcworkflow/app/build/outputs/apk/release/$TARGET_NAME"
-            APK_PATH="nfcworkflow/app/build/outputs/apk/release/$TARGET_NAME"
-            APK_NAME="$TARGET_NAME"
-          fi
-
-          echo "apk_path=$APK_PATH" >> "$GITHUB_OUTPUT"
-          echo "apk_name=$APK_NAME" >> "$GITHUB_OUTPUT"
-          echo "version_name=$VERSION_NAME" >> "$GITHUB_OUTPUT"
-          echo "version_code=$VERSION_CODE" >> "$GITHUB_OUTPUT"
-
-          echo "tag=v${VERSION_NAME}" >> "$GITHUB_OUTPUT"
-          echo "title=NFCWorkFlow v${VERSION_NAME} (${VERSION_CODE})" >> "$GITHUB_OUTPUT"
+          ./gradlew --no-daemon clean assembleRelease assembleDebug
 
       - name: Upload Release APK (artifact)
         uses: actions/upload-artifact@v4
         with:
           name: apk-release-signed
-          path: nfcworkflow/app/build/outputs/apk/release/*.apk
+          path: |
+            nfcworkflow/app/build/outputs/apk/release/*-release.apk
+            nfcworkflow/app/build/outputs/apk/debug/*-debug.apk
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
+          fail_on_unmatched_files: true
           tag_name: ${{ steps.relinfo.outputs.tag }}
           name: ${{ steps.relinfo.outputs.title }}
           body: |
@@ -110,6 +114,8 @@ jobs:
             - 构建时间: ${{ steps.date.outputs.BUILD_TIME }} (UTC+8)
           draft: false
           prerelease: false
-          files: ${{ steps.relinfo.outputs.apk_path }}
+          files: |
+            nfcworkflow/app/build/outputs/apk/release/*-release.apk
+            nfcworkflow/app/build/outputs/apk/debug/*-debug.apk
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
