@@ -9,15 +9,15 @@ importers:
   .:
     dependencies:
       hono:
-        specifier: ^4.10.6
-        version: 4.10.6
+        specifier: ^4.11.10
+        version: 4.11.10
 
 packages:
 
-  hono@4.10.6:
-    resolution: {integrity: sha512-BIdolzGpDO9MQ4nu3AUuDwHZZ+KViNm+EZ75Ae55eMXMqLVhDFqEMXxtUe9Qh8hjL+pIna/frs2j6Y2yD5Ua/g==}
+  hono@4.11.10:
+    resolution: {integrity: sha512-kyWP5PAiMooEvGrA9jcD3IXF7ATu8+o7B3KCbPXid5se52NPqnOpM/r9qeW2heMnOekF4kqR1fXJqCYeCLKrZg==}
     engines: {node: '>=16.9.0'}
 
 snapshots:
 
-  hono@4.10.6: {}
+  hono@4.11.10: {}
