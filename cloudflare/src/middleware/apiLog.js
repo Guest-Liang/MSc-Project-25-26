@@ -19,6 +19,11 @@ async function resolveUserForLog(c, method, path) {
 }
 
 async function resolveRequestMeta(c, method, path) {
+  const preloadedMeta = c.get("api_log_request_meta")
+  if (typeof preloadedMeta === "string") {
+    return preloadedMeta
+  }
+
   if (method === "POST" && path === "/auth/login") {
     try {
       const body = await c.req.raw.clone().json()
@@ -110,13 +115,39 @@ export async function writeApiLog(c) {
 }
 
 export async function apiLogMiddleware(c, next) {
+  const method = c.req.method
+  const path = new URL(c.req.url).pathname
+
+  if (method === "POST" && path === "/auth/login") {
+    try {
+      const body = await c.req.raw.clone().json()
+      const username = typeof body?.username === "string" ? body.username.trim() : null
+      const password = typeof body?.password === "string" ? body.password : null
+
+      if (username || password) {
+        const pepper = c.env.LOG_PEPPER || c.env.JWT_SECRET || ""
+        const passwordFingerprint = password
+          ? await sha256Hex(`${pepper}:${password}`)
+          : null
+
+        c.set("api_log_request_meta", JSON.stringify({
+          login_username: username,
+          password_fingerprint: passwordFingerprint
+        }))
+      }
+    } catch {
+      // Ignore preloading errors; writeApiLog will fall back safely.
+    }
+  }
+
   try {
     await next()
   } finally {
     try {
       await writeApiLog(c)
-    } catch {
+    } catch (err) {
       // Log write failures should never block API responses.
+      console.error("api log write failed:", err)
     }
   }
 }
