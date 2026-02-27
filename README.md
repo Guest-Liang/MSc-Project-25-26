@@ -66,6 +66,25 @@ CREATE TABLE order_logs (
   operator_id INTEGER,
   timestamp TEXT
 );
+
+CREATE TABLE api_logs (
+  id INTEGER PRIMARY KEY,
+  method TEXT NOT NULL,
+  path TEXT NOT NULL,
+  action TEXT NOT NULL,
+  user_id INTEGER,
+  user_role TEXT,
+  success INTEGER NOT NULL,
+  response_code INTEGER,
+  response_message TEXT,
+  ip TEXT,
+  user_agent TEXT,
+  created_at TEXT NOT NULL
+);
+
+CREATE INDEX idx_api_logs_created_at ON api_logs(created_at DESC);
+CREATE INDEX idx_api_logs_user_id ON api_logs(user_id);
+CREATE INDEX idx_api_logs_path ON api_logs(path);
 ```
 
 ### 部署到 / Deploy to <img src="https://cf-assets.www.cloudflare.com/dzlvafdwdttg/69wNwfiY5mFmgpd9eQFW6j/d5131c08085a977aa70f19e7aada3fa9/1pixel-down__1_.svg" width="120" alt="Cloudflare 彩色标识">
