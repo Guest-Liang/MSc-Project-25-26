@@ -79,6 +79,7 @@ CREATE TABLE api_logs (
   response_message TEXT,
   ip TEXT,
   user_agent TEXT,
+  request_meta TEXT,
   created_at TEXT NOT NULL
 );
 

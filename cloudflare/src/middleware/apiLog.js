@@ -1,3 +1,49 @@
+async function sha256Hex(input) {
+  const bytes = new TextEncoder().encode(input)
+  const digest = await crypto.subtle.digest("SHA-256", bytes)
+  return Array.from(new Uint8Array(digest))
+    .map((b) => b.toString(16).padStart(2, "0"))
+    .join("")
+}
+
+async function resolveUserForLog(c, method, path) {
+  const authUser = c.get("user") || null
+  if (authUser?.id) {
+    return {
+      userId: authUser.id,
+      userRole: authUser.role ?? null
+    }
+  }
+
+  return { userId: null, userRole: null }
+}
+
+async function resolveRequestMeta(c, method, path) {
+  if (method === "POST" && path === "/auth/login") {
+    try {
+      const body = await c.req.raw.clone().json()
+      const username = typeof body?.username === "string" ? body.username.trim() : null
+      const password = typeof body?.password === "string" ? body.password : null
+
+      if (!username && !password) return null
+
+      const pepper = c.env.LOG_PEPPER || c.env.JWT_SECRET || ""
+      const passwordFingerprint = password
+        ? await sha256Hex(`${pepper}:${password}`)
+        : null
+
+      return JSON.stringify({
+        login_username: username,
+        password_fingerprint: passwordFingerprint
+      })
+    } catch {
+      return null
+    }
+  }
+
+  return null
+}
+
 export async function writeApiLog(c) {
   const method = c.req.method
   const path = new URL(c.req.url).pathname
@@ -7,9 +53,8 @@ export async function writeApiLog(c) {
     return
   }
 
-  const user = c.get("user") || null
-  const userId = user?.id ?? null
-  const userRole = user?.role ?? null
+  const { userId, userRole } = await resolveUserForLog(c, method, path)
+  const requestMeta = await resolveRequestMeta(c, method, path)
 
   let responseCode = null
   let responseMessage = null
@@ -44,8 +89,9 @@ export async function writeApiLog(c) {
       response_message,
       ip,
       user_agent,
+      request_meta,
       created_at
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'))`
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'))`
   )
     .bind(
       method,
@@ -57,7 +103,8 @@ export async function writeApiLog(c) {
       responseCode,
       responseMessage,
       ip,
-      userAgent
+      userAgent,
+      requestMeta
     )
     .run()
 }
