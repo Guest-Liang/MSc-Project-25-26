@@ -18,8 +18,39 @@
     <string name="lang_en">English</string>
     <string name="dynamic_color_desc">Adapt app colors to system palette</string>
     <string name="dynamic_color_title">Dynamic color</string>
+    <string name="settings_logout">Logout</string>
     <!-- home -->
     <string name="example_switch_group_title">Example Switch Group</string>
     <string name="example_switch_title">Example Switch</string>
     <string name="example_switch_desc">This is an example switch</string>
+    <!-- login -->
+    <string name="login_checking_network">Checking Network…</string>
+    <string name="login_network_unavailable">Network unavailable</string>
+    <string name="login_title">Login Page</string>
+    <string name="login_username">Username</string>
+    <string name="login_password">Password</string>
+    <string name="login_as_admin">Admin</string>
+    <string name="login_as_worker">Worker</string>
+    <string name="login_button">Login</string>
+    <string name="login_register_button">Register</string>
+    <string name="login_reset_password_button">Reset Password</string>
+    <string name="login_skip_button">Skip login (for test)</string>
+    <string name="login_error_empty">Username or Password cannot be empty</string>
+    <string name="login_error_failed">Login fail: %1$s</string>
+    <string name="login_error_title">Login Error</string>
+    <string name="login_success">Login Success</string>
+    <string name="login_user_not_exist_prompt">The user does not exist. Do you want to register?</string>
+    <string name="login_wrong_password_prompt">Incorrect password. Do you want to reset your password?</string>
+    <!-- register / reset password -->
+    <string name="register_title">Register Page</string>
+    <string name="reset_password_title">Reset Password</string>
+    <string name="register_button">Confirm Registration</string>
+    <string name="reset_password_button">Confirm Reset</string>
+    <string name="register_success">Registration successful</string>
+    <string name="reset_password_success">Password reset successful</string>
+    <string name="register_error_failed">Request failed: %1$s</string>
+    <string name="register_error_title">Error</string>
+    <string name="register_admin_auth_title">Admin authorization</string>
+    <string name="register_admin_username">Admin username</string>
+    <string name="register_admin_password">Admin password</string>
 </resources>
