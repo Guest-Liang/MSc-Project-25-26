@@ -103,9 +103,9 @@ orderRoutes.get("/search", requireAdmin, async (c) => {
     values.push(`%${params.description}%`)
   }
 
-  if (params.tag) {
+  if (params.nfc_tag) {
     conditions.push("nfc_tag LIKE ?")
-    values.push(`%${params.tag}%`)
+    values.push(`%${params.nfc_tag}%`)
   }
 
   // status 精确匹配多个 exact match (multiple)

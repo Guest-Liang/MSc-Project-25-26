@@ -131,7 +131,7 @@ The query must contain either `NULL` alone or numeric IDs only.
 | --- | --- | --- | --- |
 | title        |  `AC`                            | 按标题模糊匹配 | Fuzzy match on title |
 | description  | `water`                          | 按描述模糊匹配 | Fuzzy match on description |
-| tag          | `room101` / `nfc123`             | 按NFC标签模糊匹配 | Fuzzy match on nfc_tag |
+| nfc_tag      | `room101` / `nfc123`             | 按NFC标签模糊匹配 | Fuzzy match on nfc_tag |
 | status       | `created,(un)assigned,completed` | 多状态筛选，精确匹配 | Exact match, multiple states allowed |
 | assigned     | `1,3` / `NULL`                   | 多个工人ID，支持NULL查询 | Multiple worker IDs, support `NULL` query. |
 | createdStart | `2025-01-01 00:00:00`            | 创建时间开始（含） | Created time ≥ this value |
