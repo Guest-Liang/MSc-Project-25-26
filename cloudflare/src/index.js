@@ -3,8 +3,13 @@ import { authRoutes } from "./routes/auth.js"
 import { adminRoutes } from "./routes/admin.js"
 import { workerRoutes } from "./routes/worker.js"
 import { orderRoutes } from "./routes/orders.js"
+import { jsonResponse } from "./utils/response.js"
 
 const app = new Hono()
+
+app.get("/healthz", (c) => {
+  return jsonResponse({ ciallo: "Ciallo～(∠・ω< )⌒★" })
+})
 
 app.route("/auth", authRoutes)
 app.route("/admin", adminRoutes)

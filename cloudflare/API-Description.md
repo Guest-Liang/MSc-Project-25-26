@@ -51,6 +51,23 @@ Register a worker account (administrator token required)
 Authorization: Bearer <admin-token>
 ```
 ---
+# 🩺 健康检查 / Health Check
+## **GET /healthz**
+检查服务是否可访问（无鉴权）  
+Check whether the service is reachable (no authentication required).  
+### Response Example
+```json
+{
+  "success": true,
+  "code": 0,
+  "message": "Success",
+  "data": {
+    "status": "ok"
+  }
+}
+```
+
+---
 # 🛠 管理员接口 / Admin APIs
 ## **POST /admin/orders/create**
 创建工单   
