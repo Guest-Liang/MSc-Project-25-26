@@ -3,6 +3,7 @@ import com.android.build.api.dsl.ApplicationExtension
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.compose)
+    alias(libs.plugins.kotlin.serialization)
 }
 
 configure<ApplicationExtension> {
@@ -94,6 +95,12 @@ dependencies {
     implementation(libs.androidx.lifecycle.runtime.ktx)
 
     implementation(libs.androidx.lifecycle.viewmodel.compose)
+
+    // Ktor for networking
+    implementation(libs.ktor.client.core)
+    implementation(libs.ktor.client.android)
+    implementation(libs.ktor.client.content.negotiation)
+    implementation(libs.ktor.ktor.serialization.kotlinx.json)
 }
 
 fun gitCommitCount(): Int {

@@ -7,4 +7,6 @@ data class AppPrefs(
     val showLogsTab: Boolean = true,
     val autoRefreshLogs: Boolean = true,
     val dynamicColor: Boolean = true,
+    val token: String? = null,
+    val isWorker: Boolean = false
 )

@@ -4,7 +4,13 @@ import icu.guestliang.nfcworkflow.R
 import icu.guestliang.nfcworkflow.data.PrefsDataStore
 import icu.guestliang.nfcworkflow.data.ThemeMode
 import icu.guestliang.nfcworkflow.logging.AppLogger
+import icu.guestliang.nfcworkflow.network.ApiClient
 import icu.guestliang.nfcworkflow.ui.theme.Dimensions
+import io.ktor.client.request.header
+import io.ktor.client.request.post
+import io.ktor.http.HttpHeaders
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import android.content.Intent
 import android.net.Uri
@@ -24,11 +30,14 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.Logout
 import androidx.compose.material.icons.automirrored.filled.NavigateNext
 import androidx.compose.material.icons.filled.Brush
 import androidx.compose.material.icons.filled.DarkMode
 import androidx.compose.material.icons.filled.GTranslate
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
@@ -51,7 +60,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 
 @Composable
-fun SettingsScreen() {
+fun SettingsScreen(onLogout: () -> Unit) {
     val ctx = LocalContext.current
     AppLogger.debug(ctx, "SettingsScreen recomposed", "UI")
     val scope = rememberCoroutineScope()
@@ -129,6 +138,47 @@ fun SettingsScreen() {
                     }
                 }
             )
+        }
+
+        Spacer(modifier = Modifier.weight(1f, fill = false))
+
+        Button(
+            onClick = {
+                val currentToken = prefs?.token
+                if (!currentToken.isNullOrEmpty()) {
+                    CoroutineScope(Dispatchers.IO).launch {
+                        try {
+                            AppLogger.info(ctx, "Sending logout request to API...", "Settings")
+                            ApiClient.client.post("auth/logout") {
+                                header(HttpHeaders.Authorization, "Bearer $currentToken")
+                            }
+                            AppLogger.info(ctx, "Logout request sent successfully.", "Settings")
+                        } catch (e: Exception) {
+                            AppLogger.error(ctx, e, "Failed to notify API on logout", "Settings")
+                        }
+                    }
+                } else {
+                    AppLogger.info(ctx, "No token found locally, skipping API logout.", "Settings")
+                }
+
+                scope.launch {
+                    PrefsDataStore.clearAuth(ctx)
+                    onLogout()
+                }
+            },
+            modifier = Modifier.fillMaxWidth(),
+            colors = ButtonDefaults.buttonColors(
+                containerColor = MaterialTheme.colorScheme.tertiaryContainer,
+                contentColor = MaterialTheme.colorScheme.onTertiaryContainer
+            )
+        ) {
+            Icon(
+                imageVector = Icons.AutoMirrored.Filled.Logout,
+                contentDescription = null,
+                modifier = Modifier.size(Dimensions.IconSize.M)
+            )
+            Spacer(modifier = Modifier.width(Dimensions.SpaceS))
+            Text(stringResource(id = R.string.settings_logout))
         }
     }
 
