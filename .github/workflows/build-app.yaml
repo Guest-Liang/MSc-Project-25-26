@@ -75,6 +75,7 @@ jobs:
           echo "title=NFCWorkFlow v${VERSION_NAME} (${VERSION_CODE})" >> "$GITHUB_OUTPUT"
 
       - name: Fail if tag already exists
+        if: github.ref_name == 'main'
         run: |
           set -euo pipefail
           git fetch --tags --force
@@ -103,6 +104,7 @@ jobs:
             nfcworkflow/app/build/outputs/apk/debug/*-debug.apk
 
       - name: Create GitHub Release
+        if: github.ref_name == 'main'
         uses: softprops/action-gh-release@v2
         with:
           fail_on_unmatched_files: true
