@@ -28,7 +28,7 @@ sealed class LoginState {
     object Idle : LoginState()
     object Loading : LoginState()
     data class Success(val token: String?, val isWorker: Boolean) : LoginState()
-    data class Error(val isEmptyFields: Boolean = false, val errorMessage: String? = null) : LoginState()
+    data class Error(val isEmptyFields: Boolean = false, val code: Int? = null, val errorMessage: String? = null) : LoginState()
 }
 
 class LoginViewModel : ViewModel() {
@@ -57,7 +57,7 @@ class LoginViewModel : ViewModel() {
         }
     }
 
-    fun login(username: String, password: String, isWorker: Boolean) {
+    fun login(username: String, password: String) {
         if (username.isBlank() || password.isBlank()) {
             _loginState.value = LoginState.Error(isEmptyFields = true)
             return
@@ -77,15 +77,21 @@ class LoginViewModel : ViewModel() {
                     } catch (_: Exception) {
                         null
                     }
+                    val roleStr = try {
+                        response.data?.jsonObject?.get("role")?.jsonPrimitive?.content
+                    } catch (_: Exception) {
+                        null
+                    }
+                    val isWorker = roleStr != "admin"
                     _loginState.value = LoginState.Success(token = tokenStr, isWorker = isWorker)
                 } else {
-                    _loginState.value = LoginState.Error(errorMessage = response.message)
+                    _loginState.value = LoginState.Error(code = response.code, errorMessage = response.message)
                 }
             } catch (e: ClientRequestException) {
                 // Handle 4xx HTTP responses (e.g. 401 Unauthorized, 400 Bad Request)
                 try {
                     val errorResponse = e.response.body<ApiResponse>()
-                    _loginState.value = LoginState.Error(errorMessage = errorResponse.message)
+                    _loginState.value = LoginState.Error(code = errorResponse.code, errorMessage = errorResponse.message)
                 } catch (_: Exception) {
                     _loginState.value = LoginState.Error(errorMessage = e.message)
                 }

@@ -4,6 +4,7 @@ import icu.guestliang.nfcworkflow.R
 import icu.guestliang.nfcworkflow.ui.HomeScreen
 import icu.guestliang.nfcworkflow.ui.SettingsScreen
 import icu.guestliang.nfcworkflow.ui.login.LoginScreen
+import icu.guestliang.nfcworkflow.ui.login.RegisterScreen
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Settings
@@ -15,6 +16,8 @@ import androidx.navigation.compose.composable
 
 sealed class Screen(val route: String, val resourceId: Int? = null, val icon: ImageVector? = null) {
     object Login : Screen("login")
+    object Register : Screen("register")
+    object ResetPassword : Screen("reset_password")
     object Home : Screen("home", R.string.tab_home, Icons.Default.Home)
     object Settings : Screen("settings", R.string.tab_settings, Icons.Default.Settings)
 }
@@ -42,6 +45,34 @@ fun NavGraph(navController: NavHostController, modifier: androidx.compose.ui.Mod
                             inclusive = true
                         }
                     }
+                },
+                onRegister = {
+                    navController.navigate(Screen.Register.route)
+                },
+                onResetPassword = {
+                    navController.navigate(Screen.ResetPassword.route)
+                }
+            )
+        }
+        composable(Screen.Register.route) {
+            RegisterScreen(
+                isResetPassword = false,
+                onSuccess = {
+                    navController.popBackStack()
+                },
+                onBack = {
+                    navController.popBackStack()
+                }
+            )
+        }
+        composable(Screen.ResetPassword.route) {
+            RegisterScreen(
+                isResetPassword = true,
+                onSuccess = {
+                    navController.popBackStack()
+                },
+                onBack = {
+                    navController.popBackStack()
                 }
             )
         }

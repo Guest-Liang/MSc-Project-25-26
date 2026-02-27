@@ -18,7 +18,6 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -41,6 +40,8 @@ fun LoginScreen(
     viewModel: LoginViewModel = viewModel(),
     onLoginSuccess: () -> Unit,
     onSkip: () -> Unit,
+    onRegister: () -> Unit,
+    onResetPassword: () -> Unit,
 ) {
     val context = LocalContext.current
     val healthStatus by viewModel.healthStatus.collectAsState()
@@ -48,7 +49,6 @@ fun LoginScreen(
     
     var username by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
-    var isWorker by remember { mutableStateOf(false) }
     var showNetworkError by remember { mutableStateOf(true) }
 
     // 当重新检查网络时，重置弹窗状态
@@ -116,25 +116,10 @@ fun LoginScreen(
             visualTransformation = PasswordVisualTransformation(),
             singleLine = true
         )
-        Spacer(Modifier.height(16.dp))
-
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.Center, 
-            modifier = Modifier.fillMaxWidth()
-        ) {
-            Text(stringResource(id = R.string.login_as_admin))
-            Switch(
-                checked = isWorker,
-                onCheckedChange = { isWorker = it },
-                modifier = Modifier.padding(horizontal = 8.dp)
-            )
-            Text(stringResource(id = R.string.login_as_worker))
-        }
         Spacer(Modifier.height(32.dp))
 
         Button(
-            onClick = { viewModel.login(username, password, isWorker) }, 
+            onClick = { viewModel.login(username, password) }, 
             modifier = Modifier.fillMaxWidth(),
             enabled = loginState !is LoginState.Loading
         ) {
@@ -154,10 +139,10 @@ fun LoginScreen(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceEvenly
         ) {
-            TextButton(onClick = { /* TODO: Handle Register */ }) {
+            TextButton(onClick = onRegister) {
                 Text(stringResource(id = R.string.login_register_button))
             }
-            TextButton(onClick = { /* TODO: Handle Reset Password */ }) {
+            TextButton(onClick = onResetPassword) {
                 Text(stringResource(id = R.string.login_reset_password_button))
             }
         }
@@ -191,15 +176,55 @@ fun LoginScreen(
             stringResource(id = R.string.login_error_failed, errorState.errorMessage ?: "")
         }
 
-        AlertDialog(
-            onDismissRequest = { viewModel.resetLoginState() },
-            title = { Text(stringResource(id = R.string.login_error_title)) },
-            text = { Text(errorText) },
-            confirmButton = {
-                TextButton(onClick = { viewModel.resetLoginState() }) {
-                    Text(stringResource(id = android.R.string.ok))
+        if (errorState.code == 1001) {
+            AlertDialog(
+                onDismissRequest = { viewModel.resetLoginState() },
+                title = { Text(stringResource(id = R.string.login_error_title)) },
+                text = { Text(stringResource(id = R.string.login_user_not_exist_prompt)) },
+                confirmButton = {
+                    TextButton(onClick = {
+                        viewModel.resetLoginState()
+                        onRegister()
+                    }) {
+                        Text(stringResource(id = R.string.login_register_button))
+                    }
+                },
+                dismissButton = {
+                    TextButton(onClick = { viewModel.resetLoginState() }) {
+                        Text(stringResource(id = android.R.string.cancel))
+                    }
                 }
-            }
-        )
+            )
+        } else if (errorState.code == 1002) {
+            AlertDialog(
+                onDismissRequest = { viewModel.resetLoginState() },
+                title = { Text(stringResource(id = R.string.login_error_title)) },
+                text = { Text(stringResource(id = R.string.login_wrong_password_prompt)) },
+                confirmButton = {
+                    TextButton(onClick = {
+                        viewModel.resetLoginState()
+                        onResetPassword()
+                    }) {
+                        Text(stringResource(id = R.string.login_reset_password_button))
+                    }
+                },
+                dismissButton = {
+                    TextButton(onClick = { viewModel.resetLoginState() }) {
+                        Text(stringResource(id = android.R.string.cancel))
+                    }
+                }
+            )
+        } else {
+            AlertDialog(
+                onDismissRequest = { viewModel.resetLoginState() },
+                title = { Text(stringResource(id = R.string.login_error_title)) },
+                text = { Text(errorText) },
+                confirmButton = {
+                    TextButton(onClick = { viewModel.resetLoginState() }) {
+                        Text(stringResource(id = android.R.string.ok))
+                    }
+                }
+            )
+        }
     }
 }
