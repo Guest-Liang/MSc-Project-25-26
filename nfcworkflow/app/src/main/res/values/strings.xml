@@ -29,6 +29,40 @@
     <string name="example_switch_title">示例开关</string>
     <string name="example_switch_desc">这是一个示例开关</string>
 
+    <string name="nfc_read_title">NFC读取</string>
+    <string name="nfc_read_desc">打开以读取NFC标签</string>
+    <string name="nfc_dialog_title">读取NFC</string>
+    <string name="nfc_dialog_prompt">请将手机靠近NFC标签</string>
+    <string name="nfc_dialog_result">读取结果：\n%1$s</string>
+    <string name="nfc_dialog_close">关闭</string>
+
+    <!-- nfc parse -->
+    <string name="nfc_tech_supported">支持技术: %1$s</string>
+    <string name="nfc_card_type_mifare_classic">卡片类型: Mifare Classic</string>
+    <string name="nfc_storage_size">存储大小: %1$d bytes</string>
+    <string name="nfc_sector_count">扇区数: %1$d</string>
+    <string name="nfc_block_count">块数: %1$d</string>
+    <string name="nfc_card_type_mifare_ultralight">卡片类型: Mifare Ultralight</string>
+    <string name="nfc_rf_tech_type_a">RF技术: ISO/IEC 14443 Type A</string>
+    <string name="nfc_protocol_atqa">协议信息 ATQA: 0x%1$s</string>
+    <string name="nfc_sak">SAK: 0x%1$s</string>
+    <string name="nfc_id">ID: %1$s</string>
+    <string name="nfc_ndef_max_size">存储信息内存大小: %1$d byte</string>
+    <string name="nfc_ndef_is_writable">是否可写: %1$s</string>
+    <string name="nfc_yes">是</string>
+    <string name="nfc_no">否</string>
+    <string name="nfc_ndef_can_make_read_only">可为只读: %1$s</string>
+    <string name="nfc_record_index">记录%1$d</string>
+    <string name="nfc_record_text">文本\n%1$s</string>
+    <string name="nfc_record_text_fail">解析文本失败</string>
+    <string name="nfc_record_uri">URI\n%1$s</string>
+    <string name="nfc_record_uri_fail">解析URI失败</string>
+    <string name="nfc_record_other">其他 (TNF: %1$d)</string>
+    <string name="nfc_record_payload">载荷: %1$s</string>
+    <string name="nfc_no_ndef_data">无 NDEF 数据</string>
+    <string name="nfc_read_ndef_fail">读取 NDEF 数据失败</string>
+    <string name="nfc_support_ndef_format">该标签支持格式化为 NDEF</string>
+
     <!-- login -->
     <string name="login_checking_network">检查网络中...</string>
     <string name="login_network_unavailable">网络不可用</string>
