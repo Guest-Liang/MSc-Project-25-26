@@ -36,6 +36,9 @@
     <string name="nfc_dialog_result">读取结果：\n%1$s</string>
     <string name="nfc_dialog_close">关闭</string>
 
+    <string name="nfc_not_supported">当前设备不支持NFC</string>
+    <string name="nfc_disabled_prompt">NFC未开启，请前往设置开启</string>
+
     <!-- nfc parse -->
     <string name="nfc_tech_supported">支持技术: %1$s</string>
     <string name="nfc_card_type_mifare_classic">卡片类型: Mifare Classic</string>

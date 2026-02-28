@@ -20,8 +20,8 @@ class MainActivity : ComponentActivity() {
 
         setContent {
             val prefs by PrefsDataStore.flow(this).collectAsState(initial = null)
-            if (prefs != null) {
-                NFCWorkFlowTheme(prefs = prefs!!) {
+            prefs?.let { currentPrefs ->
+                NFCWorkFlowTheme(prefs = currentPrefs) {
                     RootScreen()
                 }
             }
