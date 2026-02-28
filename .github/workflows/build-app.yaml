@@ -95,13 +95,17 @@ jobs:
           chmod +x ./gradlew
           ./gradlew --no-daemon clean assembleRelease assembleDebug
 
-      - name: Upload Release APK (artifact)
+      - name: Upload Release APK (artifact, unarchived)
         uses: actions/upload-artifact@v7
         with:
-          name: apk-release-signed
-          path: |
-            nfcworkflow/app/build/outputs/apk/release/*-release.apk
-            nfcworkflow/app/build/outputs/apk/debug/*-debug.apk
+          path: nfcworkflow/app/build/outputs/apk/release/*-release.apk
+          archive: false
+
+      - name: Upload Debug APK (artifact, unarchived)
+        uses: actions/upload-artifact@v7
+        with:
+          path: nfcworkflow/app/build/outputs/apk/debug/*-debug.apk
+          archive: false
 
       - name: Create GitHub Release
         if: github.ref_name == 'main'

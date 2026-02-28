@@ -9,11 +9,15 @@ plugins {
 configure<ApplicationExtension> {
     namespace = "icu.guestliang.nfcworkflow"
     compileSdk = 36
+    ndkVersion = "29.0.14206865"
 
     defaultConfig {
         applicationId = "icu.guestliang.nfcworkflow"
         minSdk = 31
         targetSdk = 36
+        ndk {
+            abiFilters += setOf("arm64-v8a", "x86_64")
+        }
         versionCode = gitCommitCount()
         versionName = libs.versions.app.version.get()
 
@@ -49,6 +53,11 @@ configure<ApplicationExtension> {
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_21
         targetCompatibility = JavaVersion.VERSION_21
+    }
+    packaging {
+        jniLibs {
+            useLegacyPackaging = false
+        }
     }
 }
 kotlin {
