@@ -18,10 +18,6 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.semantics.Role
@@ -66,18 +62,13 @@ fun SettingsSwitchRow(
     item: SwitchItem,
     showDivider: Boolean
 ) {
-    var currentChecked by remember { mutableStateOf(item.isChecked) }
-    val onToggle: (Boolean) -> Unit = { newValue ->
-        currentChecked = newValue
-        item.onCheckedChange(newValue)
-    }
     Column {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
                 .toggleable(
-                    value = currentChecked,
-                    onValueChange = onToggle,
+                    value = item.isChecked,
+                    onValueChange = item.onCheckedChange,
                     role = Role.Switch
                 )
                 .padding(Dimensions.SpaceXXL),
@@ -124,8 +115,8 @@ fun SettingsSwitchRow(
             Spacer(modifier = Modifier.width(Dimensions.SpaceM))
 
             M3Switch(
-                checked = currentChecked,
-                onCheckedChange = onToggle
+                checked = item.isChecked,
+                onCheckedChange = item.onCheckedChange
             )
         }
 

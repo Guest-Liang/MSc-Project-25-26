@@ -64,14 +64,14 @@ fun SettingsScreen(onLogout: () -> Unit) {
     val ctx = LocalContext.current
     AppLogger.debug(ctx, "SettingsScreen recomposed", "UI")
     val scope = rememberCoroutineScope()
-    val prefs by PrefsDataStore.flow(ctx).collectAsState(initial = null)
+    val prefsState by PrefsDataStore.flow(ctx).collectAsState(initial = null)
 
-    if (prefs == null) return
+    val currentPrefs = prefsState ?: return
 
     var showThemeDialog by remember { mutableStateOf(false) }
 
     val themeTitle = stringResource(id = R.string.theme_title)
-    val themeSubtitle = when (prefs!!.theme) {
+    val themeSubtitle = when (currentPrefs.theme) {
         ThemeMode.SYSTEM -> stringResource(id = R.string.theme_system)
         ThemeMode.DARK -> stringResource(id = R.string.theme_dark)
         ThemeMode.LIGHT -> stringResource(id = R.string.theme_light)
@@ -102,7 +102,7 @@ fun SettingsScreen(onLogout: () -> Unit) {
                 icon = Icons.Default.Brush,
                 title = stringResource(id = R.string.dynamic_color_title),
                 summary = stringResource(id = R.string.dynamic_color_desc),
-                checked = prefs!!.dynamicColor,
+                checked = currentPrefs.dynamicColor,
                 onChange = { enabled ->
                     scope.launch {
                         AppLogger.info(ctx, "Dynamic color changed: $enabled", "Settings")
@@ -144,7 +144,7 @@ fun SettingsScreen(onLogout: () -> Unit) {
 
         Button(
             onClick = {
-                val currentToken = prefs?.token
+                val currentToken = currentPrefs.token
                 if (!currentToken.isNullOrEmpty()) {
                     CoroutineScope(Dispatchers.IO).launch {
                         try {
@@ -188,7 +188,7 @@ fun SettingsScreen(onLogout: () -> Unit) {
             ThemeMode.LIGHT to stringResource(id = R.string.theme_light),
             ThemeMode.DARK to stringResource(id = R.string.theme_dark)
         )
-        val selectedIndex = options.indexOfFirst { it.first == prefs!!.theme }.coerceAtLeast(0)
+        val selectedIndex = options.indexOfFirst { it.first == currentPrefs.theme }.coerceAtLeast(0)
 
         SingleChoiceDialog(
             title = themeTitle,
