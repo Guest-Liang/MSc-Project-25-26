@@ -6,19 +6,19 @@ junit = "4.13.2"
 junitVersion = "1.3.0"
 espressoCore = "3.7.0"
 appcompat = "1.7.1"
-ktorClientAndroid = "3.4.0"
-ktorClientContentNegotiation = "3.4.0"
-ktorClientCore = "3.4.0"
-ktorSerializationKotlinxJsonVersion = "3.4.0"
+ktorClientAndroid = "3.4.1"
+ktorClientContentNegotiation = "3.4.1"
+ktorClientCore = "3.4.1"
+ktorSerializationKotlinxJsonVersion = "3.4.1"
 material = "1.13.0"
 navigationCompose = "2.9.7"
 
-app-version = "0.3.0"
+app-version = "0.3.1"
 
 [libraries]
 androidx-activity-compose = { group = "androidx.activity", name = "activity-compose", version = "1.12.4" }
 androidx-appcompat = { group = "androidx.appcompat", name = "appcompat", version.ref = "appcompat" }
-androidx-compose-bom = { group = "androidx.compose", name = "compose-bom", version = "2026.02.00" }
+androidx-compose-bom = { group = "androidx.compose", name = "compose-bom", version = "2026.02.01" }
 androidx-compose-foundation = { group = "androidx.compose.foundation", name = "foundation" }
 androidx-compose-material3 = { group = "androidx.compose.material3", name = "material3" }
 androidx-compose-material-icons-extended = { group = "androidx.compose.material", module = "androidx.compose.material:material-icons-extended" }

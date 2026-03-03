@@ -1,17 +1,24 @@
-<?xml version="1.0" encoding="utf-8"?><!--
-   Sample data extraction rules file; uncomment and customize as necessary.
-   See https://developer.android.com/about/versions/12/backup-restore#xml-changes
-   for details.
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+   Android 12 (API 31) 及以上版本的数据提取规则配置文件。
+   该文件用于配置应用程序在进行“云端备份 (cloud-backup)”或“设备间数据传输 (device-transfer，如换机迁移)”时，
+   哪些文件或目录需要被包含 (include) 备份，哪些需要被排除 (exclude)。
+   通常我们会在这里排除包含敏感信息的本地文件、Token、或者较大的临时缓存文件。
+   官方文档: https://developer.android.com/about/versions/12/backup-restore#xml-changes
 -->
 <data-extraction-rules>
     <cloud-backup>
-        <!-- TODO: Use <include> and <exclude> to control what is backed up.
-        <include .../>
-        <exclude .../>
+        <!--
+            云端备份规则配置。
+            默认情况下，系统会备份应用的大部分数据。
+            你可以使用 <include> 或 <exclude> 标签来精确控制。
+            例如，排除特定的 SharedPreferences 文件：
+            <exclude domain="sharedpref" path="device_specific_prefs.xml"/>
         -->
     </cloud-backup>
     <!--
     <device-transfer>
+        设备到设备（D2D）传输的规则配置。用法与 cloud-backup 类似。
         <include .../>
         <exclude .../>
     </device-transfer>
