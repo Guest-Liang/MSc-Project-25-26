@@ -84,6 +84,34 @@ jobs:
             exit 1
           fi
 
+      - name: Generate changelog since previous tag
+        id: changelog
+        if: github.ref_name == 'main'
+        run: |
+          set -euo pipefail
+          git fetch --tags --force
+
+          PREV_TAG="$(git for-each-ref refs/tags --sort=-creatordate --format '%(refname:short)' | head -n 1 || true)"
+
+          if [[ -n "${PREV_TAG:-}" ]]; then
+            echo "Found previous tag: $PREV_TAG"
+            RANGE="${PREV_TAG}..HEAD"
+          else
+            echo "No previous tag found"
+            RANGE="HEAD"
+          fi
+
+          {
+            echo "changelog<<'EOF'"
+            if [[ "$RANGE" == "HEAD" ]]; then
+              git log -n 50 --pretty=format:'- %h %s' HEAD
+            else
+              git log --pretty=format:'- %h %s' "$RANGE"
+            fi
+            echo
+            echo "EOF"
+          } >> "$GITHUB_OUTPUT"
+
       - name: Build signed Release APK
         working-directory: nfcworkflow
         env:
@@ -118,6 +146,8 @@ jobs:
             ### 📱 构建信息
             - 构建分支: ${{ github.ref_name }}
             - 构建时间: ${{ steps.date.outputs.BUILD_TIME }} (UTC+8)
+            ### 🧾 本次变更（自上次 Release 以来）
+            ${{ steps.changelog.outputs.changelog }}
           draft: false
           prerelease: false
           files: |
