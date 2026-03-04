@@ -1,12 +1,11 @@
 package icu.guestliang.nfcworkflow.navigation
 
 import icu.guestliang.nfcworkflow.R
-import icu.guestliang.nfcworkflow.ui.HomeScreen
-import icu.guestliang.nfcworkflow.ui.SettingsScreen
 import icu.guestliang.nfcworkflow.ui.login.LoginScreen
 import icu.guestliang.nfcworkflow.ui.login.RegisterScreen
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Home
+import androidx.compose.material.icons.filled.Nfc
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -18,13 +17,15 @@ sealed class Screen(val route: String, val resourceId: Int? = null, val icon: Im
     object Login : Screen("login")
     object Register : Screen("register")
     object ResetPassword : Screen("reset_password")
-    object Home : Screen("home", R.string.tab_home, Icons.Default.Home)
-    object Settings : Screen("settings", R.string.tab_settings, Icons.Default.Settings)
+    object Main : Screen("main") // This will contain the ViewPager for Home, Nfc, Settings
 }
 
+class BottomNavItem(val route: String, val resourceId: Int, val icon: ImageVector)
+
 val items = listOf(
-    Screen.Home,
-    Screen.Settings,
+    BottomNavItem("home", R.string.tab_home, Icons.Default.Home),
+    BottomNavItem("nfc", R.string.tab_nfc, Icons.Default.Nfc),
+    BottomNavItem("settings", R.string.tab_settings, Icons.Default.Settings),
 )
 
 @Composable
@@ -33,14 +34,14 @@ fun NavGraph(navController: NavHostController, modifier: androidx.compose.ui.Mod
         composable(Screen.Login.route) {
             LoginScreen(
                 onLoginSuccess = {
-                    navController.navigate(Screen.Home.route) {
+                    navController.navigate(Screen.Main.route) {
                         popUpTo(Screen.Login.route) {
                             inclusive = true
                         }
                     }
                 },
                 onSkip = {
-                    navController.navigate(Screen.Home.route) {
+                    navController.navigate(Screen.Main.route) {
                         popUpTo(Screen.Login.route) {
                             inclusive = true
                         }
@@ -76,15 +77,15 @@ fun NavGraph(navController: NavHostController, modifier: androidx.compose.ui.Mod
                 }
             )
         }
-        composable(Screen.Home.route) { HomeScreen(navController) }
-        composable(Screen.Settings.route) { 
-            SettingsScreen(
+        composable(Screen.Main.route) {
+            icu.guestliang.nfcworkflow.ui.view.MainPagerScreen(
+                navController = navController,
                 onLogout = {
                     navController.navigate(Screen.Login.route) {
                         popUpTo(0)
                     }
                 }
-            ) 
+            )
         }
     }
 }

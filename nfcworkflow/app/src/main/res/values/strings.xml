@@ -1,8 +1,12 @@
 <resources>
     <string name="app_name">NFCWorkFlow</string>
 
+    <string name="ok">确定</string>
+    <string name="cancel">取消</string>
+
     <!-- nav -->
     <string name="tab_home">主页</string>
+    <string name="tab_nfc">NFC</string>
     <string name="tab_settings">设置</string>
     <string name="tab_logs">日志</string>
 
@@ -29,8 +33,20 @@
     <string name="example_switch_title">示例开关</string>
     <string name="example_switch_desc">这是一个示例开关</string>
 
+    <!-- role APIs -->
+    <string name="admin_api_title">管理员功能</string>
+    <string name="admin_register_worker">注册工人</string>
+    <string name="admin_create_order">创建工单</string>
+    <string name="admin_assign_order">指派工单</string>
+    <string name="admin_search_orders">查询工单</string>
+    <string name="admin_query_logs">查询日志</string>
+
+    <string name="worker_api_title">工人功能</string>
+    <string name="worker_view_orders">查看我的工单</string>
+    <string name="worker_complete_order">完成工单</string>
+
     <string name="nfc_read_title">NFC读取</string>
-    <string name="nfc_read_desc">打开以读取NFC标签</string>
+    <string name="nfc_read_desc">打开按钮以读取NFC标签</string>
     <string name="nfc_dialog_title">读取NFC</string>
     <string name="nfc_dialog_prompt">请将手机靠近NFC标签</string>
     <string name="nfc_dialog_result">读取结果：\n%1$s</string>
