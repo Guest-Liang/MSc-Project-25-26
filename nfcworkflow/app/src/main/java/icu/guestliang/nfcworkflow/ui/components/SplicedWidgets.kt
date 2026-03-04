@@ -100,6 +100,8 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.zIndex
 
+private const val SharedStiffness = Spring.StiffnessMediumLow
+
 @Composable
 fun SplicedBaseWidget(
     modifier: Modifier = Modifier,
@@ -542,7 +544,6 @@ class SplicedGroupScope {
 
 private val CornerRadius = 16.dp
 private val ConnectionRadius = 5.dp
-private const val SharedStiffness = Spring.StiffnessMediumLow
 
 /**
  * A container that groups items with a spliced, continuous look (similar to M3 Expressive).
@@ -688,10 +689,6 @@ fun SplicedDropdownWidget(
     var currentIndex by remember { mutableIntStateOf(selectedIndex) }
     var showDialog by remember { mutableStateOf(false) }
 
-    fun setCurrentIndex(index: Int) {
-        currentIndex = index
-    }
-
     fun dismiss() {
         showDialog = false
     }
@@ -728,7 +725,11 @@ fun SplicedDropdownWidget(
 
     if (showDialog && itemsNotEmpty) {
         AlertDialog(
-            onDismissRequest = { dismiss() },
+            onDismissRequest = {
+                // Also treat dismiss as a cancel action
+                currentIndex = selectedIndex
+                dismiss()
+            },
             title = {
                 Row(
                     modifier = Modifier.fillMaxWidth(),
@@ -757,7 +758,7 @@ fun SplicedDropdownWidget(
                                 afterContent(items.indexOf(item))
                             },
                             onClick = {
-                                setCurrentIndex(index)
+                                currentIndex = index
                             }
                         )
                     }
@@ -773,7 +774,7 @@ fun SplicedDropdownWidget(
             },
             dismissButton = {
                 TextButton(onClick = {
-                    setCurrentIndex(selectedIndex)
+                    currentIndex = selectedIndex
                     dismiss()
                 }) {
                     Text(text = stringResource(id = R.string.cancel))
