@@ -102,7 +102,7 @@ jobs:
           fi
 
           {
-            echo "changelog<<'EOF'"
+            echo "changelog<<EOF"
             if [[ "$RANGE" == "HEAD" ]]; then
               git log -n 50 --pretty=format:'- %h %s' HEAD
             else
