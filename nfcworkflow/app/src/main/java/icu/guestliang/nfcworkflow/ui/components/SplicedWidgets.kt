@@ -716,7 +716,7 @@ fun SplicedDropdownWidget(
             // Text color matches DropdownItem selection text logic
             val alpha = if (enabled) 1f else 0.38f
             Text(
-                text = items[selectedIndex],
+                text = items.getOrNull(selectedIndex) ?: "",
                 color = color.copy(alpha = alpha),
                 style = MaterialTheme.typography.bodyMedium,
             )
