@@ -1,8 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name">NFCWorkFlow</string>
+    <string name="ok">OK</string>
+    <string name="cancel">Cancel</string>
     <!-- nav -->
     <string name="tab_home">Home</string>
+    <string name="tab_nfc">NFC</string>
     <string name="tab_settings">Settings</string>
     <string name="tab_logs">Logs</string>
     <!-- settings -->
@@ -23,8 +26,18 @@
     <string name="example_switch_group_title">Example Switch Group</string>
     <string name="example_switch_title">Example Switch</string>
     <string name="example_switch_desc">This is an example switch</string>
+    <!-- role APIs -->
+    <string name="admin_api_title">Admin Function List</string>
+    <string name="admin_register_worker">Register Worker</string>
+    <string name="admin_create_order">Create Order</string>
+    <string name="admin_assign_order">Assign Order</string>
+    <string name="admin_search_orders">Search Order</string>
+    <string name="admin_query_logs">Query Logs</string>
+    <string name="worker_api_title">Worker Function List</string>
+    <string name="worker_view_orders">View My Order</string>
+    <string name="worker_complete_order">Complete Order</string>
     <string name="nfc_read_title">NFC reading</string>
-    <string name="nfc_read_desc">Open to read NFC tag</string>
+    <string name="nfc_read_desc">Turn on switch to read NFC tags</string>
     <string name="nfc_dialog_title">Read NFC</string>
     <string name="nfc_dialog_prompt">Please bring your phone close to the NFC tag</string>
     <string name="nfc_dialog_result">Read result:\n%1$s</string>
