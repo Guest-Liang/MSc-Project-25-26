@@ -37,6 +37,8 @@ class WorkerViewModel : ViewModel() {
     private val _uiState = MutableStateFlow(WorkerUiState())
     val uiState: StateFlow<WorkerUiState> = _uiState.asStateFlow()
 
+    private val json = Json { ignoreUnknownKeys = true }
+
     fun fetchMyOrders(context: Context) {
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true, error = null) }
@@ -52,7 +54,7 @@ class WorkerViewModel : ViewModel() {
                 }.body()
 
                 if (response.success && response.data != null) {
-                    val ordersList: List<Order> = Json { ignoreUnknownKeys = true }.decodeFromJsonElement(response.data)
+                    val ordersList: List<Order> = json.decodeFromJsonElement(response.data)
                     _uiState.update { it.copy(isLoading = false, orders = ordersList) }
                 } else {
                     _uiState.update { it.copy(isLoading = false, error = response.message) }
