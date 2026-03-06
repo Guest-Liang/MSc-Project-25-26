@@ -18,7 +18,8 @@ All APIs return data in JSON format and using a standardized format.
 | `message` | string                | 对应消息 | Human-readable message |
 | `data`    | object / array / null | 返回数据内容 | Returned payload |
 
-错误代码请参考：`cloudflare/src/utils/status.js`
+### Status Codes / 状态码
+`cloudflare/src/utils/status.js`
 
 ---
 
@@ -30,6 +31,11 @@ User login, returned JWT.
 ```json
 { "username": "admin", "password": "123456" }
 ```
+### Notes / 说明
+- 若该用户已有有效 token，则直接返回旧 token  
+  If the user already has a valid token, the existing token is returned.
+- 若没有有效 token，则签发新 token  
+  If no valid token exists, a new token is generated.
 ### Response Example
 ```json
 {
@@ -46,6 +52,13 @@ User login, returned JWT.
 ## **POST /auth/logout**
 用户退出登录  
 User logout.   
+### Headers
+```
+Authorization: Bearer <token>
+```
+### Notes / 说明
+- 会清空数据库中的当前 token。  
+  The current token stored in DB will be cleared.
 ### Response Example
 ```json
 {
@@ -63,6 +76,13 @@ Register administrator account
 ```json
 { "username": "root", "password": "123456" }
 ```
+### Notes / 说明
+- 若用户名不存在：创建 admin  
+  If username does not exist: create admin.
+- 若用户名存在且密码相同：返回已存在  
+  If username exists and password is the same: return already exists.
+- 若用户名存在但密码不同：更新密码。  
+  If username exists but password differs: update password.
 ### Response Example
 ```json
 {
@@ -84,6 +104,13 @@ Authorization: Bearer <admin-token>
 ```json
 { "username": "worker1", "password": "123456" }
 ```
+### Notes / 说明
+- 若用户名不存在：创建 worker  
+  If username does not exist: create worker.
+- 若用户名存在且密码相同：返回已存在。  
+  If username exists and password is the same: return already exists.
+- 若用户名存在但密码不同：更新密码  
+  If username exists but password differs: update password.
 ### Response Example
 ```json
 {
@@ -149,6 +176,10 @@ Sort order: `created_at DESC` (created time descending).
 ## **POST /admin/orders/create**
 创建工单   
 Create a work order.   
+### Headers
+```
+Authorization: Bearer <admin-token>
+```
 ### Body
 ```json
 {
@@ -172,6 +203,10 @@ Create a work order.
 ## **POST /admin/orders/assign**
 指派工单给工人   
 Assign work orders to workers.   
+### Headers
+```
+Authorization: Bearer <admin-token>
+```
 ### Body
 ```json
 {
@@ -179,6 +214,11 @@ Assign work orders to workers.
   "userId": 2
 }
 ```
+### Notes / 说明
+- `userId` 为数字时：将工单分配给对应工人，状态设为 `assigned`  
+  When `userId` is numeric: assign order to that worker, set status to `assigned`.
+- `userId` 为 `null` 时：取消分配，`assigned_to = NULL`，状态改回 `created`  
+  When `userId` is `null`: unassign order, set `assigned_to = NULL`, revert status to `created`.
 ### Response Example
 ```json
 {
@@ -231,6 +271,11 @@ Authorization: Bearer <worker-token>
 ```json
 { "orderId": 1 }
 ```
+### Notes / 说明
+- 只有该工单的当前被分配工人才能完成。  
+  Only the currently assigned worker can complete the order.
+- 工单状态必须为 `assigned`，否则不能完成。  
+  The order status must be `assigned`, otherwise completion is rejected.
 ### Response Example
 ```json
 {
@@ -254,13 +299,16 @@ Authorization: Bearer <admin-token>
 | 参数 Params | 示例值 Examples | 说明 | Description |
 | --- | --- | --- | --- |
 | orderId | `1,2,3` | 多个 ID 用逗号分隔 | Multiple IDs separated by commas |
-| status | `created,(un)assigned,completed` | 多个状态 | Multiple states can be combined |
+| status | `created,assigned,unassigned,completed` | 多个操作（对应日志 `action`） | Multiple actions (mapped to log `action`) |
 | operator | `1,3` | 操作人（用户ID） | Operator (User ID) |
 | startTime | `2025-01-01 00:00:00` | 查询此时间之后（含），精确到秒 | Query for times after this date. (Included) |
 | endTime  | `2025-01-31 23:59:59`  | 查询此时间之前（含），精确到秒 | Query for times before this date. (Included) |
 
 返回顺序：按 `timestamp DESC`（日志时间倒序）。  
 Sort order: `timestamp DESC` (log time descending).
+### Notes / 说明
+- 时间范围校验：不允许 `startTime > endTime`  
+  Time range validation: `startTime > endTime` is not allowed.
 ### Response Example
 ```json
 {
@@ -297,7 +345,7 @@ The query must contain either `NULL` alone or numeric IDs only.
 | title        |  `AC`                            | 按标题模糊匹配 | Fuzzy match on title |
 | description  | `water`                          | 按描述模糊匹配 | Fuzzy match on description |
 | nfc_tag      | `room101` / `nfc123`             | 按NFC标签模糊匹配 | Fuzzy match on nfc_tag |
-| status       | `created,(un)assigned,completed` | 多状态筛选，精确匹配 | Exact match, multiple states allowed |
+| status       | `created,assigned,completed`     | 工单状态筛选      | Order status filter |
 | assigned     | `1,3` / `NULL`                   | 多个工人ID，支持NULL查询 | Multiple worker IDs, support `NULL` query. |
 | createdStart | `2025-01-01 00:00:00`            | 创建时间开始（含） | Created time ≥ this value |
 | createdEnd   | `2025-01-31 23:59:59`            | 创建时间结束（含） | Created time ≤ this value |
@@ -306,6 +354,9 @@ The query must contain either `NULL` alone or numeric IDs only.
 
 返回顺序：按 `id DESC`（工单 ID 倒序）。  
 Sort order: `id DESC` (work order ID descending).
+### Notes / 说明
+- 时间范围校验：`createdStart > createdEnd` 或 `updatedStart > updatedEnd` 均不允许。  
+  Time range validation: Neither `createdStart > createdEnd` nor `updatedStart > updatedEnd` were allowed.
 ### Response Example
 ```json
 {

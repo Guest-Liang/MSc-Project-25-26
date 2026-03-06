@@ -21,6 +21,7 @@ export const ERR = {
   ORDER_NOT_COMPLETABLE: { code: 4002, message: "Order cannot be completed" },
   ORDER_TITLE_EXISTS: { code: 4003, message: "Order with this title already exists" },
   INVALID_TIME_RANGE: { code: 4004, message: "Invalid time range" },
+  INVALID_ASSIGNED_FILTER: { code: 4005, message: "Invalid assigned filter" },
 
   // System (5000–5999)
   DB_ERROR: { code: 5001, message: "Database error" },
