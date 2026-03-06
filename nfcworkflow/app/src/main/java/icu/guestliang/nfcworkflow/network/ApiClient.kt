@@ -3,6 +3,7 @@ package icu.guestliang.nfcworkflow.network
 import icu.guestliang.nfcworkflow.data.ApiConstants
 import io.ktor.client.HttpClient
 import io.ktor.client.engine.android.Android
+import io.ktor.client.plugins.HttpTimeout
 import io.ktor.client.plugins.contentnegotiation.ContentNegotiation
 import io.ktor.client.plugins.defaultRequest
 import io.ktor.serialization.kotlinx.json.json
@@ -20,6 +21,12 @@ object ApiClient {
                 isLenient = true
                 ignoreUnknownKeys = true
             })
+        }
+
+        install(HttpTimeout) {
+            requestTimeoutMillis = 5000
+            connectTimeoutMillis = 5000
+            socketTimeoutMillis = 5000
         }
     }
 }

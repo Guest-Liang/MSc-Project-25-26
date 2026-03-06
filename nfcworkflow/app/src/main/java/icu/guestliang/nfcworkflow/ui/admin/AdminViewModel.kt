@@ -10,6 +10,7 @@ import icu.guestliang.nfcworkflow.network.LogEntry
 import icu.guestliang.nfcworkflow.network.Order
 import icu.guestliang.nfcworkflow.network.WorkerUser
 import io.ktor.client.call.body
+import io.ktor.client.plugins.HttpRequestTimeoutException
 import io.ktor.client.request.get
 import io.ktor.client.request.header
 import io.ktor.client.request.parameter
@@ -33,6 +34,8 @@ import kotlinx.serialization.json.jsonObject
 import android.content.Context
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import java.net.ConnectException
+import java.net.SocketTimeoutException
 
 data class OrderSearchQuery(
     val title: String? = null,
@@ -119,22 +122,20 @@ class AdminViewModel : ViewModel() {
                     return@launch
                 }
 
-                val response: ApiResponse = withTimeout(5000) {
-                    ApiClient.client.get("orders/search") {
-                        header(HttpHeaders.Authorization, "Bearer $token")
-                        query?.let { q ->
-                            q.title?.takeIf { it.isNotBlank() }?.let { parameter("title", it) }
-                            q.description?.takeIf { it.isNotBlank() }?.let { parameter("description", it) }
-                            q.nfcTag?.takeIf { it.isNotBlank() }?.let { parameter("nfc_tag", it) }
-                            q.status?.takeIf { it.isNotEmpty() }?.let { parameter("status", it.joinToString(",")) }
-                            q.assigned?.takeIf { it.isNotEmpty() }?.let { parameter("assigned", it.joinToString(",")) }
-                            q.createdStart?.takeIf { it.isNotBlank() }?.let { parameter("createdStart", it) }
-                            q.createdEnd?.takeIf { it.isNotBlank() }?.let { parameter("createdEnd", it) }
-                            q.updatedStart?.takeIf { it.isNotBlank() }?.let { parameter("updatedStart", it) }
-                            q.updatedEnd?.takeIf { it.isNotBlank() }?.let { parameter("updatedEnd", it) }
-                        }
-                    }.body()
-                }
+                val response: ApiResponse = ApiClient.client.get("orders/search") {
+                    header(HttpHeaders.Authorization, "Bearer $token")
+                    query?.let { q ->
+                        q.title?.takeIf { it.isNotBlank() }?.let { parameter("title", it) }
+                        q.description?.takeIf { it.isNotBlank() }?.let { parameter("description", it) }
+                        q.nfcTag?.takeIf { it.isNotBlank() }?.let { parameter("nfc_tag", it) }
+                        q.status?.takeIf { it.isNotEmpty() }?.let { parameter("status", it.joinToString(",")) }
+                        q.assigned?.takeIf { it.isNotEmpty() }?.let { parameter("assigned", it.joinToString(",")) }
+                        q.createdStart?.takeIf { it.isNotBlank() }?.let { parameter("createdStart", it) }
+                        q.createdEnd?.takeIf { it.isNotBlank() }?.let { parameter("createdEnd", it) }
+                        q.updatedStart?.takeIf { it.isNotBlank() }?.let { parameter("updatedStart", it) }
+                        q.updatedEnd?.takeIf { it.isNotBlank() }?.let { parameter("updatedEnd", it) }
+                    }
+                }.body()
 
                 if (response.success && response.data != null) {
                     val list: List<Order> = try {
@@ -151,37 +152,41 @@ class AdminViewModel : ViewModel() {
                     _uiState.update { it.copy(isLoading = false, error = response.message) }
                 }
             } catch (e: Exception) {
-                val currentAllOrders = _uiState.value.allOrders
-                if (query != null && currentAllOrders.isNotEmpty()) {
-                    AppLogger.error(context, e, "Search API failed, falling back to local filter", "AdminViewModel")
-                    val filtered = currentAllOrders.filter { order ->
-                        var match = true
-                        query.title?.takeIf { it.isNotBlank() }?.let { if (!order.title.contains(it, true)) match = false }
-                        query.description?.takeIf { it.isNotBlank() }?.let { if (!order.description.contains(it, true)) match = false }
-                        query.nfcTag?.takeIf { it.isNotBlank() }?.let { if (order.nfc_tag?.contains(it, true) != true) match = false }
-                        query.status?.takeIf { it.isNotEmpty() }?.let { if (order.status !in it) match = false }
-                        query.assigned?.takeIf { it.isNotEmpty() }?.let { assignedList ->
-                            val isUnassigned = order.assigned_to == null
-                            val assignedStr = order.assigned_to?.toString()
-                            val wantUnassigned = "NULL" in assignedList
-                            val matchAssigned = (wantUnassigned && isUnassigned) || (assignedStr != null && assignedStr in assignedList)
-                            if (!matchAssigned) match = false
+                if (e is HttpRequestTimeoutException || e is ConnectException || e is SocketTimeoutException) {
+                    val currentAllOrders = _uiState.value.allOrders
+                    if (query != null && currentAllOrders.isNotEmpty()) {
+                        AppLogger.error(context, e, "Search API failed, falling back to local filter", "AdminViewModel")
+                        val filtered = currentAllOrders.filter { order ->
+                            var match = true
+                            query.title?.takeIf { it.isNotBlank() }?.let { if (!order.title.contains(it, true)) match = false }
+                            query.description?.takeIf { it.isNotBlank() }?.let { if (!order.description.contains(it, true)) match = false }
+                            query.nfcTag?.takeIf { it.isNotBlank() }?.let { if (order.nfc_tag?.contains(it, true) != true) match = false }
+                            query.status?.takeIf { it.isNotEmpty() }?.let { if (order.status !in it) match = false }
+                            query.assigned?.takeIf { it.isNotEmpty() }?.let { assignedList ->
+                                val isUnassigned = order.assigned_to == null
+                                val assignedStr = order.assigned_to?.toString()
+                                val wantUnassigned = "NULL" in assignedList
+                                val matchAssigned = (wantUnassigned && isUnassigned) || (assignedStr != null && assignedStr in assignedList)
+                                if (!matchAssigned) match = false
+                            }
+                            query.createdStart?.takeIf { it.isNotBlank() }?.let { start ->
+                                if (order.created_at == null || order.created_at < start) match = false
+                            }
+                            query.createdEnd?.takeIf { it.isNotBlank() }?.let { end ->
+                                if (order.created_at == null || order.created_at > end) match = false
+                            }
+                            query.updatedStart?.takeIf { it.isNotBlank() }?.let { start ->
+                                if (order.updated_at == null || order.updated_at < start) match = false
+                            }
+                            query.updatedEnd?.takeIf { it.isNotBlank() }?.let { end ->
+                                if (order.updated_at == null || order.updated_at > end) match = false
+                            }
+                            match
                         }
-                        query.createdStart?.takeIf { it.isNotBlank() }?.let { start ->
-                            if (order.created_at == null || order.created_at < start) match = false
-                        }
-                        query.createdEnd?.takeIf { it.isNotBlank() }?.let { end ->
-                            if (order.created_at == null || order.created_at > end) match = false
-                        }
-                        query.updatedStart?.takeIf { it.isNotBlank() }?.let { start ->
-                            if (order.updated_at == null || order.updated_at < start) match = false
-                        }
-                        query.updatedEnd?.takeIf { it.isNotBlank() }?.let { end ->
-                            if (order.updated_at == null || order.updated_at > end) match = false
-                        }
-                        match
+                        _uiState.update { it.copy(isLoading = false, orders = filtered, isFallbackTriggered = true) }
+                    } else {
+                        _uiState.update { it.copy(isLoading = false, error = "Network timeout/connection failed") }
                     }
-                    _uiState.update { it.copy(isLoading = false, orders = filtered, isFallbackTriggered = true) }
                 } else {
                     AppLogger.error(context, e, "Failed to fetch orders", "AdminViewModel")
                     _uiState.update { it.copy(isLoading = false, error = e.message ?: "Unknown error") }
