@@ -53,6 +53,9 @@ jobs:
           pull_request_base_branch_name: dev
           pull_request_title: ":globe_with_meridians: sync Crowdin translations"
           pull_request_body: "Automated translation sync from Crowdin"
+          pull_request_labels: "localization,l10n"
+          pull_request_assignees: "Guest-Liang"
+          pull_request_reviewers: "Guest-Liang"
           commit_message: ":globe_with_meridians: sync translations from Crowdin"
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
