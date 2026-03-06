@@ -121,12 +121,12 @@
     <string name="admin_search_btn">Search</string>
     <string name="admin_search_clear_btn">Reset query</string>
     <string name="admin_search_status_title">Status filtering (multi-select)</string>
-    <string name="admin_search_worker_title">Assign targets (multiple selections)</string>
+    <string name="admin_search_worker_title">Assign targets (multi-select)</string>
     <string name="admin_search_unassigned">Unassigned (NULL)</string>
-    <string name="admin_search_created_start">Creation time (starting point)</string>
-    <string name="admin_search_created_end">Creation time (deadline)</string>
-    <string name="admin_search_updated_start">Update time (start)</string>
-    <string name="admin_search_updated_end">Updated (as of last update)</string>
+    <string name="admin_search_created_start">Creation time (from)</string>
+    <string name="admin_search_created_end">Creation time (to)</string>
+    <string name="admin_search_updated_start">Update time (from)</string>
+    <string name="admin_search_updated_end">Updated (to)</string>
     <string name="admin_search_no_results">No relevant work order found</string>
     <string name="admin_order_status">Status: %1$s</string>
     <string name="admin_order_description">Description: %1$s</string>
