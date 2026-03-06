@@ -3,6 +3,7 @@ package icu.guestliang.nfcworkflow.ui
 import icu.guestliang.nfcworkflow.R
 import icu.guestliang.nfcworkflow.data.PrefsDataStore
 import icu.guestliang.nfcworkflow.logging.AppLogger
+import icu.guestliang.nfcworkflow.navigation.Screen
 import icu.guestliang.nfcworkflow.ui.components.SplicedColumnGroup
 import icu.guestliang.nfcworkflow.ui.components.SplicedJumpPageWidget
 import android.widget.Toast
@@ -74,7 +75,7 @@ fun AdminFunctionsSection(navController: NavController) {
                 icon = Icons.Default.PersonAdd,
                 iconPlaceholder = true,
                 onClick = {
-                    Toast.makeText(context, "TODO: Register Worker", Toast.LENGTH_SHORT).show()
+                    navController.navigate(Screen.AdminRegisterWorker.route)
                 }
             )
         }
@@ -84,7 +85,7 @@ fun AdminFunctionsSection(navController: NavController) {
                 icon = Icons.Default.Add,
                 iconPlaceholder = true,
                 onClick = {
-                    Toast.makeText(context, "TODO: Create Order", Toast.LENGTH_SHORT).show()
+                    navController.navigate(Screen.AdminCreateOrder.route)
                 }
             )
         }
@@ -94,7 +95,7 @@ fun AdminFunctionsSection(navController: NavController) {
                 icon = Icons.Default.AssignmentInd,
                 iconPlaceholder = true,
                 onClick = {
-                    Toast.makeText(context, "TODO: Assign Order", Toast.LENGTH_SHORT).show()
+                    navController.navigate(Screen.AdminAssignOrder.route)
                 }
             )
         }
@@ -104,7 +105,7 @@ fun AdminFunctionsSection(navController: NavController) {
                 icon = Icons.Default.Search,
                 iconPlaceholder = true,
                 onClick = {
-                    Toast.makeText(context, "TODO: Search Orders", Toast.LENGTH_SHORT).show()
+                    navController.navigate(Screen.AdminSearchOrders.route)
                 }
             )
         }
@@ -114,7 +115,7 @@ fun AdminFunctionsSection(navController: NavController) {
                 icon = Icons.AutoMirrored.Filled.List,
                 iconPlaceholder = true,
                 onClick = {
-                    Toast.makeText(context, "TODO: Query Logs", Toast.LENGTH_SHORT).show()
+                    navController.navigate(Screen.AdminQueryLogs.route)
                 }
             )
         }
@@ -131,7 +132,7 @@ fun WorkerFunctionsSection(navController: NavController) {
                 icon = Icons.AutoMirrored.Filled.Assignment,
                 iconPlaceholder = true,
                 onClick = {
-                    Toast.makeText(context, "TODO: View My Orders", Toast.LENGTH_SHORT).show()
+                    navController.navigate(Screen.WorkerOrders.route)
                 }
             )
         }
@@ -141,7 +142,7 @@ fun WorkerFunctionsSection(navController: NavController) {
                 icon = Icons.Default.CheckCircle,
                 iconPlaceholder = true,
                 onClick = {
-                    Toast.makeText(context, "TODO: Complete Order", Toast.LENGTH_SHORT).show()
+                    navController.navigate(Screen.WorkerCompleteOrder.route)
                 }
             )
         }
