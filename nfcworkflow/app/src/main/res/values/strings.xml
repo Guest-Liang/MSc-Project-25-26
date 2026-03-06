@@ -39,11 +39,14 @@
     <string name="admin_create_order">创建工单</string>
     <string name="admin_assign_order">指派工单</string>
     <string name="admin_search_orders">查询工单</string>
-    <string name="admin_query_logs">查询日志</string>
+    <string name="admin_query_logs">查询工单日志</string>
 
     <string name="worker_api_title">工人功能</string>
     <string name="worker_view_orders">查看我的工单</string>
+    <string name="worker_no_orders">目前没有需要处理的工单</string>
     <string name="worker_complete_order">完成工单</string>
+    <string name="worker_complete_order_desc">输入工单ID以标记完成</string>
+    <string name="worker_order_id">工单 ID</string>
 
     <string name="nfc_read_title">NFC读取</string>
     <string name="nfc_read_desc">打开按钮以读取NFC标签</string>
@@ -114,4 +117,52 @@
     <string name="register_admin_auth_title">管理员授权</string>
     <string name="register_admin_username">管理员用户名</string>
     <string name="register_admin_password">管理员密码</string>
+
+    <!-- Admin New UI Strings -->
+    <string name="admin_order_title_hint">工单标题</string>
+    <string name="admin_order_desc_hint">描述</string>
+    <string name="admin_order_nfc_hint">NFC 标签 (可选)</string>
+    <string name="admin_order_create_btn">创建工单</string>
+
+    <string name="admin_no_pending_orders">目前没有待分配的工单</string>
+    <string name="admin_all_orders_assigned">所有工单均已分配或完成。</string>
+    <string name="admin_select_worker">选择工人</string>
+    <string name="admin_assign_btn">分配</string>
+    <string name="admin_order_item_title">工单 #%1$d: %2$s</string>
+
+    <!-- Advanced Search Strings -->
+    <string name="admin_search_hint">通过标题或 ID 搜索</string>
+    <string name="admin_advanced_search">点击展开高级搜索</string>
+    <string name="admin_search_btn">搜索</string>
+    <string name="admin_search_clear_btn">重置条件</string>
+    <string name="admin_search_status_title">状态筛选 (多选)</string>
+    <string name="admin_search_worker_title">分配给 (多选)</string>
+    <string name="admin_search_unassigned">未分配 (NULL)</string>
+    <string name="admin_search_created_start">创建时间 (起)</string>
+    <string name="admin_search_created_end">创建时间 (止)</string>
+    <string name="admin_search_updated_start">更新时间 (起)</string>
+    <string name="admin_search_updated_end">更新时间 (止)</string>
+
+    <string name="admin_search_no_results">没有找到相关工单</string>
+    <string name="admin_order_status">状态: %1$s</string>
+    <string name="admin_order_description">描述: %1$s</string>
+    <string name="admin_search_fallback_msg">网络请求失败或超时，已自动转为本地过滤</string>
+
+    <string name="admin_logs_no_data">暂无日志</string>
+    <string name="admin_log_item_title">日志 #%1$d</string>
+    <string name="admin_log_action">操作: %1$s</string>
+    <string name="admin_log_target">目标: %1$s #%2$s</string>
+    <string name="admin_log_user">用户 ID: %1$d</string>
+    <string name="admin_log_time">时间: %1$s</string>
+
+    <string name="dialog_empty_state_title">提示</string>
+
+    <!-- Time Picker Strings -->
+    <string name="time_picker_title">选择日期和时间</string>
+    <string name="time_picker_year">年</string>
+    <string name="time_picker_month">月</string>
+    <string name="time_picker_day">日</string>
+    <string name="time_picker_hour">时</string>
+    <string name="time_picker_minute">分</string>
+    <string name="time_picker_second">秒</string>
 </resources>
