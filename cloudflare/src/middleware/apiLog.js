@@ -19,34 +19,67 @@ async function resolveUserForLog(c, method, path) {
 }
 
 async function resolveRequestMeta(c, method, path) {
+  const url = new URL(c.req.url)
+  const queryParams = {}
+  for (const [key, value] of url.searchParams.entries()) {
+    if (Object.prototype.hasOwnProperty.call(queryParams, key)) {
+      if (Array.isArray(queryParams[key])) {
+        queryParams[key].push(value)
+      } else {
+        queryParams[key] = [queryParams[key], value]
+      }
+    } else {
+      queryParams[key] = value
+    }
+  }
+  const hasQueryParams = Object.keys(queryParams).length > 0
+
   const preloadedMeta = c.get("api_log_request_meta")
+  let meta = null
+
   if (typeof preloadedMeta === "string") {
-    return preloadedMeta
+    try {
+      const parsed = JSON.parse(preloadedMeta)
+      if (parsed && typeof parsed === "object" && !Array.isArray(parsed)) {
+        meta = parsed
+      } else {
+        meta = { preloaded_meta: preloadedMeta }
+      }
+    } catch {
+      meta = { preloaded_meta: preloadedMeta }
+    }
   }
 
-  if (method === "POST" && path === "/auth/login") {
+  if (!meta && method === "POST" && path === "/auth/login") {
     try {
       const body = await c.req.raw.clone().json()
       const username = typeof body?.username === "string" ? body.username.trim() : null
       const password = typeof body?.password === "string" ? body.password : null
 
-      if (!username && !password) return null
+      if (!username && !password && !hasQueryParams) return null
 
       const pepper = c.env.LOG_PEPPER || c.env.JWT_SECRET || ""
       const passwordFingerprint = password
         ? await sha256Hex(`${pepper}:${password}`)
         : null
 
-      return JSON.stringify({
+      meta = {
         login_username: username,
         password_fingerprint: passwordFingerprint
-      })
+      }
     } catch {
-      return null
+      if (!hasQueryParams) return null
     }
   }
 
-  return null
+  if (hasQueryParams) {
+    meta = {
+      ...(meta || {}),
+      query_params: queryParams
+    }
+  }
+
+  return meta ? JSON.stringify(meta) : null
 }
 
 export async function writeApiLog(c) {
