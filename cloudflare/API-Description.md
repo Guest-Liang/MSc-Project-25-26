@@ -30,10 +30,31 @@ User login, returned JWT.
 ```json
 { "username": "admin", "password": "123456" }
 ```
+### Response Example
+```json
+{
+  "success": true,
+  "code": 9011,
+  "message": "Token generated successfully",
+  "data": {
+    "token": "<jwt-token>",
+    "role": "admin"
+  }
+}
+```
 
 ## **POST /auth/logout**
 用户退出登录  
 User logout.   
+### Response Example
+```json
+{
+  "success": true,
+  "code": 9001,
+  "message": "Logout success",
+  "data": {}
+}
+```
 
 ## **POST /auth/register-admin**
 注册管理员账号   
@@ -42,6 +63,15 @@ Register administrator account
 ```json
 { "username": "root", "password": "123456" }
 ```
+### Response Example
+```json
+{
+  "success": true,
+  "code": 9006,
+  "message": "Admin created success",
+  "data": {}
+}
+```
 
 ## **POST /auth/register-worker**   
 注册工人账号（需要管理员 Token）   
@@ -49,6 +79,19 @@ Register a worker account (administrator token required)
 ### Headers
 ```
 Authorization: Bearer <admin-token>
+```
+### Body
+```json
+{ "username": "worker1", "password": "123456" }
+```
+### Response Example
+```json
+{
+  "success": true,
+  "code": 9007,
+  "message": "Worker created success",
+  "data": {}
+}
 ```
 ---
 # 🩺 健康检查 / Health Check
@@ -62,13 +105,47 @@ Check whether the service is reachable (no authentication required).
   "code": 0,
   "message": "Success",
   "data": {
-    "status": "ok"
+    "ciallo": "Ciallo～(∠・ω< )⌒★"
   }
 }
 ```
 
 ---
 # 🛠 管理员接口 / Admin APIs
+## **GET /admin/workers**
+查询工人列表  
+Query worker list
+### Headers
+```
+Authorization: Bearer <admin-token>
+```
+返回顺序：按 `created_at DESC`（创建时间倒序）。  
+Sort order: `created_at DESC` (created time descending).
+### Response Example
+```json
+{
+  "success": true,
+  "code": 9002,
+  "message": "SQL query success",
+  "data": {
+    "WorkerList": [
+      {
+        "id": 12,
+        "username": "worker-a",
+        "role": "worker",
+        "created_at": "2026-03-05 13:05:22"
+      },
+      {
+        "id": 9,
+        "username": "worker-b",
+        "role": "worker",
+        "created_at": "2026-03-04 19:20:11"
+      }
+    ]
+  }
+}
+```
+
 ## **POST /admin/orders/create**
 创建工单   
 Create a work order.   
@@ -78,6 +155,17 @@ Create a work order.
   "title": "Repair A",
   "description": "Description...",
   "tag": "NFC_TAG_123"
+}
+```
+### Response Example
+```json
+{
+  "success": true,
+  "code": 9010,
+  "message": "Order created successfully",
+  "data": {
+    "orderId": 101
+  }
 }
 ```
 
@@ -91,6 +179,15 @@ Assign work orders to workers.
   "userId": 2
 }
 ```
+### Response Example
+```json
+{
+  "success": true,
+  "code": 9004,
+  "message": "Order assigned success",
+  "data": {}
+}
+```
 ---
 # 👷 工人接口 / Worker APIs
 ## **GET /worker/orders**
@@ -99,6 +196,28 @@ View your assigned work orders
 ### Headers
 ```
 Authorization: Bearer <worker-token>
+```
+返回顺序：按 `updated_at DESC`（更新时间倒序）。  
+Sort order: `updated_at DESC` (updated time descending).
+### Response Example
+```json
+{
+  "success": true,
+  "code": 9002,
+  "message": "SQL query success",
+  "data": [
+    {
+      "id": 1,
+      "title": "Repair A",
+      "description": "Fix pipe leak",
+      "nfc_tag": "NFC_TAG_123",
+      "status": "assigned",
+      "assigned_to": 2,
+      "created_at": "2026-03-01 09:00:00",
+      "updated_at": "2026-03-05 10:30:00"
+    }
+  ]
+}
 ```
 
 ## **POST /worker/orders/complete**
@@ -111,6 +230,15 @@ Authorization: Bearer <worker-token>
 ### Body
 ```json
 { "orderId": 1 }
+```
+### Response Example
+```json
+{
+  "success": true,
+  "code": 9008,
+  "message": "Set work order completion success",
+  "data": {}
+}
 ```
 ---
 # 📄 工单接口 / Orders APIs
@@ -130,6 +258,26 @@ Authorization: Bearer <admin-token>
 | operator | `1,3` | 操作人（用户ID） | Operator (User ID) |
 | startTime | `2025-01-01 00:00:00` | 查询此时间之后（含），精确到秒 | Query for times after this date. (Included) |
 | endTime  | `2025-01-31 23:59:59`  | 查询此时间之前（含），精确到秒 | Query for times before this date. (Included) |
+
+返回顺序：按 `timestamp DESC`（日志时间倒序）。  
+Sort order: `timestamp DESC` (log time descending).
+### Response Example
+```json
+{
+  "success": true,
+  "code": 9002,
+  "message": "SQL query success",
+  "data": [
+    {
+      "id": 18,
+      "order_id": 1,
+      "action": "assigned",
+      "operator_id": 1,
+      "timestamp": "2026-03-05 10:00:00"
+    }
+  ]
+}
+```
 
 ## **GET /orders/search**
 查询工单（支持多条件筛选）
@@ -155,3 +303,26 @@ The query must contain either `NULL` alone or numeric IDs only.
 | createdEnd   | `2025-01-31 23:59:59`            | 创建时间结束（含） | Created time ≤ this value |
 | updatedStart | `2025-02-01 00:00:00`            | 更新时间开始（含） | Updated time ≥ this value |
 | updatedEnd   | `2025-02-10 23:59:59`            | 更新时间结束（含） | Updated time ≤ this value |
+
+返回顺序：按 `id DESC`（工单 ID 倒序）。  
+Sort order: `id DESC` (work order ID descending).
+### Response Example
+```json
+{
+  "success": true,
+  "code": 9002,
+  "message": "SQL query success",
+  "data": [
+    {
+      "id": 1,
+      "title": "Repair A",
+      "description": "Fix pipe leak",
+      "nfc_tag": "NFC_TAG_123",
+      "status": "assigned",
+      "assigned_to": 2,
+      "created_at": "2026-03-01 09:00:00",
+      "updated_at": "2026-03-05 10:30:00"
+    }
+  ]
+}
+```
