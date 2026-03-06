@@ -4,7 +4,6 @@ import icu.guestliang.nfcworkflow.data.PrefsDataStore
 import icu.guestliang.nfcworkflow.logging.AppLogger
 import icu.guestliang.nfcworkflow.network.ApiClient
 import icu.guestliang.nfcworkflow.network.ApiResponse
-import icu.guestliang.nfcworkflow.network.AssignOrderRequest
 import icu.guestliang.nfcworkflow.network.CreateOrderRequest
 import icu.guestliang.nfcworkflow.network.LogEntry
 import icu.guestliang.nfcworkflow.network.Order
@@ -26,16 +25,18 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.withTimeout
 import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.JsonNull
+import kotlinx.serialization.json.JsonPrimitive
+import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.decodeFromJsonElement
 import kotlinx.serialization.json.jsonArray
 import kotlinx.serialization.json.jsonObject
+import java.net.ConnectException
+import java.net.SocketTimeoutException
 import android.content.Context
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import java.net.ConnectException
-import java.net.SocketTimeoutException
 
 data class OrderSearchQuery(
     val title: String? = null,
@@ -231,7 +232,7 @@ class AdminViewModel : ViewModel() {
         }
     }
 
-    fun assignOrder(context: Context, orderId: Int, workerId: Int): Job {
+    fun assignOrder(context: Context, orderId: Int, workerId: Int?): Job {
         return viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true, error = null, successMessage = null) }
             try {
@@ -241,15 +242,20 @@ class AdminViewModel : ViewModel() {
                     return@launch
                 }
 
-                val request = AssignOrderRequest(orderId, workerId)
+                // 手动构建 JSON 以确保 userId: null 被发送，避免全局启用 explicitNulls 带来的副作用
+                val requestBody = buildJsonObject {
+                    put("orderId", JsonPrimitive(orderId))
+                    put("userId", if (workerId == null) JsonNull else JsonPrimitive(workerId))
+                }
+
                 val response: ApiResponse = ApiClient.client.post("admin/orders/assign") {
                     header(HttpHeaders.Authorization, "Bearer $token")
                     contentType(ContentType.Application.Json)
-                    setBody(request)
+                    setBody(requestBody)
                 }.body()
 
                 if (response.success) {
-                    _uiState.update { it.copy(isLoading = false, successMessage = "Order assigned successfully") }
+                    _uiState.update { it.copy(isLoading = false, successMessage = response.message) }
                     fetchOrders(context).join()
                 } else {
                     _uiState.update { it.copy(isLoading = false, error = response.message) }
