@@ -51,8 +51,8 @@ configure<ApplicationExtension> {
         resValues = true
     }
     compileOptions {
-        sourceCompatibility = JavaVersion.VERSION_21
-        targetCompatibility = JavaVersion.VERSION_21
+        sourceCompatibility = JavaVersion.VERSION_24
+        targetCompatibility = JavaVersion.VERSION_24
     }
     packaging {
         jniLibs {
@@ -61,7 +61,7 @@ configure<ApplicationExtension> {
     }
 }
 kotlin {
-    jvmToolchain(21)
+    jvmToolchain(24)
 }
 androidComponents {
     onVariants { variant ->
