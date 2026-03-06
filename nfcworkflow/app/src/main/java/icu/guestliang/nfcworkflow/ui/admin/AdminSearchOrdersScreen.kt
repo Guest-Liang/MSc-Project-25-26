@@ -10,6 +10,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.CloudOff
 import androidx.compose.material.icons.filled.DateRange
 import androidx.compose.material.icons.filled.ExpandLess
@@ -21,11 +22,13 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import icu.guestliang.nfcworkflow.R
 import icu.guestliang.nfcworkflow.logging.AppLogger
+import icu.guestliang.nfcworkflow.network.Order
 import icu.guestliang.nfcworkflow.ui.components.CustomDateTimePickerDialog
 import icu.guestliang.nfcworkflow.ui.theme.Dimensions
 import kotlinx.coroutines.delay
@@ -44,6 +47,7 @@ fun AdminSearchOrdersScreen(
     var isInitialLoad by remember { mutableStateOf(true) }
     var showEmptyDialog by remember { mutableStateOf(false) }
     var showFallbackDialog by remember { mutableStateOf(false) }
+    var selectedOrder by remember { mutableStateOf<Order?>(null) }
     val coroutineScope = rememberCoroutineScope()
 
     // Search query states
@@ -422,19 +426,35 @@ fun AdminSearchOrdersScreen(
                     ) {
                         items(uiState.orders, key = { it.id ?: it.hashCode() }) { order ->
                             Card(
-                                modifier = Modifier.fillMaxWidth(),
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .clickable { selectedOrder = order },
                                 elevation = CardDefaults.cardElevation(defaultElevation = Dimensions.Elevation.Low)
                             ) {
-                                Column(
+                                Row(
                                     modifier = Modifier.padding(Dimensions.SpaceL),
-                                    verticalArrangement = Arrangement.spacedBy(Dimensions.SpaceS)
+                                    verticalAlignment = Alignment.CenterVertically
                                 ) {
-                                    Text(
-                                        text = stringResource(R.string.admin_order_item_title, order.id ?: 0, order.title),
-                                        style = MaterialTheme.typography.titleMedium
+                                    Column(
+                                        modifier = Modifier.weight(1f),
+                                        verticalArrangement = Arrangement.spacedBy(Dimensions.SpaceS)
+                                    ) {
+                                        Text(
+                                            text = stringResource(R.string.admin_order_item_title, order.id ?: 0, order.title),
+                                            style = MaterialTheme.typography.titleMedium
+                                        )
+                                        Text(text = stringResource(R.string.admin_order_status, order.status), style = MaterialTheme.typography.bodyMedium)
+                                        Text(
+                                            text = stringResource(R.string.admin_order_description, order.description),
+                                            style = MaterialTheme.typography.bodySmall,
+                                            maxLines = 1
+                                        )
+                                    }
+                                    Icon(
+                                        imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
+                                        contentDescription = null,
+                                        tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
                                     )
-                                    Text(text = stringResource(R.string.admin_order_status, order.status), style = MaterialTheme.typography.bodyMedium)
-                                    Text(text = stringResource(R.string.admin_order_description, order.description), style = MaterialTheme.typography.bodySmall)
                                 }
                             }
                         }
@@ -443,6 +463,54 @@ fun AdminSearchOrdersScreen(
             }
         }
     }
+
+    if (selectedOrder != null) {
+        OrderDetailDialog(
+            order = selectedOrder!!,
+            workers = uiState.workers,
+            onDismiss = { selectedOrder = null }
+        )
+    }
+}
+
+@Composable
+fun OrderDetailDialog(order: Order, workers: List<icu.guestliang.nfcworkflow.network.WorkerUser>, onDismiss: () -> Unit) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(stringResource(R.string.admin_order_details_title), fontWeight = FontWeight.Bold) },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(Dimensions.SpaceS)) {
+                Text(text = stringResource(R.string.admin_order_item_title, order.id ?: 0, order.title), style = MaterialTheme.typography.titleMedium)
+                HorizontalDivider(modifier = Modifier.padding(vertical = Dimensions.SpaceXS))
+                
+                Text(text = stringResource(R.string.admin_order_status, order.status), style = MaterialTheme.typography.bodyMedium)
+                Text(text = stringResource(R.string.admin_order_description, order.description), style = MaterialTheme.typography.bodyMedium)
+                
+                if (!order.nfc_tag.isNullOrBlank()) {
+                    Text(text = stringResource(R.string.admin_order_nfc_tag, order.nfc_tag), style = MaterialTheme.typography.bodySmall)
+                }
+
+                val workerName = workers.find { it.id == order.assigned_to }?.username
+                if (workerName != null) {
+                    Text(text = stringResource(R.string.admin_order_assigned_to, workerName, order.assigned_to ?: 0), style = MaterialTheme.typography.bodySmall)
+                } else {
+                    Text(text = stringResource(R.string.admin_order_not_assigned), style = MaterialTheme.typography.bodySmall)
+                }
+
+                if (!order.created_at.isNullOrBlank()) {
+                    Text(text = stringResource(R.string.admin_order_created_at, order.created_at), style = MaterialTheme.typography.bodySmall)
+                }
+                if (!order.updated_at.isNullOrBlank()) {
+                    Text(text = stringResource(R.string.admin_order_updated_at, order.updated_at), style = MaterialTheme.typography.bodySmall)
+                }
+            }
+        },
+        confirmButton = {
+            TextButton(onClick = onDismiss) {
+                Text(stringResource(R.string.ok))
+            }
+        }
+    )
 }
 
 @Composable
