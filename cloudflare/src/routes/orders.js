@@ -119,13 +119,24 @@ orderRoutes.get("/search", requireAdmin, async (c) => {
 
   // assigned_to 精确匹配多个 exact match (multiple)
   if (params.assigned) {
-    if (params.assigned === "NULL") {
+    const assignedValues = params.assigned.split(",").map(i => i.trim()).filter(i => i.length > 0)
+    const hasNull = assignedValues.includes("NULL")
+
+    if (hasNull && assignedValues.length > 1) {
+      return jsonResponse(null, ERR.INVALID_ASSIGNED_FILTER)
+    }
+
+    if (hasNull) {
       conditions.push("assigned_to IS NULL")
     } else {
-      const ids = params.assigned.split(",").map(i => i.trim()).filter(i => i.length > 0)
-      if (ids.length > 0) {
-        conditions.push(`assigned_to IN (${ids.map(() => "?").join(",")})`)
-        values.push(...ids)
+      const hasNonNumericId = assignedValues.some(i => !/^\d+$/.test(i))
+      if (hasNonNumericId) {
+        return jsonResponse(null, ERR.INVALID_ASSIGNED_FILTER)
+      }
+
+      if (assignedValues.length > 0) {
+        conditions.push(`assigned_to IN (${assignedValues.map(() => "?").join(",")})`)
+        values.push(...assignedValues)
       }
     }
   }
