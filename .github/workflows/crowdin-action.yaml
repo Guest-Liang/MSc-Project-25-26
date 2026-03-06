@@ -2,11 +2,11 @@ name: Crowdin Sync
 
 on:
   push:
-    branches:
-      - dev
+    branches: [ "dev" ]
     paths:
       - "nfcworkflow/app/src/main/res/values/strings.xml"
       - "crowdin.yml"
+      - ".github/workflows/crowdin-action.yaml"
   workflow_dispatch:
 
 permissions:
