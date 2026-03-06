@@ -151,7 +151,7 @@ orderRoutes.get("/search", requireAdmin, async (c) => {
   }
 
   const where = conditions.length > 0 ? `WHERE ${conditions.join(" AND ")}` : ""
-  const sql = `SELECT * FROM orders ${where} ORDER BY updated_at DESC`
+  const sql = `SELECT * FROM orders ${where} ORDER BY id DESC`
 
   const rows = await c.env.MScPJ_DB.prepare(sql).bind(...values).all()
   return jsonResponse({

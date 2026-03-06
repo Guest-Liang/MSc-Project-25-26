@@ -8,6 +8,20 @@ export const adminRoutes = new Hono()
 // Admin 权限中间件 Admin Middleware
 adminRoutes.use("*", requireAdmin)
 
+// 查询工人列表 Query workers
+adminRoutes.get("/workers", async (c) => {
+  const list = await c.env.MScPJ_DB.prepare(
+    "SELECT id, username, role, created_at FROM users WHERE role = 'worker' ORDER BY created_at DESC"
+  ).all()
+
+  return jsonResponse({
+    ...INFO.SQL_QUERY_SUCCESS,
+    data: {
+      WorkerList: list.results
+    }
+  })
+})
+
 // 创建工单 Create Orders
 adminRoutes.post("/orders/create", async (c) => {
   const { title, description, tag } = await c.req.json()
