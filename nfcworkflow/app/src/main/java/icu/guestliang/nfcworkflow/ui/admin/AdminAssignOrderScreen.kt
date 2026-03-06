@@ -1,6 +1,5 @@
 package icu.guestliang.nfcworkflow.ui.admin
 
-import android.widget.Toast
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -30,7 +29,7 @@ fun AdminAssignOrderScreen(
 
     val uiState by viewModel.uiState.collectAsState()
     var isInitialLoad by remember { mutableStateOf(true) }
-    var showEmptyDialog by remember { mutableStateOf(false) }
+    var showAssignResultDialog by remember { mutableStateOf<String?>(null) }
 
     LaunchedEffect(Unit) {
         val ordersJob = viewModel.fetchOrders(context)
@@ -39,28 +38,27 @@ fun AdminAssignOrderScreen(
         isInitialLoad = false
     }
 
-    LaunchedEffect(uiState.isLoading, uiState.orders, isInitialLoad) {
-        showEmptyDialog = !isInitialLoad && !uiState.isLoading && uiState.orders.none { it.status == "pending" } && uiState.error == null
-    }
-
-    LaunchedEffect(uiState.successMessage, uiState.error) {
+    LaunchedEffect(uiState.successMessage) {
         uiState.successMessage?.let {
-            Toast.makeText(context, it, Toast.LENGTH_SHORT).show()
-            viewModel.clearMessages()
-        }
-        uiState.error?.let {
-            Toast.makeText(context, it, Toast.LENGTH_LONG).show()
+            showAssignResultDialog = it
             viewModel.clearMessages()
         }
     }
 
-    if (showEmptyDialog) {
+    LaunchedEffect(uiState.error) {
+        uiState.error?.let {
+            showAssignResultDialog = it
+            viewModel.clearMessages()
+        }
+    }
+
+    if (showAssignResultDialog != null) {
         AlertDialog(
-            onDismissRequest = { showEmptyDialog = false },
-            title = { Text(stringResource(R.string.dialog_empty_state_title)) },
-            text = { Text(stringResource(R.string.admin_no_pending_orders)) },
+            onDismissRequest = { showAssignResultDialog = null },
+            title = { Text(stringResource(R.string.admin_assignment_result_title)) },
+            text = { Text(showAssignResultDialog ?: "") },
             confirmButton = {
-                TextButton(onClick = { showEmptyDialog = false; navController.popBackStack() }) {
+                TextButton(onClick = { showAssignResultDialog = null }) {
                     Text(stringResource(R.string.ok))
                 }
             }
@@ -95,8 +93,9 @@ fun AdminAssignOrderScreen(
                         contentPadding = PaddingValues(Dimensions.SpaceL),
                         verticalArrangement = Arrangement.spacedBy(Dimensions.SpaceL)
                     ) {
-                        val pendingOrders = uiState.orders.filter { it.status == "pending" }
-                        if (pendingOrders.isEmpty() && !uiState.isLoading && !isInitialLoad) {
+                        val displayableOrders = uiState.orders.filter { it.status == "created" || it.status == "assigned" || it.status == "unassigned" }
+                        
+                        if (displayableOrders.isEmpty() && !uiState.isLoading && !isInitialLoad) {
                             item {
                                 Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
                                     Text(
@@ -108,7 +107,7 @@ fun AdminAssignOrderScreen(
                                 }
                             }
                         } else {
-                            items(pendingOrders) { order ->
+                            items(displayableOrders) { order ->
                                 Card(
                                     modifier = Modifier.fillMaxWidth(),
                                     elevation = CardDefaults.cardElevation(defaultElevation = Dimensions.Elevation.Low)
@@ -124,7 +123,7 @@ fun AdminAssignOrderScreen(
                                         Text(text = stringResource(R.string.admin_order_description, order.description))
 
                                         var expanded by remember { mutableStateOf(false) }
-                                        var selectedWorkerId by remember { mutableStateOf<Int?>(null) }
+                                        var selectedWorkerId by remember(order.assigned_to) { mutableStateOf(order.assigned_to) }
 
                                         ExposedDropdownMenuBox(
                                             expanded = expanded,
@@ -142,6 +141,13 @@ fun AdminAssignOrderScreen(
                                                 expanded = expanded,
                                                 onDismissRequest = { expanded = false }
                                             ) {
+                                                DropdownMenuItem(
+                                                    text = { Text(stringResource(R.string.admin_assign_unassign_btn)) },
+                                                    onClick = {
+                                                        selectedWorkerId = null
+                                                        expanded = false
+                                                    }
+                                                )
                                                 uiState.workers.forEach { worker ->
                                                     DropdownMenuItem(
                                                         text = { Text(worker.username) },
@@ -156,11 +162,10 @@ fun AdminAssignOrderScreen(
 
                                         Button(
                                             onClick = {
-                                                if (order.id != null && selectedWorkerId != null) {
-                                                    viewModel.assignOrder(context, order.id, selectedWorkerId!!)
+                                                if (order.id != null) {
+                                                    viewModel.assignOrder(context, order.id, selectedWorkerId)
                                                 }
                                             },
-                                            enabled = selectedWorkerId != null && !uiState.isLoading,
                                             modifier = Modifier.align(Alignment.End)
                                         ) {
                                             Text(stringResource(R.string.admin_assign_btn))

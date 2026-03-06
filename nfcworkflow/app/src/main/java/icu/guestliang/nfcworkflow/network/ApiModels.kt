@@ -44,7 +44,7 @@ data class CreateOrderRequest(
 @Serializable
 data class AssignOrderRequest(
     val orderId: Int,
-    val userId: Int
+    val userId: Int? = null
 )
 
 @Serializable
