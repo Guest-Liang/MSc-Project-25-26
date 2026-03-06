@@ -32,10 +32,13 @@
     <string name="admin_create_order">Create Order</string>
     <string name="admin_assign_order">Assign Order</string>
     <string name="admin_search_orders">Search Order</string>
-    <string name="admin_query_logs">Query Logs</string>
+    <string name="admin_query_logs">Query order logs</string>
     <string name="worker_api_title">Worker Function List</string>
     <string name="worker_view_orders">View My Order</string>
+    <string name="worker_no_orders">There are currently no work orders to process</string>
     <string name="worker_complete_order">Complete Order</string>
+    <string name="worker_complete_order_desc">Enter the work order ID to mark it as complete</string>
+    <string name="worker_order_id">Order ID</string>
     <string name="nfc_read_title">NFC reading</string>
     <string name="nfc_read_desc">Turn on switch to read NFC tags</string>
     <string name="nfc_dialog_title">Read NFC</string>
@@ -100,4 +103,45 @@
     <string name="register_admin_auth_title">Admin authorization</string>
     <string name="register_admin_username">Admin username</string>
     <string name="register_admin_password">Admin password</string>
+    <!-- Admin New UI Strings -->
+    <string name="admin_order_title_hint">Order title</string>
+    <string name="admin_order_desc_hint">Order description</string>
+    <string name="admin_order_nfc_hint">NFC tags (Optional)</string>
+    <string name="admin_order_create_btn">Create Order</string>
+    <string name="admin_no_pending_orders">There are currently no orders to be assigned</string>
+    <string name="admin_all_orders_assigned">All orders have been assigned or completed.</string>
+    <string name="admin_select_worker">Select worker</string>
+    <string name="admin_assign_btn">Assign</string>
+    <string name="admin_order_item_title">Order #%1$d: %2$s</string>
+    <!-- Advanced Search Strings -->
+    <string name="admin_search_hint">Search by title or ID</string>
+    <string name="admin_advanced_search">Click to expand advanced search</string>
+    <string name="admin_search_btn">Search</string>
+    <string name="admin_search_clear_btn">Reset query</string>
+    <string name="admin_search_status_title">Status filtering (multi-select)</string>
+    <string name="admin_search_worker_title">Assigned target (multi-select)</string>
+    <string name="admin_search_unassigned">Unassigned (NULL)</string>
+    <string name="admin_search_created_start">Created time (from)</string>
+    <string name="admin_search_created_end">Created time (to)</string>
+    <string name="admin_search_updated_start">Update time (from)</string>
+    <string name="admin_search_updated_end">Update time (to)</string>
+    <string name="admin_search_no_results">No relevant order found</string>
+    <string name="admin_order_status">Status: %1$s</string>
+    <string name="admin_order_description">Description: %1$s</string>
+    <string name="admin_search_fallback_msg">Network requests that fail or time out have been automatically switched to locally filtering</string>
+    <string name="admin_logs_no_data">No logs available</string>
+    <string name="admin_log_item_title">Log #%1$d</string>
+    <string name="admin_log_action">Action: %1$s</string>
+    <string name="admin_log_target">Target: %1$s #%2$s</string>
+    <string name="admin_log_user">User ID: %1$d</string>
+    <string name="admin_log_time">Time: %1$s</string>
+    <string name="dialog_empty_state_title">Info</string>
+    <!-- Time Picker Strings -->
+    <string name="time_picker_title">Choose time</string>
+    <string name="time_picker_year">Y</string>
+    <string name="time_picker_month">M</string>
+    <string name="time_picker_day">d</string>
+    <string name="time_picker_hour">H</string>
+    <string name="time_picker_minute">m</string>
+    <string name="time_picker_second">s</string>
 </resources>
