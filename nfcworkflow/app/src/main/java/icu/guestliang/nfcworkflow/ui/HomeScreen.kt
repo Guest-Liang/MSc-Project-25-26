@@ -6,7 +6,7 @@ import icu.guestliang.nfcworkflow.logging.AppLogger
 import icu.guestliang.nfcworkflow.navigation.Screen
 import icu.guestliang.nfcworkflow.ui.components.SplicedColumnGroup
 import icu.guestliang.nfcworkflow.ui.components.SplicedJumpPageWidget
-import android.widget.Toast
+import icu.guestliang.nfcworkflow.ui.theme.Dimensions
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
@@ -30,7 +30,6 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 
 @Composable
@@ -51,8 +50,8 @@ fun HomeScreen(navController: NavController) {
                 .fillMaxSize()
                 .navigationBarsPadding(),
             state = rememberLazyListState(),
-            contentPadding = PaddingValues(top = 16.dp, bottom = 16.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp)
+            contentPadding = PaddingValues(top = Dimensions.SpaceS, bottom = Dimensions.SpaceL),
+            verticalArrangement = Arrangement.spacedBy(Dimensions.SpaceL)
         ) {
             item {
                 if (isWorker) {
@@ -67,7 +66,6 @@ fun HomeScreen(navController: NavController) {
 
 @Composable
 fun AdminFunctionsSection(navController: NavController) {
-    val context = LocalContext.current
     SplicedColumnGroup(title = stringResource(id = R.string.admin_api_title)) {
         item {
             SplicedJumpPageWidget(
@@ -124,7 +122,6 @@ fun AdminFunctionsSection(navController: NavController) {
 
 @Composable
 fun WorkerFunctionsSection(navController: NavController) {
-    val context = LocalContext.current
     SplicedColumnGroup(title = stringResource(id = R.string.worker_api_title)) {
         item {
             SplicedJumpPageWidget(

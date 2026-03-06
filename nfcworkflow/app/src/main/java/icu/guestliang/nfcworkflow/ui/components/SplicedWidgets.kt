@@ -1,6 +1,7 @@
 package icu.guestliang.nfcworkflow.ui.components
 
 import icu.guestliang.nfcworkflow.R
+import icu.guestliang.nfcworkflow.ui.theme.Dimensions
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateDpAsState
@@ -164,26 +165,26 @@ fun SplicedBaseWidget(
             } else Modifier
         )
 
-    rowModifier = if (!noVerticalPadding) rowModifier.padding(vertical = 16.dp) else rowModifier
-    rowModifier = if (!noHorizontalPadding) rowModifier.padding(horizontal = 16.dp) else rowModifier
+    rowModifier = if (!noVerticalPadding) rowModifier.padding(vertical = Dimensions.SpaceL) else rowModifier
+    rowModifier = if (!noHorizontalPadding) rowModifier.padding(horizontal = Dimensions.SpaceL) else rowModifier
 
     Row(
         modifier = rowModifier,
-        horizontalArrangement = Arrangement.spacedBy(16.dp),
+        horizontalArrangement = Arrangement.spacedBy(Dimensions.SpaceL),
     )
     {
         rowHeader()
         if (icon != null)
             Icon(
                 modifier = Modifier
-                    .size(24.dp)
+                    .size(Dimensions.IconSize.M)
                     .align(Alignment.CenterVertically),
                 imageVector = icon,
                 contentDescription = null,
                 tint = MaterialTheme.colorScheme.onSurfaceVariant
             )
         if (icon == null && iconPlaceholder)
-            Spacer(modifier = Modifier.size(24.dp))
+            Spacer(modifier = Modifier.size(Dimensions.IconSize.M))
         Box(
             modifier = Modifier
                 .weight(1f)
@@ -194,11 +195,11 @@ fun SplicedBaseWidget(
                     visible = title != null,
                     enter = expandVertically(
                         animationSpec = spring(stiffness = Spring.StiffnessMediumLow),
-                        expandFrom = Alignment.Top // Unroll downwards like a blind
+                        expandFrom = Alignment.Top 
                     ),
                     exit = shrinkVertically(
                         animationSpec = spring(stiffness = Spring.StiffnessMediumLow),
-                        shrinkTowards = Alignment.Top // Unroll downwards like a blind
+                        shrinkTowards = Alignment.Top 
                     )
                 ) {
                     title?.let {
@@ -215,11 +216,11 @@ fun SplicedBaseWidget(
                     visible = description != null,
                     enter = expandVertically(
                         animationSpec = spring(stiffness = Spring.StiffnessMediumLow),
-                        expandFrom = Alignment.Top // Unroll downwards like a blind
+                        expandFrom = Alignment.Top 
                     ),
                     exit = shrinkVertically(
                         animationSpec = spring(stiffness = Spring.StiffnessMediumLow),
-                        shrinkTowards = Alignment.Top // Unroll downwards like a blind
+                        shrinkTowards = Alignment.Top 
                     )
                 ) {
                     description?.let {
@@ -325,7 +326,7 @@ fun SplicedTextFieldWidget(
                     .focusProperties {
                         canFocus = !isClickableMode
                     }
-                    .padding(top = 5.dp),
+                    .padding(top = Dimensions.SpaceXS),
                 enabled = enabled,
                 readOnly = readOnly,
                 textStyle = textStyle,
@@ -370,23 +371,23 @@ fun SplicedTextFieldWidget(
                             visible = isFocused,
                             enter = expandHorizontally(
                                 animationSpec = spring(stiffness = SharedStiffness),
-                                expandFrom = Alignment.Start // Unroll downwards like a blind
+                                expandFrom = Alignment.Start 
                             ) + expandVertically(
                                 animationSpec = spring(stiffness = SharedStiffness),
-                                expandFrom = Alignment.Top // Unroll downwards like a blind
+                                expandFrom = Alignment.Top 
                             ),
                             exit = shrinkHorizontally(
                                 animationSpec = spring(stiffness = SharedStiffness),
-                                shrinkTowards = Alignment.Start // Roll up upwards
+                                shrinkTowards = Alignment.Start 
                             ) + shrinkVertically(
                                 animationSpec = spring(stiffness = SharedStiffness),
-                                shrinkTowards = Alignment.Top // Unroll downwards like a blind
+                                shrinkTowards = Alignment.Top 
                             )
                         ) {
-                            Spacer(modifier = Modifier.height(2.dp))
+                            Spacer(modifier = Modifier.height(Dimensions.SpaceXXS))
 
                             HorizontalDivider(
-                                thickness = 2.dp,
+                                thickness = Dimensions.Divider.Thick,
                                 color = when {
                                     error.isNotBlank() -> MaterialTheme.colorScheme.error
                                     !enabled -> MaterialTheme.colorScheme.onSurface.copy(alpha = 0.12f)
@@ -402,21 +403,21 @@ fun SplicedTextFieldWidget(
                 visible = error.isNotBlank() && (isFocused || state.text.isNotBlank()),
                 enter = expandHorizontally(
                     animationSpec = spring(stiffness = SharedStiffness),
-                    expandFrom = Alignment.Start // Unroll downwards like a blind
+                    expandFrom = Alignment.Start 
                 ) + expandVertically(
                     animationSpec = spring(stiffness = SharedStiffness),
-                    expandFrom = Alignment.Top // Unroll downwards like a blind
+                    expandFrom = Alignment.Top 
                 ),
                 exit = shrinkHorizontally(
                     animationSpec = spring(stiffness = SharedStiffness),
-                    shrinkTowards = Alignment.Start // Roll up upwards
+                    shrinkTowards = Alignment.Start 
                 ) + shrinkVertically(
                     animationSpec = spring(stiffness = SharedStiffness),
-                    shrinkTowards = Alignment.Top // Unroll downwards like a blind
+                    shrinkTowards = Alignment.Top 
                 )
             ) {
                 Text(
-                    modifier = Modifier.padding(top = 2.dp),
+                    modifier = Modifier.padding(top = Dimensions.SpaceXXS),
                     text = error,
                     color = MaterialTheme.colorScheme.error,
                     style = MaterialTheme.typography.bodySmall
@@ -464,7 +465,7 @@ fun SplicedJumpPageWidget(
             imageVector = Icons.Filled.ChevronRight,
             contentDescription = null,
             tint = MaterialTheme.colorScheme.onSurfaceVariant,
-            modifier = Modifier.size(24.dp)
+            modifier = Modifier.size(Dimensions.IconSize.M)
         )
     }
 }
@@ -542,9 +543,6 @@ class SplicedGroupScope {
     }
 }
 
-private val CornerRadius = 16.dp
-private val ConnectionRadius = 5.dp
-
 /**
  * A container that groups items with a spliced, continuous look (similar to M3 Expressive).
  *
@@ -567,13 +565,13 @@ fun SplicedColumnGroup(
 
     if (allItems.isEmpty()) return
 
-    Column(modifier = modifier.padding(horizontal = 16.dp, vertical = 8.dp)) {
+    Column(modifier = modifier.padding(horizontal = Dimensions.SpaceL, vertical = Dimensions.SpaceS)) {
         if (title.isNotEmpty()) {
             Text(
                 text = title,
                 style = MaterialTheme.typography.titleSmall,
                 color = MaterialTheme.colorScheme.primary,
-                modifier = Modifier.padding(start = 16.dp, bottom = 8.dp)
+                modifier = Modifier.padding(start = Dimensions.SpaceL, bottom = Dimensions.SpaceS)
             )
         }
 
@@ -599,13 +597,13 @@ fun SplicedColumnGroup(
                         modifier = Modifier.zIndex(zIndex),
                         enter = expandVertically(
                             animationSpec = spring(stiffness = SharedStiffness),
-                            expandFrom = Alignment.Top // Unroll downwards like a blind
+                            expandFrom = Alignment.Top 
                         ) + fadeIn(
                             animationSpec = spring(stiffness = SharedStiffness)
                         ),
                         exit = shrinkVertically(
                             animationSpec = spring(stiffness = SharedStiffness),
-                            shrinkTowards = Alignment.Top // Roll up upwards
+                            shrinkTowards = Alignment.Top 
                         ) + fadeOut(
                             animationSpec = spring(stiffness = SharedStiffness)
                         )
@@ -613,10 +611,8 @@ fun SplicedColumnGroup(
                         val isFirst = index == firstVisibleIndex
                         val isLast = index == lastVisibleIndex
 
-                        // Determine target corner radii based on current visibility position.
-                        // Outer boundaries get full CornerRadius; inner connections get smaller ConnectionRadius.
-                        val targetTopRadius = if (isFirst) CornerRadius else ConnectionRadius
-                        val targetBottomRadius = if (isLast) CornerRadius else ConnectionRadius
+                        val targetTopRadius = if (isFirst) Dimensions.Radius.L else Dimensions.Radius.S
+                        val targetBottomRadius = if (isLast) Dimensions.Radius.L else Dimensions.Radius.S
 
                         // Animate shape changes to match the enter/exit physics.
                         val animatedTopRadius by animateDpAsState(
@@ -637,12 +633,7 @@ fun SplicedColumnGroup(
                             bottomEnd = animatedBottomRadius
                         )
 
-                        // Layout Stability Fix:
-                        // Instead of placing spacing/padding at the bottom, we apply it to the TOP for all items except the first.
-                        // Since our animation shrinks towards the TOP, bottom-padding would be clipped first, causing
-                        // the next item to "jump" instantly. By anchoring spacing to the top, it persists until the
-                        // very end of the shrink animation.
-                        val topPadding = if (index == 0) 0.dp else 2.dp
+                        val topPadding = if (index == 0) Dimensions.SpaceZero else Dimensions.Divider.Thick
 
                         val isDark = isSystemInDarkTheme()
 
@@ -747,7 +738,7 @@ fun SplicedDropdownWidget(
                     modifier = Modifier
                         .fillMaxWidth()
                         .heightIn(max = dialogMaxHeight),
-                    verticalArrangement = Arrangement.spacedBy(4.dp)
+                    verticalArrangement = Arrangement.spacedBy(Dimensions.SpaceXS)
                 ) {
                     items(items.size) { index ->
                         DropdownItem(
@@ -810,7 +801,7 @@ private fun DropdownItem(
             .clip(MaterialTheme.shapes.medium)
             .background(backgroundColor)
             .clickable(onClick = onClick)
-            .padding(vertical = 12.dp, horizontal = 12.dp),
+            .padding(vertical = Dimensions.SpaceM, horizontal = Dimensions.SpaceM),
         verticalAlignment = Alignment.CenterVertically
     ) {
         RadioButton(
@@ -822,7 +813,7 @@ private fun DropdownItem(
             )
         )
 
-        Spacer(modifier = Modifier.width(12.dp))
+        Spacer(modifier = Modifier.width(Dimensions.SpaceM))
 
         Text(
             text = text,
@@ -892,10 +883,6 @@ inline fun <T> LazyListScope.splicedLazyColumnGroup(
     crossinline contentType: (index: Int, item: T) -> Any? = { _, _ -> null },
     crossinline itemContent: @Composable LazyItemScope.(index: Int, item: T) -> Unit,
 ) {
-    val sharedStiffness = Spring.StiffnessMediumLow
-    val cornerRadius = 16.dp
-    val connectionRadius = 4.dp
-
     itemsIndexed(
         items = items,
         key = key,
@@ -904,24 +891,24 @@ inline fun <T> LazyListScope.splicedLazyColumnGroup(
         val isFirst = index == 0
         val isLast = index == items.size - 1
 
-        val targetTopRadius = if (isFirst) cornerRadius else connectionRadius
-        val targetBottomRadius = if (isLast) cornerRadius else connectionRadius
+        val targetTopRadius = if (isFirst) Dimensions.Radius.L else Dimensions.Radius.XS
+        val targetBottomRadius = if (isLast) Dimensions.Radius.L else Dimensions.Radius.XS
 
         val animatedTopRadius by animateDpAsState(
             targetValue = targetTopRadius,
-            animationSpec = spring(stiffness = sharedStiffness),
+            animationSpec = spring(stiffness = Spring.StiffnessMediumLow),
             label = "TopCornerRadius"
         )
         val animatedBottomRadius by animateDpAsState(
             targetValue = targetBottomRadius,
-            animationSpec = spring(stiffness = sharedStiffness),
+            animationSpec = spring(stiffness = Spring.StiffnessMediumLow),
             label = "BottomCornerRadius"
         )
 
         val isDark = isSystemInDarkTheme()
         val surfaceModifier = Modifier
-            .padding(horizontal = 16.dp)
-            .padding(top = 2.dp)
+            .padding(horizontal = Dimensions.SpaceL)
+            .padding(top = Dimensions.SpaceXXS)
             .clip(RoundedCornerShape(
                 topStart = animatedTopRadius,
                 topEnd = animatedTopRadius,

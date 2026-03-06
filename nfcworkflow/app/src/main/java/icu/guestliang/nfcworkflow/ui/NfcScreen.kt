@@ -5,15 +5,14 @@ import icu.guestliang.nfcworkflow.logging.AppLogger
 import icu.guestliang.nfcworkflow.nfc.parseNfcTag
 import icu.guestliang.nfcworkflow.ui.components.SplicedColumnGroup
 import icu.guestliang.nfcworkflow.ui.components.SplicedSwitchWidget
+import icu.guestliang.nfcworkflow.ui.theme.Dimensions
 import icu.guestliang.nfcworkflow.utils.findActivity
 import android.content.Intent
 import android.nfc.NfcAdapter
 import android.provider.Settings
 import android.widget.Toast
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.rememberLazyListState
@@ -33,7 +32,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 
 @Composable
@@ -54,10 +52,9 @@ fun NfcScreen(navController: NavController) {
             modifier = Modifier
                 .padding(innerPadding)
                 .fillMaxSize()
-                .navigationBarsPadding(),
+                .padding(top = Dimensions.SpaceS, bottom = Dimensions.SpaceL),
             state = rememberLazyListState(),
-            contentPadding = PaddingValues(top = 16.dp, bottom = 16.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp)
+            verticalArrangement = Arrangement.spacedBy(Dimensions.SpaceS)
         ) {
             item {
                 SplicedColumnGroup(title = stringResource(id = R.string.example_switch_group_title)) {

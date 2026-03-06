@@ -22,14 +22,12 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.unit.dp
-import androidx.compose.ui.window.Dialog
-import androidx.compose.ui.window.DialogProperties
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import icu.guestliang.nfcworkflow.R
 import icu.guestliang.nfcworkflow.logging.AppLogger
 import icu.guestliang.nfcworkflow.ui.components.CustomDateTimePickerDialog
+import icu.guestliang.nfcworkflow.ui.theme.Dimensions
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
@@ -101,16 +99,16 @@ fun AdminSearchOrdersScreen(
             Card(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(16.dp),
-                shape = RoundedCornerShape(12.dp),
-                elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+                    .padding(Dimensions.SpaceL),
+                shape = RoundedCornerShape(Dimensions.Radius.M),
+                elevation = CardDefaults.cardElevation(defaultElevation = Dimensions.Elevation.Low)
             ) {
-                Column(modifier = Modifier.padding(16.dp)) {
+                Column(modifier = Modifier.padding(Dimensions.SpaceL)) {
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
                             .clickable { isFilterExpanded = !isFilterExpanded }
-                            .padding(vertical = 8.dp),
+                            .padding(vertical = Dimensions.SpaceS),
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
@@ -129,10 +127,10 @@ fun AdminSearchOrdersScreen(
                     AnimatedVisibility(visible = isFilterExpanded) {
                         Column(
                             modifier = Modifier
-                                .padding(top = 16.dp)
+                                .padding(top = Dimensions.SpaceL)
                                 .weight(weight = 1f, fill = false)
                                 .verticalScroll(rememberScrollState()),
-                            verticalArrangement = Arrangement.spacedBy(12.dp)
+                            verticalArrangement = Arrangement.spacedBy(Dimensions.SpaceM)
                         ) {
                             OutlinedTextField(
                                 value = titleQuery,
@@ -141,7 +139,7 @@ fun AdminSearchOrdersScreen(
                                 modifier = Modifier.fillMaxWidth(),
                                 singleLine = true
                             )
-                            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            Row(horizontalArrangement = Arrangement.spacedBy(Dimensions.SpaceS)) {
                                 OutlinedTextField(
                                     value = descQuery,
                                     onValueChange = { descQuery = it },
@@ -160,7 +158,7 @@ fun AdminSearchOrdersScreen(
 
                             // Status Filters
                             Text(stringResource(R.string.admin_search_status_title), style = MaterialTheme.typography.bodySmall)
-                            FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            FlowRow(horizontalArrangement = Arrangement.spacedBy(Dimensions.SpaceS)) {
                                 statusOptions.forEach { status ->
                                     val isSelected = selectedStatuses.contains(status)
                                     FilterChip(
@@ -176,7 +174,7 @@ fun AdminSearchOrdersScreen(
 
                             // Worker Filters
                             Text(stringResource(R.string.admin_search_worker_title), style = MaterialTheme.typography.bodySmall)
-                            FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.Center) {
+                            FlowRow(horizontalArrangement = Arrangement.spacedBy(Dimensions.SpaceS), verticalArrangement = Arrangement.Center) {
                                 val unassignedLabel = stringResource(R.string.admin_search_unassigned)
                                 val isNullSelected = selectedAssigned.contains("NULL")
                                 
@@ -202,7 +200,7 @@ fun AdminSearchOrdersScreen(
                             }
 
                             // Created Date Filters
-                            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            Row(horizontalArrangement = Arrangement.spacedBy(Dimensions.SpaceS)) {
                                 DateTimeSelectorField(
                                     label = stringResource(R.string.admin_search_created_start),
                                     value = createdStart,
@@ -218,7 +216,7 @@ fun AdminSearchOrdersScreen(
                             }
 
                             // Updated Date Filters
-                            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            Row(horizontalArrangement = Arrangement.spacedBy(Dimensions.SpaceS)) {
                                 DateTimeSelectorField(
                                     label = stringResource(R.string.admin_search_updated_start),
                                     value = updatedStart,
@@ -252,7 +250,7 @@ fun AdminSearchOrdersScreen(
                                 }) {
                                     Text(stringResource(R.string.admin_search_clear_btn))
                                 }
-                                Spacer(modifier = Modifier.width(8.dp))
+                                Spacer(modifier = Modifier.width(Dimensions.SpaceS))
                                 Button(onClick = {
                                     isFilterExpanded = false
                                     val query = OrderSearchQuery(
@@ -295,11 +293,11 @@ fun AdminSearchOrdersScreen(
                                                 selectedAssigned.add(worker.id.toString())
                                             }
                                         }
-                                        .padding(8.dp),
+                                        .padding(Dimensions.SpaceS),
                                     verticalAlignment = Alignment.CenterVertically
                                 ) {
                                     Checkbox(checked = isChecked, onCheckedChange = null)
-                                    Spacer(modifier = Modifier.width(8.dp))
+                                    Spacer(modifier = Modifier.width(Dimensions.SpaceS))
                                     Text(worker.username)
                                 }
                             }
@@ -341,30 +339,30 @@ fun AdminSearchOrdersScreen(
                 Column(
                     modifier = Modifier
                         .fillMaxSize()
-                        .padding(32.dp),
+                        .padding(Dimensions.SpaceXXXL),
                     horizontalAlignment = Alignment.CenterHorizontally,
                     verticalArrangement = Arrangement.Center
                 ) {
                     Icon(
                         imageVector = Icons.Default.CloudOff,
                         contentDescription = "Network Error",
-                        modifier = Modifier.size(64.dp),
+                        modifier = Modifier.size(Dimensions.IconSize.XL),
                         tint = MaterialTheme.colorScheme.error
                     )
-                    Spacer(modifier = Modifier.height(16.dp))
+                    Spacer(modifier = Modifier.height(Dimensions.SpaceL))
                     Text(
                         text = stringResource(R.string.error_network_title),
                         style = MaterialTheme.typography.titleLarge,
                         color = MaterialTheme.colorScheme.error
                     )
-                    Spacer(modifier = Modifier.height(8.dp))
+                    Spacer(modifier = Modifier.height(Dimensions.SpaceS))
                     Text(
                         text = uiState.error ?: stringResource(R.string.error_network_desc),
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         textAlign = TextAlign.Center
                     )
-                    Spacer(modifier = Modifier.height(24.dp))
+                    Spacer(modifier = Modifier.height(Dimensions.SpaceXXL))
                     Button(
                         onClick = { 
                             isInitialLoad = true
@@ -378,12 +376,12 @@ fun AdminSearchOrdersScreen(
                     ) {
                         if (uiState.isLoading) {
                             CircularProgressIndicator(
-                                modifier = Modifier.size(24.dp),
+                                modifier = Modifier.size(Dimensions.IconSize.M),
                                 color = MaterialTheme.colorScheme.onPrimary
                             )
                         } else {
                             Icon(imageVector = Icons.Default.Refresh, contentDescription = null)
-                            Spacer(modifier = Modifier.width(8.dp))
+                            Spacer(modifier = Modifier.width(Dimensions.SpaceS))
                             Text(stringResource(R.string.error_retry_btn))
                         }
                     }
@@ -419,17 +417,17 @@ fun AdminSearchOrdersScreen(
                 } else {
                     LazyColumn(
                         modifier = Modifier.fillMaxSize(),
-                        contentPadding = PaddingValues(16.dp),
-                        verticalArrangement = Arrangement.spacedBy(16.dp)
+                        contentPadding = PaddingValues(Dimensions.SpaceL),
+                        verticalArrangement = Arrangement.spacedBy(Dimensions.SpaceL)
                     ) {
                         items(uiState.orders, key = { it.id ?: it.hashCode() }) { order ->
                             Card(
                                 modifier = Modifier.fillMaxWidth(),
-                                elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+                                elevation = CardDefaults.cardElevation(defaultElevation = Dimensions.Elevation.Low)
                             ) {
                                 Column(
-                                    modifier = Modifier.padding(16.dp),
-                                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                                    modifier = Modifier.padding(Dimensions.SpaceL),
+                                    verticalArrangement = Arrangement.spacedBy(Dimensions.SpaceS)
                                 ) {
                                     Text(
                                         text = stringResource(R.string.admin_order_item_title, order.id ?: 0, order.title),

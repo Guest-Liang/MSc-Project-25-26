@@ -14,11 +14,11 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import icu.guestliang.nfcworkflow.R
 import icu.guestliang.nfcworkflow.logging.AppLogger
+import icu.guestliang.nfcworkflow.ui.theme.Dimensions
 import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -66,30 +66,30 @@ fun AdminQueryLogsScreen(
                     Column(
                         modifier = Modifier
                             .fillMaxSize()
-                            .padding(32.dp),
+                            .padding(Dimensions.SpaceXXXL),
                         horizontalAlignment = Alignment.CenterHorizontally,
                         verticalArrangement = Arrangement.Center
                     ) {
                         Icon(
                             imageVector = Icons.Default.CloudOff,
                             contentDescription = "Network Error",
-                            modifier = Modifier.size(64.dp),
+                            modifier = Modifier.size(Dimensions.IconSize.XL),
                             tint = MaterialTheme.colorScheme.error
                         )
-                        Spacer(modifier = Modifier.height(16.dp))
+                        Spacer(modifier = Modifier.height(Dimensions.SpaceL))
                         Text(
                             text = stringResource(R.string.error_network_title),
                             style = MaterialTheme.typography.titleLarge,
                             color = MaterialTheme.colorScheme.error
                         )
-                        Spacer(modifier = Modifier.height(8.dp))
+                        Spacer(modifier = Modifier.height(Dimensions.SpaceS))
                         Text(
                             text = uiState.error ?: stringResource(R.string.error_network_desc),
                             style = MaterialTheme.typography.bodyMedium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                             textAlign = TextAlign.Center
                         )
-                        Spacer(modifier = Modifier.height(24.dp))
+                        Spacer(modifier = Modifier.height(Dimensions.SpaceXXL))
                         Button(
                             onClick = { 
                                 isInitialLoad = true
@@ -103,12 +103,12 @@ fun AdminQueryLogsScreen(
                         ) {
                             if (uiState.isLoading) {
                                 CircularProgressIndicator(
-                                    modifier = Modifier.size(24.dp),
+                                    modifier = Modifier.size(Dimensions.IconSize.M),
                                     color = MaterialTheme.colorScheme.onPrimary
                                 )
                             } else {
                                 Icon(imageVector = Icons.Default.Refresh, contentDescription = null)
-                                Spacer(modifier = Modifier.width(8.dp))
+                                Spacer(modifier = Modifier.width(Dimensions.SpaceS))
                                 Text(stringResource(R.string.error_retry_btn))
                             }
                         }
@@ -144,17 +144,17 @@ fun AdminQueryLogsScreen(
                     } else {
                         LazyColumn(
                             modifier = Modifier.fillMaxSize(),
-                            contentPadding = PaddingValues(16.dp),
-                            verticalArrangement = Arrangement.spacedBy(8.dp)
+                            contentPadding = PaddingValues(Dimensions.SpaceL),
+                            verticalArrangement = Arrangement.spacedBy(Dimensions.SpaceS)
                         ) {
                             items(uiState.logs, key = { it.id }) { log ->
                                 Card(
                                     modifier = Modifier.fillMaxWidth(),
-                                    elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+                                    elevation = CardDefaults.cardElevation(defaultElevation = Dimensions.Elevation.Low)
                                 ) {
                                     Column(
-                                        modifier = Modifier.padding(16.dp),
-                                        verticalArrangement = Arrangement.spacedBy(4.dp)
+                                        modifier = Modifier.padding(Dimensions.SpaceL),
+                                        verticalArrangement = Arrangement.spacedBy(Dimensions.SpaceXXS)
                                     ) {
                                         Text(
                                             text = stringResource(R.string.admin_log_item_title, log.id),

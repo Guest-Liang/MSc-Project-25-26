@@ -12,11 +12,11 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import icu.guestliang.nfcworkflow.R
 import icu.guestliang.nfcworkflow.logging.AppLogger
+import icu.guestliang.nfcworkflow.ui.theme.Dimensions
 import kotlinx.coroutines.joinAll
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -92,8 +92,8 @@ fun AdminAssignOrderScreen(
                 else -> {
                     LazyColumn(
                         modifier = Modifier.fillMaxSize(),
-                        contentPadding = PaddingValues(16.dp),
-                        verticalArrangement = Arrangement.spacedBy(16.dp)
+                        contentPadding = PaddingValues(Dimensions.SpaceL),
+                        verticalArrangement = Arrangement.spacedBy(Dimensions.SpaceL)
                     ) {
                         val pendingOrders = uiState.orders.filter { it.status == "pending" }
                         if (pendingOrders.isEmpty() && !uiState.isLoading && !isInitialLoad) {
@@ -103,7 +103,7 @@ fun AdminAssignOrderScreen(
                                         text = stringResource(R.string.admin_all_orders_assigned),
                                         style = MaterialTheme.typography.bodyLarge,
                                         color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                        modifier = Modifier.padding(32.dp)
+                                        modifier = Modifier.padding(Dimensions.SpaceXXXL)
                                     )
                                 }
                             }
@@ -111,11 +111,11 @@ fun AdminAssignOrderScreen(
                             items(pendingOrders) { order ->
                                 Card(
                                     modifier = Modifier.fillMaxWidth(),
-                                    elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+                                    elevation = CardDefaults.cardElevation(defaultElevation = Dimensions.Elevation.Low)
                                 ) {
                                     Column(
-                                        modifier = Modifier.padding(16.dp),
-                                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                                        modifier = Modifier.padding(Dimensions.SpaceL),
+                                        verticalArrangement = Arrangement.spacedBy(Dimensions.SpaceS)
                                     ) {
                                         Text(
                                             text = stringResource(R.string.admin_order_item_title, order.id ?: 0, order.title),

@@ -2,6 +2,7 @@ package icu.guestliang.nfcworkflow.ui.login
 
 import icu.guestliang.nfcworkflow.R
 import icu.guestliang.nfcworkflow.data.PrefsDataStore
+import icu.guestliang.nfcworkflow.ui.theme.Dimensions
 import android.widget.Toast
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -32,7 +33,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.PasswordVisualTransformation
-import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 
 @Composable
@@ -71,7 +71,7 @@ fun LoginScreen(
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .padding(16.dp),
+            .padding(Dimensions.SpaceL),
         verticalArrangement = Arrangement.Center,
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
@@ -81,10 +81,10 @@ fun LoginScreen(
                 horizontalArrangement = Arrangement.Center,
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(bottom = 16.dp)
+                    .padding(bottom = Dimensions.SpaceL)
             ) {
-                CircularProgressIndicator(modifier = Modifier.size(20.dp), strokeWidth = 2.dp)
-                Spacer(modifier = Modifier.width(8.dp))
+                CircularProgressIndicator(modifier = Modifier.size(Dimensions.IconSize.S), strokeWidth = Dimensions.Divider.Thick)
+                Spacer(modifier = Modifier.width(Dimensions.SpaceS))
                 Text(
                     text = stringResource(id = R.string.login_checking_network),
                     style = MaterialTheme.typography.bodyMedium,
@@ -97,7 +97,7 @@ fun LoginScreen(
             stringResource(id = R.string.login_title), 
             style = MaterialTheme.typography.headlineMedium
         )
-        Spacer(Modifier.height(32.dp))
+        Spacer(Modifier.height(Dimensions.SpaceXXXL))
 
         OutlinedTextField(
             value = username,
@@ -106,7 +106,7 @@ fun LoginScreen(
             modifier = Modifier.fillMaxWidth(),
             singleLine = true
         )
-        Spacer(Modifier.height(16.dp))
+        Spacer(Modifier.height(Dimensions.SpaceL))
 
         OutlinedTextField(
             value = password,
@@ -116,7 +116,7 @@ fun LoginScreen(
             visualTransformation = PasswordVisualTransformation(),
             singleLine = true
         )
-        Spacer(Modifier.height(32.dp))
+        Spacer(Modifier.height(Dimensions.SpaceXXXL))
 
         Button(
             onClick = { viewModel.login(username, password) }, 
@@ -125,15 +125,15 @@ fun LoginScreen(
         ) {
             if (loginState is LoginState.Loading) {
                 CircularProgressIndicator(
-                    modifier = Modifier.size(24.dp),
-                    strokeWidth = 2.dp,
+                    modifier = Modifier.size(Dimensions.IconSize.M),
+                    strokeWidth = Dimensions.Divider.Thick,
                     color = MaterialTheme.colorScheme.onPrimary
                 )
             } else {
                 Text(stringResource(id = R.string.login_button))
             }
         }
-        Spacer(Modifier.height(8.dp))
+        Spacer(Modifier.height(Dimensions.SpaceS))
 
         Row(
             modifier = Modifier.fillMaxWidth(),
@@ -146,7 +146,7 @@ fun LoginScreen(
                 Text(stringResource(id = R.string.login_reset_password_button))
             }
         }
-        Spacer(Modifier.height(16.dp))
+        Spacer(Modifier.height(Dimensions.SpaceL))
 
         TextButton(onClick = onSkip) {
             Text(stringResource(id = R.string.login_skip_button))

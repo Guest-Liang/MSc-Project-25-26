@@ -1,6 +1,7 @@
 package icu.guestliang.nfcworkflow.ui.login
 
 import icu.guestliang.nfcworkflow.R
+import icu.guestliang.nfcworkflow.ui.theme.Dimensions
 import android.widget.Toast
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -31,7 +32,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.PasswordVisualTransformation
-import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 
 @Composable
@@ -64,7 +64,7 @@ fun RegisterScreen(
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .padding(16.dp),
+            .padding(Dimensions.SpaceL),
         verticalArrangement = Arrangement.Center,
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
@@ -73,7 +73,7 @@ fun RegisterScreen(
             stringResource(id = titleRes), 
             style = MaterialTheme.typography.headlineMedium
         )
-        Spacer(Modifier.height(32.dp))
+        Spacer(Modifier.height(Dimensions.SpaceXXXL))
 
         OutlinedTextField(
             value = username,
@@ -82,7 +82,7 @@ fun RegisterScreen(
             modifier = Modifier.fillMaxWidth(),
             singleLine = true
         )
-        Spacer(Modifier.height(16.dp))
+        Spacer(Modifier.height(Dimensions.SpaceL))
 
         OutlinedTextField(
             value = password,
@@ -92,7 +92,7 @@ fun RegisterScreen(
             visualTransformation = PasswordVisualTransformation(),
             singleLine = true
         )
-        Spacer(Modifier.height(16.dp))
+        Spacer(Modifier.height(Dimensions.SpaceL))
 
         Row(
             verticalAlignment = Alignment.CenterVertically,
@@ -103,11 +103,11 @@ fun RegisterScreen(
             Switch(
                 checked = isWorker,
                 onCheckedChange = { isWorker = it },
-                modifier = Modifier.padding(horizontal = 8.dp)
+                modifier = Modifier.padding(horizontal = Dimensions.SpaceS)
             )
             Text(stringResource(id = R.string.login_as_worker))
         }
-        Spacer(Modifier.height(32.dp))
+        Spacer(Modifier.height(Dimensions.SpaceXXXL))
 
         Button(
             onClick = { 
@@ -122,8 +122,8 @@ fun RegisterScreen(
         ) {
             if (registerState is RegisterState.Loading) {
                 CircularProgressIndicator(
-                    modifier = Modifier.size(24.dp),
-                    strokeWidth = 2.dp,
+                    modifier = Modifier.size(Dimensions.IconSize.M),
+                    strokeWidth = Dimensions.Divider.Thick,
                     color = MaterialTheme.colorScheme.onPrimary
                 )
             } else {
@@ -131,7 +131,7 @@ fun RegisterScreen(
                 Text(stringResource(id = buttonRes))
             }
         }
-        Spacer(Modifier.height(8.dp))
+        Spacer(Modifier.height(Dimensions.SpaceS))
         
         TextButton(onClick = onBack) {
             Text(stringResource(id = android.R.string.cancel))
@@ -151,7 +151,7 @@ fun RegisterScreen(
                         singleLine = true,
                         modifier = Modifier.fillMaxWidth()
                     )
-                    Spacer(Modifier.height(8.dp))
+                    Spacer(Modifier.height(Dimensions.SpaceS))
                     OutlinedTextField(
                         value = adminPassword,
                         onValueChange = { adminPassword = it },

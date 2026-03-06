@@ -2,6 +2,7 @@ package icu.guestliang.nfcworkflow.ui.admin
 
 import icu.guestliang.nfcworkflow.R
 import icu.guestliang.nfcworkflow.logging.AppLogger
+import icu.guestliang.nfcworkflow.ui.theme.Dimensions
 import android.widget.Toast
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -33,7 +34,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 
@@ -81,8 +81,8 @@ fun AdminCreateOrderScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(innerPadding)
-                .padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp)
+                .padding(Dimensions.SpaceL),
+            verticalArrangement = Arrangement.spacedBy(Dimensions.SpaceL)
         ) {
             OutlinedTextField(
                 value = title,
@@ -97,7 +97,7 @@ fun AdminCreateOrderScreen(
                 onValueChange = { description = it },
                 label = { Text(stringResource(R.string.admin_order_desc_hint)) },
                 modifier = Modifier.fillMaxWidth(),
-                minLines = 3
+                minLines = Dimensions.App.TextFieldMinLines
             )
 
             OutlinedTextField(
@@ -108,7 +108,7 @@ fun AdminCreateOrderScreen(
                 singleLine = true
             )
 
-            Spacer(modifier = Modifier.height(8.dp))
+            Spacer(modifier = Modifier.height(Dimensions.SpaceS))
 
             Button(
                 onClick = {
@@ -120,7 +120,7 @@ fun AdminCreateOrderScreen(
             ) {
                 if (uiState.isLoading) {
                     CircularProgressIndicator(
-                        modifier = Modifier.size(24.dp),
+                        modifier = Modifier.size(Dimensions.IconSize.M),
                         color = MaterialTheme.colorScheme.onPrimary
                     )
                 } else {

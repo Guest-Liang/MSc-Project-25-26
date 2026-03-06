@@ -1,5 +1,7 @@
 package icu.guestliang.nfcworkflow.ui.components
 
+import icu.guestliang.nfcworkflow.R
+import icu.guestliang.nfcworkflow.ui.theme.Dimensions
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -11,10 +13,10 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
-import icu.guestliang.nfcworkflow.R
 import java.util.Calendar
 import java.util.Locale
 
@@ -49,18 +51,18 @@ fun CustomDateTimePickerDialog(
         properties = DialogProperties(usePlatformDefaultWidth = false)
     ) {
         Surface(
-            shape = RoundedCornerShape(16.dp),
+            shape = RoundedCornerShape(Dimensions.Radius.L),
             color = MaterialTheme.colorScheme.surface,
             modifier = Modifier
-                .fillMaxWidth(0.95f) // Take up most of the screen width
-                .padding(16.dp)
+                .fillMaxWidth(0.95f) 
+                .padding(Dimensions.SpaceL)
         ) {
             Column(
-                modifier = Modifier.padding(16.dp),
+                modifier = Modifier.padding(Dimensions.SpaceL),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
                 Text(stringResource(R.string.time_picker_title), style = MaterialTheme.typography.titleMedium)
-                Spacer(modifier = Modifier.height(16.dp))
+                Spacer(modifier = Modifier.height(Dimensions.SpaceL))
 
                 Row(
                     modifier = Modifier.fillMaxWidth(),
@@ -71,7 +73,7 @@ fun CustomDateTimePickerDialog(
                         value = year,
                         onValueChange = { year = it },
                         label = stringResource(R.string.time_picker_year),
-                        width = 56.dp // Give year a bit more space
+                        width = 56.dp
                     )
                     NumberPickerColumn(
                         range = 1..12,
@@ -105,7 +107,7 @@ fun CustomDateTimePickerDialog(
                     )
                 }
 
-                Spacer(modifier = Modifier.height(24.dp))
+                Spacer(modifier = Modifier.height(Dimensions.SpaceXXL))
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.End
@@ -113,7 +115,7 @@ fun CustomDateTimePickerDialog(
                     TextButton(onClick = onDismissRequest) {
                         Text(stringResource(R.string.cancel))
                     }
-                    Spacer(modifier = Modifier.width(8.dp))
+                    Spacer(modifier = Modifier.width(Dimensions.SpaceS))
                     TextButton(onClick = {
                         val formatted = String.format(Locale.getDefault(), "%04d-%02d-%02d %02d:%02d:%02d", year, month, day, hour, minute, second)
                         onConfirm(formatted)
@@ -132,7 +134,7 @@ fun NumberPickerColumn(
     value: Int,
     onValueChange: (Int) -> Unit,
     label: String,
-    width: androidx.compose.ui.unit.Dp = 40.dp
+    width: Dp = 40.dp
 ) {
     val listState = rememberLazyListState(initialFirstVisibleItemIndex = range.indexOf(value).coerceAtLeast(0))
 
@@ -167,7 +169,7 @@ fun NumberPickerColumn(
             LazyColumn(
                 state = listState,
                 modifier = Modifier.fillMaxSize(),
-                contentPadding = PaddingValues(vertical = 40.dp), // Padding to allow top/bottom items to reach center
+                contentPadding = PaddingValues(vertical = Dimensions.Space4XL),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
                 items(range.toList()) { itemValue ->
@@ -177,7 +179,7 @@ fun NumberPickerColumn(
                         style = if (isSelected) MaterialTheme.typography.bodyLarge else MaterialTheme.typography.bodyMedium,
                         color = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f),
                         modifier = Modifier
-                            .padding(vertical = 8.dp)
+                            .padding(vertical = Dimensions.SpaceXXS)
                             .clickable {
                                 onValueChange(itemValue)
                             }
