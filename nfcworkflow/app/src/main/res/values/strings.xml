@@ -154,6 +154,14 @@
     <string name="error_network_desc">无法连接到服务器。请检查您的网络设置，或稍后重试。</string>
     <string name="error_retry_btn">重试</string>
 
+    <!-- Order Detail Dialog -->
+    <string name="admin_order_details_title">工单详情</string>
+    <string name="admin_order_nfc_tag">NFC 标签: %1$s</string>
+    <string name="admin_order_assigned_to">指派给: %1$s (ID: %2$d)</string>
+    <string name="admin_order_created_at">创建时间: %1$s</string>
+    <string name="admin_order_updated_at">更新时间: %1$s</string>
+    <string name="admin_order_not_assigned">未指派</string>
+
     <!-- Time Picker Strings -->
     <string name="time_picker_title">选择时间</string>
     <string name="time_picker_year">年</string>
