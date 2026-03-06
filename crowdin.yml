@@ -5,7 +5,7 @@
 
 "files": [
   {
-    "source": "nfcworkflow/app/src/main/res/values/strings.xml",
-    "translation": "nfcworkflow/app/src/main/res/values-%android_code%/strings.xml"
+    "source": "/nfcworkflow/app/src/main/res/values/strings.xml",
+    "translation": "/nfcworkflow/app/src/main/res/values-%android_code%/strings.xml"
   }
 ]
