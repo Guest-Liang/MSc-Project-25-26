@@ -154,7 +154,7 @@ fun AdminSearchOrdersScreen(
                                 OutlinedTextField(
                                     value = nfcTagQuery,
                                     onValueChange = { nfcTagQuery = it },
-                                    label = { Text("NFC Tag") },
+                                    label = { Text(stringResource(R.string.admin_order_nfc_hint)) },
                                     modifier = Modifier.weight(1f),
                                     singleLine = true
                                 )
@@ -514,7 +514,7 @@ fun OrderDetailDialog(order: Order, workers: List<icu.guestliang.nfcworkflow.net
 }
 
 @Composable
-fun DateTimeSelectorField(label: String, value: String, onDateTimeSelected: (String) -> Unit, modifier: Modifier = Modifier) {
+private fun DateTimeSelectorField(label: String, value: String, onDateTimeSelected: (String) -> Unit, modifier: Modifier = Modifier) {
     var showDialog by remember { mutableStateOf(false) }
 
     Box(modifier = modifier) {

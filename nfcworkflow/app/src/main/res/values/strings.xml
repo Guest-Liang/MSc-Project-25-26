@@ -162,6 +162,13 @@
     <string name="admin_order_updated_at">更新时间: %1$s</string>
     <string name="admin_order_not_assigned">未指派</string>
 
+    <!-- Log Search -->
+    <string name="admin_log_search_order_id">工单 ID (英文逗号分隔)</string>
+    <string name="admin_log_search_operator">操作员 ID (英文逗号分隔)</string>
+    <string name="admin_log_search_action_title">动作类型筛选 (多选)</string>
+    <string name="admin_log_search_start_time">起始时间</string>
+    <string name="admin_log_search_end_time">截止时间</string>
+
     <!-- Time Picker Strings -->
     <string name="time_picker_title">选择时间</string>
     <string name="time_picker_year">年</string>

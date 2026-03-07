@@ -50,6 +50,14 @@ data class OrderSearchQuery(
     val updatedEnd: String? = null
 )
 
+data class LogSearchQuery(
+    val orderId: List<String>? = null,
+    val status: List<String>? = null,
+    val operator: List<String>? = null,
+    val startTime: String? = null,
+    val endTime: String? = null
+)
+
 data class AdminUiState(
     val isLoading: Boolean = false,
     val error: String? = null,
@@ -58,7 +66,8 @@ data class AdminUiState(
     val allOrders: List<Order> = emptyList(),
     val isFallbackTriggered: Boolean = false,
     val workers: List<WorkerUser> = emptyList(),
-    val logs: List<LogEntry> = emptyList()
+    val logs: List<LogEntry> = emptyList(),
+    val allLogs: List<LogEntry> = emptyList()
 )
 
 class AdminViewModel : ViewModel() {
@@ -267,7 +276,7 @@ class AdminViewModel : ViewModel() {
         }
     }
 
-    fun fetchLogs(context: Context): Job {
+    fun fetchLogs(context: Context, query: LogSearchQuery? = null): Job {
         return viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true, error = null) }
             try {
@@ -279,6 +288,13 @@ class AdminViewModel : ViewModel() {
 
                 val response: ApiResponse = ApiClient.client.get("orders/logs") {
                     header(HttpHeaders.Authorization, "Bearer $token")
+                    query?.let { q ->
+                        q.orderId?.takeIf { it.isNotEmpty() }?.let { parameter("orderId", it.joinToString(",")) }
+                        q.status?.takeIf { it.isNotEmpty() }?.let { parameter("status", it.joinToString(",")) }
+                        q.operator?.takeIf { it.isNotEmpty() }?.let { parameter("operator", it.joinToString(",")) }
+                        q.startTime?.takeIf { it.isNotBlank() }?.let { parameter("startTime", it) }
+                        q.endTime?.takeIf { it.isNotBlank() }?.let { parameter("endTime", it) }
+                    }
                 }.body()
 
                 if (response.success && response.data != null) {
@@ -287,13 +303,40 @@ class AdminViewModel : ViewModel() {
                     } catch (e: Exception) {
                         emptyList()
                     }
-                    _uiState.update { it.copy(isLoading = false, logs = list) }
+                    if (query == null) {
+                        _uiState.update { it.copy(isLoading = false, logs = list, allLogs = list) }
+                    } else {
+                        _uiState.update { it.copy(isLoading = false, logs = list) }
+                    }
                 } else {
                     _uiState.update { it.copy(isLoading = false, error = response.message) }
                 }
             } catch (e: Exception) {
-                AppLogger.error(context, e, "Failed to fetch logs", "AdminViewModel")
-                _uiState.update { it.copy(isLoading = false, error = e.message ?: "Unknown error") }
+                if (e is HttpRequestTimeoutException || e is ConnectException || e is SocketTimeoutException) {
+                    val currentAllLogs = _uiState.value.allLogs
+                    if (query != null && currentAllLogs.isNotEmpty()) {
+                        AppLogger.error(context, e, "Logs fetch failed, falling back to local filter", "AdminViewModel")
+                        val filtered = currentAllLogs.filter { log ->
+                            var match = true
+                            query.orderId?.takeIf { it.isNotEmpty() }?.let { if (log.order_id?.toString() !in it) match = false }
+                            query.status?.takeIf { it.isNotEmpty() }?.let { if (log.action !in it) match = false }
+                            query.operator?.takeIf { it.isNotEmpty() }?.let { if (log.operator_id?.toString() !in it) match = false }
+                            query.startTime?.takeIf { it.isNotBlank() }?.let { start ->
+                                if (log.timestamp == null || log.timestamp < start) match = false
+                            }
+                            query.endTime?.takeIf { it.isNotBlank() }?.let { end ->
+                                if (log.timestamp == null || log.timestamp > end) match = false
+                            }
+                            match
+                        }
+                        _uiState.update { it.copy(isLoading = false, logs = filtered, isFallbackTriggered = true) }
+                    } else {
+                        _uiState.update { it.copy(isLoading = false, error = "Network timeout/connection failed") }
+                    }
+                } else {
+                    AppLogger.error(context, e, "Failed to fetch logs", "AdminViewModel")
+                    _uiState.update { it.copy(isLoading = false, error = e.message ?: "Unknown error") }
+                }
             }
         }
     }
