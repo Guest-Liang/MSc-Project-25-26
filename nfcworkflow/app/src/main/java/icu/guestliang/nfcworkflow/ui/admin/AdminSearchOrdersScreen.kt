@@ -31,6 +31,7 @@ import icu.guestliang.nfcworkflow.logging.AppLogger
 import icu.guestliang.nfcworkflow.network.Order
 import icu.guestliang.nfcworkflow.ui.components.CustomDateTimePickerDialog
 import icu.guestliang.nfcworkflow.ui.theme.Dimensions
+import icu.guestliang.nfcworkflow.utils.getLocalizedStatus
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
@@ -64,7 +65,7 @@ fun AdminSearchOrdersScreen(
     var isFilterExpanded by remember { mutableStateOf(false) }
     var showWorkerDialog by remember { mutableStateOf(false) }
 
-    val statusOptions = listOf("created", "assigned", "unassigned", "completed")
+    val statusOptions = listOf("created", "assigned", "completed")
 
     LaunchedEffect(Unit) {
         viewModel.fetchWorkers(context)
@@ -171,7 +172,7 @@ fun AdminSearchOrdersScreen(
                                             if (isSelected) selectedStatuses.remove(status)
                                             else selectedStatuses.add(status)
                                         },
-                                        label = { Text(status) }
+                                        label = { Text(getLocalizedStatus(status)) }
                                     )
                                 }
                             }
@@ -443,7 +444,7 @@ fun AdminSearchOrdersScreen(
                                             text = stringResource(R.string.admin_order_item_title, order.id ?: 0, order.title),
                                             style = MaterialTheme.typography.titleMedium
                                         )
-                                        Text(text = stringResource(R.string.admin_order_status, order.status), style = MaterialTheme.typography.bodyMedium)
+                                        Text(text = stringResource(R.string.admin_order_status, getLocalizedStatus(order.status)), style = MaterialTheme.typography.bodyMedium)
                                         Text(
                                             text = stringResource(R.string.admin_order_description, order.description),
                                             style = MaterialTheme.typography.bodySmall,
@@ -483,7 +484,7 @@ fun OrderDetailDialog(order: Order, workers: List<icu.guestliang.nfcworkflow.net
                 Text(text = stringResource(R.string.admin_order_item_title, order.id ?: 0, order.title), style = MaterialTheme.typography.titleMedium)
                 HorizontalDivider(modifier = Modifier.padding(vertical = Dimensions.SpaceXS))
                 
-                Text(text = stringResource(R.string.admin_order_status, order.status), style = MaterialTheme.typography.bodyMedium)
+                Text(text = stringResource(R.string.admin_order_status, getLocalizedStatus(order.status)), style = MaterialTheme.typography.bodyMedium)
                 Text(text = stringResource(R.string.admin_order_description, order.description), style = MaterialTheme.typography.bodyMedium)
                 
                 if (!order.nfc_tag.isNullOrBlank()) {
