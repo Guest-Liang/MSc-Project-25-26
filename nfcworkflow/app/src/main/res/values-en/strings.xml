@@ -141,6 +141,19 @@
     <string name="error_network_title">Network error</string>
     <string name="error_network_desc">Unable to connect to the server. Please check your network settings or try again later.</string>
     <string name="error_retry_btn">Retry</string>
+    <!-- Order Detail Dialog -->
+    <string name="admin_order_details_title">Order details</string>
+    <string name="admin_order_nfc_tag">NFC tag: %1$s</string>
+    <string name="admin_order_assigned_to">Assigned to: %1$s (ID: %2$d)</string>
+    <string name="admin_order_created_at">Creation time: %1$s</string>
+    <string name="admin_order_updated_at">Update time: %1$s</string>
+    <string name="admin_order_not_assigned">Unassigned</string>
+    <!-- Log Search -->
+    <string name="admin_log_search_order_id">Order ID (comma-separated)</string>
+    <string name="admin_log_search_operator">Operator ID (comma-separated)</string>
+    <string name="admin_log_search_action_title">Action type filtering (multi-select)</string>
+    <string name="admin_log_search_start_time">Start time</string>
+    <string name="admin_log_search_end_time">End time</string>
     <!-- Time Picker Strings -->
     <string name="time_picker_title">Select time</string>
     <string name="time_picker_year">Y</string>
