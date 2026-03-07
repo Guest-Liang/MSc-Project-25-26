@@ -149,7 +149,7 @@
     <string name="admin_order_updated_at">Update time: %1$s</string>
     <string name="admin_order_not_assigned">Unassigned</string>
     <!-- Log Search -->
-    <string name="admin_log_search_order_id">Work order ID (comma-separated)</string>
+    <string name="admin_log_search_order_id">Order ID (comma-separated)</string>
     <string name="admin_log_search_operator">Operator ID (comma-separated)</string>
     <string name="admin_log_search_action_title">Action type filtering (multi-select)</string>
     <string name="admin_log_search_start_time">Start time</string>
