@@ -165,7 +165,7 @@
     <!-- Log Search -->
     <string name="admin_log_search_order_id">工单 ID (英文逗号分隔)</string>
     <string name="admin_log_search_operator">操作员 ID (英文逗号分隔)</string>
-    <string name="admin_log_search_action_title">动作类型筛选 (多选)</string>
+    <string name="admin_log_search_action_title">操作类型筛选 (多选)</string>
     <string name="admin_log_search_start_time">起始时间</string>
     <string name="admin_log_search_end_time">截止时间</string>
 
