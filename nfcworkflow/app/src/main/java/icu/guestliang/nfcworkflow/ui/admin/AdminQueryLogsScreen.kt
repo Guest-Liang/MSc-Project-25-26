@@ -28,6 +28,7 @@ import icu.guestliang.nfcworkflow.R
 import icu.guestliang.nfcworkflow.logging.AppLogger
 import icu.guestliang.nfcworkflow.ui.components.CustomDateTimePickerDialog
 import icu.guestliang.nfcworkflow.ui.theme.Dimensions
+import icu.guestliang.nfcworkflow.utils.getLocalizedStatus
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
@@ -152,7 +153,7 @@ fun AdminQueryLogsScreen(
                                             if (isSelected) selectedActions.remove(action)
                                             else selectedActions.add(action)
                                         },
-                                        label = { Text(action) }
+                                        label = { Text(getLocalizedStatus(action)) }
                                     )
                                 }
                             }
@@ -334,7 +335,7 @@ fun AdminQueryLogsScreen(
                                                 text = stringResource(R.string.admin_log_item_title, log.id),
                                                 style = MaterialTheme.typography.titleSmall
                                             )
-                                            Text(text = stringResource(R.string.admin_log_action, log.action))
+                                            Text(text = stringResource(R.string.admin_log_action, getLocalizedStatus(log.action)))
                                             Text(text = stringResource(R.string.admin_log_target, "Order", log.order_id?.toString() ?: "N/A"))
                                             Text(text = stringResource(R.string.admin_log_user, log.operator_id ?: 0))
                                             Text(text = stringResource(R.string.admin_log_time, log.timestamp ?: "N/A"), style = MaterialTheme.typography.bodySmall)

@@ -5,7 +5,6 @@ import icu.guestliang.nfcworkflow.logging.AppLogger
 import icu.guestliang.nfcworkflow.ui.components.SplicedColumnGroup
 import icu.guestliang.nfcworkflow.ui.components.SplicedTextFieldWidget
 import icu.guestliang.nfcworkflow.ui.theme.Dimensions
-import android.widget.Toast
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -16,6 +15,7 @@ import androidx.compose.foundation.text.input.rememberTextFieldState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Numbers
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -24,11 +24,15 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
@@ -48,18 +52,60 @@ fun CompleteOrderScreen(
     val uiState by viewModel.uiState.collectAsState()
     val orderIdState = rememberTextFieldState()
 
+    var showDialog by remember { mutableStateOf(false) }
+    var dialogTitle by remember { mutableStateOf("") }
+    var dialogMessage by remember { mutableStateOf("") }
+    var navigateBackOnDismiss by remember { mutableStateOf(false) }
+
+    val successTitle = stringResource(R.string.worker_complete_result_title)
+    val successMessage = stringResource(R.string.worker_order_complete_success)
+    
     LaunchedEffect(uiState.actionSuccess) {
         if (uiState.actionSuccess) {
-            Toast.makeText(context, "Order completed successfully!", Toast.LENGTH_SHORT).show()
+            dialogTitle = successTitle
+            dialogMessage = successMessage
+            navigateBackOnDismiss = true
+            showDialog = true
             viewModel.resetActionSuccess()
-            navController.popBackStack()
         }
     }
 
+    val errorTitle = stringResource(R.string.register_error_title)
+    val errorFormat = stringResource(R.string.worker_order_complete_error)
+
     LaunchedEffect(uiState.error) {
-        uiState.error?.let {
-            Toast.makeText(context, "Error: $it", Toast.LENGTH_SHORT).show()
+        uiState.error?.let { errorMsg ->
+            dialogTitle = errorTitle
+            dialogMessage = errorFormat.format(errorMsg)
+            navigateBackOnDismiss = false
+            showDialog = true
+            viewModel.clearMessages()
         }
+    }
+
+    if (showDialog) {
+        AlertDialog(
+            onDismissRequest = {
+                showDialog = false
+                if (navigateBackOnDismiss) {
+                    navController.popBackStack()
+                }
+            },
+            title = { Text(dialogTitle) },
+            text = { Text(dialogMessage) },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        showDialog = false
+                        if (navigateBackOnDismiss) {
+                            navController.popBackStack()
+                        }
+                    }
+                ) {
+                    Text(stringResource(R.string.ok))
+                }
+            }
+        )
     }
 
     Scaffold(
@@ -104,13 +150,17 @@ fun CompleteOrderScreen(
                 }
 
                 item {
+                    val invalidIdMessage = stringResource(R.string.worker_invalid_order_id)
                     Button(
                         onClick = {
                             val orderId = orderIdState.text.toString().toIntOrNull()
                             if (orderId != null) {
                                 viewModel.completeOrder(context, orderId)
                             } else {
-                                Toast.makeText(context, "Please enter a valid Order ID", Toast.LENGTH_SHORT).show()
+                                dialogTitle = errorTitle
+                                dialogMessage = invalidIdMessage
+                                navigateBackOnDismiss = false
+                                showDialog = true
                             }
                         },
                         modifier = Modifier

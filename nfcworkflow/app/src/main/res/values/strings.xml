@@ -47,6 +47,11 @@
     <string name="worker_complete_order">完成工单</string>
     <string name="worker_complete_order_desc">输入工单ID以标记为完成</string>
     <string name="worker_order_id">工单ID</string>
+    <string name="worker_order_complete_success">工单完成成功！</string>
+    <string name="worker_order_complete_error">错误: %1$s</string>
+    <string name="worker_invalid_order_id">请输入有效的工单 ID</string>
+    <string name="worker_complete_result_title">完成结果</string>
+
     <string name="nfc_read_title">NFC 读取</string>
     <string name="nfc_read_desc">打开开关以读取 NFC 标签</string>
     <string name="nfc_dialog_title">读取 NFC</string>
@@ -177,4 +182,10 @@
     <string name="time_picker_hour">时</string>
     <string name="time_picker_minute">分</string>
     <string name="time_picker_second">秒</string>
+
+    <!-- Order and Log Statuses -->
+    <string name="status_created">已创建</string>
+    <string name="status_assigned">已分配</string>
+    <string name="status_unassigned">取消分配</string>
+    <string name="status_completed">已完成</string>
 </resources>

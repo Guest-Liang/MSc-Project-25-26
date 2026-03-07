@@ -98,4 +98,8 @@ class WorkerViewModel : ViewModel() {
     fun resetActionSuccess() {
         _uiState.update { it.copy(actionSuccess = false) }
     }
+
+    fun clearMessages() {
+        _uiState.update { it.copy(error = null, actionSuccess = false) }
+    }
 }
