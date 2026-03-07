@@ -1,15 +1,15 @@
 package icu.guestliang.nfcworkflow.navigation
 
 import icu.guestliang.nfcworkflow.R
+import icu.guestliang.nfcworkflow.ui.admin.AdminAssignOrderScreen
+import icu.guestliang.nfcworkflow.ui.admin.AdminCreateOrderScreen
+import icu.guestliang.nfcworkflow.ui.admin.AdminQueryLogsScreen
+import icu.guestliang.nfcworkflow.ui.admin.AdminRegisterWorkerScreen
+import icu.guestliang.nfcworkflow.ui.admin.AdminSearchOrdersScreen
 import icu.guestliang.nfcworkflow.ui.login.LoginScreen
 import icu.guestliang.nfcworkflow.ui.login.RegisterScreen
 import icu.guestliang.nfcworkflow.ui.worker.CompleteOrderScreen
 import icu.guestliang.nfcworkflow.ui.worker.ViewOrdersScreen
-import icu.guestliang.nfcworkflow.ui.admin.AdminRegisterWorkerScreen
-import icu.guestliang.nfcworkflow.ui.admin.AdminCreateOrderScreen
-import icu.guestliang.nfcworkflow.ui.admin.AdminAssignOrderScreen
-import icu.guestliang.nfcworkflow.ui.admin.AdminSearchOrdersScreen
-import icu.guestliang.nfcworkflow.ui.admin.AdminQueryLogsScreen
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Nfc

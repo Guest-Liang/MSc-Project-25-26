@@ -1,18 +1,15 @@
 package icu.guestliang.nfcworkflow.ui.worker
 
-import android.content.Context
-import androidx.lifecycle.ViewModel
-import androidx.lifecycle.viewModelScope
 import icu.guestliang.nfcworkflow.data.PrefsDataStore
 import icu.guestliang.nfcworkflow.logging.AppLogger
 import icu.guestliang.nfcworkflow.network.ApiClient
 import icu.guestliang.nfcworkflow.network.ApiResponse
-import icu.guestliang.nfcworkflow.network.Order
 import icu.guestliang.nfcworkflow.network.CompleteOrderRequest
+import icu.guestliang.nfcworkflow.network.Order
 import io.ktor.client.call.body
 import io.ktor.client.request.get
-import io.ktor.client.request.post
 import io.ktor.client.request.header
+import io.ktor.client.request.post
 import io.ktor.client.request.setBody
 import io.ktor.http.ContentType
 import io.ktor.http.HttpHeaders
@@ -23,8 +20,11 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
-import kotlinx.serialization.json.decodeFromJsonElement
 import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.decodeFromJsonElement
+import android.content.Context
+import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
 
 data class WorkerUiState(
     val isLoading: Boolean = false,

@@ -3,10 +3,10 @@ package icu.guestliang.nfcworkflow.ui.worker
 import icu.guestliang.nfcworkflow.R
 import icu.guestliang.nfcworkflow.logging.AppLogger
 import icu.guestliang.nfcworkflow.network.Order
-import icu.guestliang.nfcworkflow.utils.getLocalizedStatus
 import icu.guestliang.nfcworkflow.ui.components.SplicedBaseWidget
 import icu.guestliang.nfcworkflow.ui.components.SplicedColumnGroup
 import icu.guestliang.nfcworkflow.ui.theme.Dimensions
+import icu.guestliang.nfcworkflow.utils.getLocalizedStatus
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column

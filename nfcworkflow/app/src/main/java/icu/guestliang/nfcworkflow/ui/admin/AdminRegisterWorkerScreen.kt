@@ -1,10 +1,10 @@
 package icu.guestliang.nfcworkflow.ui.admin
 
+import icu.guestliang.nfcworkflow.logging.AppLogger
 import icu.guestliang.nfcworkflow.ui.login.RegisterScreen
 import androidx.compose.runtime.Composable
-import androidx.navigation.NavController
-import icu.guestliang.nfcworkflow.logging.AppLogger
 import androidx.compose.ui.platform.LocalContext
+import androidx.navigation.NavController
 
 @Composable
 fun AdminRegisterWorkerScreen(navController: NavController) {

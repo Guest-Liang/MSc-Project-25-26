@@ -1,8 +1,8 @@
 package icu.guestliang.nfcworkflow.utils
 
+import icu.guestliang.nfcworkflow.R
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.res.stringResource
-import icu.guestliang.nfcworkflow.R
 
 /**
  * Returns a localized string based on the provided status.
