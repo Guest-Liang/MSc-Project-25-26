@@ -39,6 +39,10 @@
     <string name="worker_complete_order">Complete Order</string>
     <string name="worker_complete_order_desc">Enter the work order ID to mark it as completed</string>
     <string name="worker_order_id">Order ID</string>
+    <string name="worker_order_complete_success">Order completed successfully!</string>
+    <string name="worker_order_complete_error">Error: %1$s</string>
+    <string name="worker_invalid_order_id">Please enter a valid work order ID</string>
+    <string name="worker_complete_result_title">Completed results</string>
     <string name="nfc_read_title">NFC reading</string>
     <string name="nfc_read_desc">Turn on the switch to read NFC tags</string>
     <string name="nfc_dialog_title">Read NFC</string>
@@ -162,4 +166,9 @@
     <string name="time_picker_hour">H</string>
     <string name="time_picker_minute">m</string>
     <string name="time_picker_second">s</string>
+    <!-- Order and Log Statuses -->
+    <string name="status_created">Created</string>
+    <string name="status_assigned">Assigned</string>
+    <string name="status_unassigned">Unassigned</string>
+    <string name="status_completed">Completed</string>
 </resources>
