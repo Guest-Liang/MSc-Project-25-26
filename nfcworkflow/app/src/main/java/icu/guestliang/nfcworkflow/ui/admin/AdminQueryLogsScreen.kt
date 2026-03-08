@@ -65,6 +65,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
+import androidx.lifecycle.compose.dropUnlessResumed
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 
@@ -113,7 +114,7 @@ fun AdminQueryLogsScreen(
             TopAppBar(
                 title = { Text(stringResource(R.string.admin_query_logs)) },
                 navigationIcon = {
-                    IconButton(onClick = { navController.popBackStack() }) {
+                    IconButton(onClick = dropUnlessResumed { navController.popBackStack() }) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
                     }
                 }
@@ -138,7 +139,7 @@ fun AdminQueryLogsScreen(
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .clickable { isFilterExpanded = !isFilterExpanded }
+                            .clickable(onClick = dropUnlessResumed { isFilterExpanded = !isFilterExpanded })
                             .padding(vertical = Dimensions.SpaceS),
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically
@@ -185,7 +186,7 @@ fun AdminQueryLogsScreen(
                                     val isSelected = selectedActions.contains(action)
                                     FilterChip(
                                         selected = isSelected,
-                                        onClick = {
+                                        onClick = dropUnlessResumed {
                                             if (isSelected) selectedActions.remove(action)
                                             else selectedActions.add(action)
                                         },
@@ -215,7 +216,7 @@ fun AdminQueryLogsScreen(
                                 horizontalArrangement = Arrangement.End,
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
-                                TextButton(onClick = {
+                                TextButton(onClick = dropUnlessResumed {
                                     orderIdQuery = ""
                                     operatorQuery = ""
                                     selectedActions.clear()
@@ -226,7 +227,7 @@ fun AdminQueryLogsScreen(
                                     Text(stringResource(R.string.admin_search_clear_btn))
                                 }
                                 Spacer(modifier = Modifier.width(Dimensions.SpaceS))
-                                Button(onClick = {
+                                Button(onClick = dropUnlessResumed {
                                     isFilterExpanded = false
                                     val query = LogSearchQuery(
                                         orderId = orderIdQuery.takeIf { it.isNotBlank() }?.split(",")?.map { it.trim() },
@@ -254,7 +255,7 @@ fun AdminQueryLogsScreen(
                     title = { Text(stringResource(R.string.dialog_empty_state_title)) },
                     text = { Text(stringResource(R.string.admin_search_fallback_msg)) },
                     confirmButton = {
-                        TextButton(onClick = { 
+                        TextButton(onClick = dropUnlessResumed { 
                             showFallbackDialog = false 
                             viewModel.clearFallbackTriggered()
                         }) {
@@ -302,7 +303,7 @@ fun AdminQueryLogsScreen(
                             )
                             Spacer(modifier = Modifier.height(Dimensions.SpaceXXL))
                             Button(
-                                onClick = { 
+                                onClick = dropUnlessResumed { 
                                     isInitialLoad = true
                                     viewModel.clearMessages()
                                     coroutineScope.launch {
@@ -338,7 +339,7 @@ fun AdminQueryLogsScreen(
                                 title = { Text(stringResource(R.string.dialog_empty_state_title)) },
                                 text = { Text(stringResource(R.string.admin_logs_no_data)) },
                                 confirmButton = {
-                                    TextButton(onClick = { showEmptyDialog = false }) {
+                                    TextButton(onClick = dropUnlessResumed { showEmptyDialog = false }) {
                                         Text(stringResource(R.string.ok))
                                     }
                                 }
@@ -411,7 +412,7 @@ private fun DateTimeSelectorField(label: String, value: String, onDateTimeSelect
         Box(
             modifier = Modifier
                 .matchParentSize()
-                .clickable { showDialog = true }
+                .clickable(onClick = dropUnlessResumed { showDialog = true })
         )
     }
 

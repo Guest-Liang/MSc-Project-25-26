@@ -44,6 +44,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
+import androidx.lifecycle.compose.dropUnlessResumed
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 
@@ -87,7 +88,7 @@ fun AdminAssignOrderScreen(
             title = { Text(stringResource(R.string.admin_assignment_result_title)) },
             text = { Text(showAssignResultDialog ?: "") },
             confirmButton = {
-                TextButton(onClick = { showAssignResultDialog = null }) {
+                TextButton(onClick = dropUnlessResumed { showAssignResultDialog = null }) {
                     Text(stringResource(R.string.ok))
                 }
             }
@@ -99,7 +100,7 @@ fun AdminAssignOrderScreen(
             TopAppBar(
                 title = { Text(stringResource(R.string.admin_assign_order)) },
                 navigationIcon = {
-                    IconButton(onClick = { navController.popBackStack() }) {
+                    IconButton(onClick = dropUnlessResumed { navController.popBackStack() }) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
                     }
                 }
@@ -172,7 +173,7 @@ fun AdminAssignOrderScreen(
                                             ) {
                                                 DropdownMenuItem(
                                                     text = { Text(stringResource(R.string.admin_assign_unassign_btn)) },
-                                                    onClick = {
+                                                    onClick = dropUnlessResumed {
                                                         selectedWorkerId = null
                                                         expanded = false
                                                     }
@@ -180,7 +181,7 @@ fun AdminAssignOrderScreen(
                                                 uiState.workers.forEach { worker ->
                                                     DropdownMenuItem(
                                                         text = { Text(worker.username) },
-                                                        onClick = {
+                                                        onClick = dropUnlessResumed {
                                                             selectedWorkerId = worker.id
                                                             expanded = false
                                                         }
@@ -190,7 +191,7 @@ fun AdminAssignOrderScreen(
                                         }
 
                                         Button(
-                                            onClick = {
+                                            onClick = dropUnlessResumed {
                                                 if (order.id != null) {
                                                     viewModel.assignOrder(context, order.id, selectedWorkerId)
                                                 }

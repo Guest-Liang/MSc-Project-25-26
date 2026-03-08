@@ -39,6 +39,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
+import androidx.lifecycle.compose.dropUnlessResumed
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 
@@ -62,7 +63,7 @@ fun ViewOrdersScreen(
             TopAppBar(
                 title = { Text(stringResource(R.string.worker_view_orders)) },
                 navigationIcon = {
-                    IconButton(onClick = { navController.popBackStack() }) {
+                    IconButton(onClick = dropUnlessResumed { navController.popBackStack() }) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
                     }
                 }
@@ -120,7 +121,7 @@ fun OrderCard(order: Order) {
                 title = order.title,
                 description = stringResource(R.string.admin_order_status, getLocalizedStatus(order.status)),
                 iconPlaceholder = true,
-                onClick = { expanded = !expanded }
+                onClick = dropUnlessResumed { expanded = !expanded }
             ) {
                 Icon(
                     imageVector = if (expanded) Icons.Default.ExpandLess else Icons.Default.ExpandMore,

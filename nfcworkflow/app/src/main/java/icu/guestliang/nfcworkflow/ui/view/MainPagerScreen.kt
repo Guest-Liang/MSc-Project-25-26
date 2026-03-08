@@ -20,6 +20,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
+import androidx.lifecycle.compose.dropUnlessResumed
 import androidx.navigation.NavController
 
 @Composable
@@ -42,7 +43,7 @@ fun MainPagerScreen(navController: NavController, onLogout: () -> Unit) {
                         icon = { Icon(screen.icon, contentDescription = null) },
                         label = { Text(stringResource(screen.resourceId)) },
                         selected = pagerState.currentPage == index,
-                        onClick = {
+                        onClick = dropUnlessResumed {
                             coroutineScope.launch {
                                 pagerState.animateScrollToPage(index)
                             }

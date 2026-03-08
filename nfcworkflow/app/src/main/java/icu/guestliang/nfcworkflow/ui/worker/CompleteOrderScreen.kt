@@ -37,6 +37,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
+import androidx.lifecycle.compose.dropUnlessResumed
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 
@@ -85,7 +86,7 @@ fun CompleteOrderScreen(
 
     if (showDialog) {
         AlertDialog(
-            onDismissRequest = {
+            onDismissRequest = dropUnlessResumed {
                 showDialog = false
                 if (navigateBackOnDismiss) {
                     navController.popBackStack()
@@ -95,7 +96,7 @@ fun CompleteOrderScreen(
             text = { Text(dialogMessage) },
             confirmButton = {
                 TextButton(
-                    onClick = {
+                    onClick = dropUnlessResumed {
                         showDialog = false
                         if (navigateBackOnDismiss) {
                             navController.popBackStack()
@@ -113,7 +114,7 @@ fun CompleteOrderScreen(
             TopAppBar(
                 title = { Text(stringResource(R.string.worker_complete_order)) },
                 navigationIcon = {
-                    IconButton(onClick = { navController.popBackStack() }) {
+                    IconButton(onClick = dropUnlessResumed { navController.popBackStack() }) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
                     }
                 }
@@ -152,7 +153,7 @@ fun CompleteOrderScreen(
                 item {
                     val invalidIdMessage = stringResource(R.string.worker_invalid_order_id)
                     Button(
-                        onClick = {
+                        onClick = dropUnlessResumed {
                             val orderId = orderIdState.text.toString().toIntOrNull()
                             if (orderId != null) {
                                 viewModel.completeOrder(context, orderId)

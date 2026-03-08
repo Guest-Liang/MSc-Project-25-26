@@ -71,6 +71,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.lifecycle.compose.dropUnlessResumed
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 
@@ -126,7 +127,7 @@ fun AdminSearchOrdersScreen(
             TopAppBar(
                 title = { Text(stringResource(R.string.admin_search_orders)) },
                 navigationIcon = {
-                    IconButton(onClick = { navController.popBackStack() }) {
+                    IconButton(onClick = dropUnlessResumed { navController.popBackStack() }) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
                     }
                 }
@@ -151,7 +152,7 @@ fun AdminSearchOrdersScreen(
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .clickable { isFilterExpanded = !isFilterExpanded }
+                            .clickable(onClick = dropUnlessResumed { isFilterExpanded = !isFilterExpanded })
                             .padding(vertical = Dimensions.SpaceS),
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically
@@ -207,7 +208,7 @@ fun AdminSearchOrdersScreen(
                                     val isSelected = selectedStatuses.contains(status)
                                     FilterChip(
                                         selected = isSelected,
-                                        onClick = {
+                                        onClick = dropUnlessResumed {
                                             if (isSelected) selectedStatuses.remove(status)
                                             else selectedStatuses.add(status)
                                         },
@@ -224,7 +225,7 @@ fun AdminSearchOrdersScreen(
                                 
                                 FilterChip(
                                     selected = isNullSelected,
-                                    onClick = {
+                                    onClick = dropUnlessResumed {
                                         if (isNullSelected) selectedAssigned.remove("NULL")
                                         else {
                                             selectedAssigned.clear()
@@ -234,7 +235,7 @@ fun AdminSearchOrdersScreen(
                                     label = { Text(unassignedLabel) }
                                 )
 
-                                OutlinedButton(onClick = { showWorkerDialog = true }) {
+                                OutlinedButton(onClick = dropUnlessResumed { showWorkerDialog = true }) {
                                     val workerText = if (selectedAssigned.isEmpty() || isNullSelected) 
                                         stringResource(R.string.admin_select_worker) 
                                     else 
@@ -280,7 +281,7 @@ fun AdminSearchOrdersScreen(
                                 horizontalArrangement = Arrangement.End,
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
-                                TextButton(onClick = {
+                                TextButton(onClick = dropUnlessResumed {
                                     titleQuery = ""
                                     descQuery = ""
                                     nfcTagQuery = ""
@@ -295,7 +296,7 @@ fun AdminSearchOrdersScreen(
                                     Text(stringResource(R.string.admin_search_clear_btn))
                                 }
                                 Spacer(modifier = Modifier.width(Dimensions.SpaceS))
-                                Button(onClick = {
+                                Button(onClick = dropUnlessResumed {
                                     isFilterExpanded = false
                                     val query = OrderSearchQuery(
                                         title = titleQuery,
@@ -329,14 +330,14 @@ fun AdminSearchOrdersScreen(
                                 Row(
                                     modifier = Modifier
                                         .fillMaxWidth()
-                                        .clickable {
+                                        .clickable(onClick = dropUnlessResumed {
                                             if (isChecked) {
                                                 selectedAssigned.remove(worker.id.toString())
                                             } else {
                                                 selectedAssigned.remove("NULL")
                                                 selectedAssigned.add(worker.id.toString())
                                             }
-                                        }
+                                        })
                                         .padding(Dimensions.SpaceS),
                                     verticalAlignment = Alignment.CenterVertically
                                 ) {
@@ -348,7 +349,7 @@ fun AdminSearchOrdersScreen(
                         }
                     },
                     confirmButton = {
-                        TextButton(onClick = { showWorkerDialog = false }) {
+                        TextButton(onClick = dropUnlessResumed { showWorkerDialog = false }) {
                             Text(stringResource(R.string.ok))
                         }
                     }
@@ -364,7 +365,7 @@ fun AdminSearchOrdersScreen(
                     title = { Text(stringResource(R.string.dialog_empty_state_title)) },
                     text = { Text(stringResource(R.string.admin_search_fallback_msg)) },
                     confirmButton = {
-                        TextButton(onClick = { 
+                        TextButton(onClick = dropUnlessResumed { 
                             showFallbackDialog = false 
                             viewModel.clearFallbackTriggered()
                         }) {
@@ -408,7 +409,7 @@ fun AdminSearchOrdersScreen(
                     )
                     Spacer(modifier = Modifier.height(Dimensions.SpaceXXL))
                     Button(
-                        onClick = { 
+                        onClick = dropUnlessResumed { 
                             isInitialLoad = true
                             viewModel.clearMessages()
                             coroutineScope.launch {
@@ -443,7 +444,7 @@ fun AdminSearchOrdersScreen(
                         title = { Text(stringResource(R.string.dialog_empty_state_title)) },
                         text = { Text(stringResource(R.string.admin_search_no_results)) },
                         confirmButton = {
-                            TextButton(onClick = { showEmptyDialog = false }) {
+                            TextButton(onClick = dropUnlessResumed { showEmptyDialog = false }) {
                                 Text(stringResource(R.string.ok))
                             }
                         }
@@ -468,7 +469,7 @@ fun AdminSearchOrdersScreen(
                             Card(
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .clickable { selectedOrder = order },
+                                    .clickable(onClick = dropUnlessResumed { selectedOrder = order }),
                                 elevation = CardDefaults.cardElevation(defaultElevation = Dimensions.Elevation.Low)
                             ) {
                                 Row(
@@ -546,7 +547,7 @@ fun OrderDetailDialog(order: Order, workers: List<icu.guestliang.nfcworkflow.net
             }
         },
         confirmButton = {
-            TextButton(onClick = onDismiss) {
+            TextButton(onClick = dropUnlessResumed { onDismiss() }) {
                 Text(stringResource(R.string.ok))
             }
         }
@@ -577,7 +578,7 @@ private fun DateTimeSelectorField(label: String, value: String, onDateTimeSelect
         Box(
             modifier = Modifier
                 .matchParentSize()
-                .clickable { showDialog = true }
+                .clickable(onClick = dropUnlessResumed { showDialog = true })
         )
     }
 

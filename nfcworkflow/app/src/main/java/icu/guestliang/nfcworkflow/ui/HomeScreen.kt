@@ -30,6 +30,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
+import androidx.lifecycle.compose.dropUnlessResumed
 import androidx.navigation.NavController
 
 @Composable
@@ -72,7 +73,7 @@ fun AdminFunctionsSection(navController: NavController) {
                 title = stringResource(id = R.string.admin_register_worker),
                 icon = Icons.Default.PersonAdd,
                 iconPlaceholder = true,
-                onClick = {
+                onClick = dropUnlessResumed {
                     navController.navigate(Screen.AdminRegisterWorker.route)
                 }
             )
@@ -82,7 +83,7 @@ fun AdminFunctionsSection(navController: NavController) {
                 title = stringResource(id = R.string.admin_create_order),
                 icon = Icons.Default.Add,
                 iconPlaceholder = true,
-                onClick = {
+                onClick = dropUnlessResumed {
                     navController.navigate(Screen.AdminCreateOrder.route)
                 }
             )
@@ -92,7 +93,7 @@ fun AdminFunctionsSection(navController: NavController) {
                 title = stringResource(id = R.string.admin_assign_order),
                 icon = Icons.Default.AssignmentInd,
                 iconPlaceholder = true,
-                onClick = {
+                onClick = dropUnlessResumed {
                     navController.navigate(Screen.AdminAssignOrder.route)
                 }
             )
@@ -102,7 +103,7 @@ fun AdminFunctionsSection(navController: NavController) {
                 title = stringResource(id = R.string.admin_search_orders),
                 icon = Icons.Default.Search,
                 iconPlaceholder = true,
-                onClick = {
+                onClick = dropUnlessResumed {
                     navController.navigate(Screen.AdminSearchOrders.route)
                 }
             )
@@ -112,7 +113,7 @@ fun AdminFunctionsSection(navController: NavController) {
                 title = stringResource(id = R.string.admin_query_logs),
                 icon = Icons.AutoMirrored.Filled.List,
                 iconPlaceholder = true,
-                onClick = {
+                onClick = dropUnlessResumed {
                     navController.navigate(Screen.AdminQueryLogs.route)
                 }
             )
@@ -128,7 +129,7 @@ fun WorkerFunctionsSection(navController: NavController) {
                 title = stringResource(id = R.string.worker_view_orders),
                 icon = Icons.AutoMirrored.Filled.Assignment,
                 iconPlaceholder = true,
-                onClick = {
+                onClick = dropUnlessResumed {
                     navController.navigate(Screen.WorkerOrders.route)
                 }
             )
@@ -138,7 +139,7 @@ fun WorkerFunctionsSection(navController: NavController) {
                 title = stringResource(id = R.string.worker_complete_order),
                 icon = Icons.Default.CheckCircle,
                 iconPlaceholder = true,
-                onClick = {
+                onClick = dropUnlessResumed {
                     navController.navigate(Screen.WorkerCompleteOrder.route)
                 }
             )

@@ -83,7 +83,6 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusProperties
 import androidx.compose.ui.focus.focusRequester
-import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
@@ -115,8 +114,8 @@ fun SplicedBaseWidget(
     isError: Boolean = false,
     noVerticalPadding: Boolean = false,
     noHorizontalPadding: Boolean = false,
-    onClick: (Offset) -> Unit = {},
-    onLongClick: (Offset) -> Unit = {},
+    onClick: () -> Unit = {},
+    onLongClick: () -> Unit = {},
     hapticFeedbackType: HapticFeedbackType = HapticFeedbackType.ContextClick,
     rowHeader: @Composable RowScope.() -> Unit = {},
     foreContent: @Composable BoxScope.() -> Unit = {},
@@ -154,11 +153,11 @@ fun SplicedBaseWidget(
                             },
                             onLongPress = {
                                 haptic.performHapticFeedback(hapticFeedbackType)
-                                onLongClickState.value(it)
+                                onLongClickState.value()
                             },
                             onTap = {
                                 haptic.performHapticFeedback(hapticFeedbackType)
-                                onClickState.value(it)
+                                onClickState.value()
                             }
                         )
                     }
@@ -439,8 +438,8 @@ fun SplicedJumpPageWidget(
     descriptionColor: Color = MaterialTheme.colorScheme.onSurfaceVariant,
     enabled: Boolean = true,
     isError: Boolean = false,
-    onClick: (Offset) -> Unit = {},
-    onLongClick: (Offset) -> Unit = {},
+    onClick: () -> Unit = {},
+    onLongClick: () -> Unit = {},
     hapticFeedbackType: HapticFeedbackType = HapticFeedbackType.ContextClick,
     rowHeader: @Composable RowScope.() -> Unit = {},
     foreContent: @Composable BoxScope.() -> Unit = {},
