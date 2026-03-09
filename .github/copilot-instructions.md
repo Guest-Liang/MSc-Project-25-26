@@ -16,6 +16,7 @@ NFCWorkFlow is an NFC-based work order management system with an Android client 
 MSc-Project-25-26/
 ├── .github/
 │   ├── copilot-instructions.md   # This file
+│   ├── dependabot.yml            # Dependabot dependency update config (npm + GitHub Actions)
 │   └── workflows/
 │       ├── build-app.yaml        # Android APK build and release CI
 │       └── crowdin-action.yaml   # Crowdin translation sync
