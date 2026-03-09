@@ -10,6 +10,11 @@ import icu.guestliang.nfcworkflow.ui.login.LoginScreen
 import icu.guestliang.nfcworkflow.ui.login.RegisterScreen
 import icu.guestliang.nfcworkflow.ui.worker.CompleteOrderScreen
 import icu.guestliang.nfcworkflow.ui.worker.ViewOrdersScreen
+import androidx.compose.animation.AnimatedContentTransitionScope
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.scaleOut
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Nfc
@@ -44,7 +49,36 @@ val items = listOf(
 
 @Composable
 fun NavGraph(navController: NavHostController, modifier: androidx.compose.ui.Modifier) {
-    NavHost(navController, startDestination = Screen.Login.route, modifier) {
+    NavHost(
+        navController = navController,
+        startDestination = Screen.Login.route,
+        modifier = modifier,
+        enterTransition = {
+            // 子页面进入：从右向左滑入并淡入
+            slideIntoContainer(
+                AnimatedContentTransitionScope.SlideDirection.Left,
+                animationSpec = tween(300)
+            ) + fadeIn(tween(300))
+        },
+        exitTransition = {
+            // 父页面退出：稍微向左偏移并淡出
+            fadeOut(tween(300))
+        },
+        popEnterTransition = {
+            // 父页面返回：从左向右（与子页面进入方向相反）滑入并淡入
+            slideIntoContainer(
+                AnimatedContentTransitionScope.SlideDirection.Right,
+                animationSpec = tween(300)
+            ) + fadeIn(tween(300))
+        },
+        popExitTransition = {
+            // 子页面返回退出：向中心收缩并淡出
+            scaleOut(
+                targetScale = 0.85f, // 收缩到 85% 大小
+                animationSpec = tween(300)
+            ) + fadeOut(tween(300))
+        }
+    ) {
         composable(Screen.Login.route) {
             LoginScreen(
                 onLoginSuccess = {
