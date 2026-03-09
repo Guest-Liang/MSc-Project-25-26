@@ -61,7 +61,7 @@ fun NavGraph(navController: NavHostController, modifier: androidx.compose.ui.Mod
             ) + fadeIn(tween(300))
         },
         exitTransition = {
-            // 父页面退出：稍微向左偏移并淡出
+            // 父页面退出：淡出
             fadeOut(tween(300))
         },
         popEnterTransition = {
