@@ -15,48 +15,108 @@ NFCWorkFlow is an NFC-based work order management system with an Android client 
 ```
 MSc-Project-25-26/
 ├── .github/
-│   ├── copilot-instructions.md   # This file
-│   ├── dependabot.yml            # Dependabot dependency update config (npm + GitHub Actions)
+│   ├── copilot-instructions.md               # This file
+│   ├── dependabot.yml                         # Dependabot dependency update config (npm + GitHub Actions)
 │   └── workflows/
-│       ├── build-app.yaml        # Android APK build and release CI
-│       └── crowdin-action.yaml   # Crowdin translation sync
-├── cloudflare/                   # Backend: Cloudflare Workers + Hono + D1 (SQLite)
+│       ├── build-app.yaml                     # Android APK build and release CI
+│       └── crowdin-action.yaml                # Crowdin translation sync
+├── cloudflare/                                # Backend: Cloudflare Workers + Hono + D1 (SQLite)
 │   ├── src/
-│   │   ├── index.js              # App entry point, route registration
-│   │   ├── routes/               # Route handlers
-│   │   │   ├── auth.js           # Authentication (login/logout/register)
-│   │   │   ├── admin.js          # Admin endpoints
-│   │   │   ├── worker.js         # Worker endpoints
-│   │   │   └── orders.js         # Order queries and logs
+│   │   ├── index.js                           # App entry point, route registration
+│   │   ├── routes/
+│   │   │   ├── auth.js                        # Authentication (login/logout/register)
+│   │   │   ├── admin.js                       # Admin endpoints
+│   │   │   ├── worker.js                      # Worker endpoints
+│   │   │   └── orders.js                      # Order queries and logs
 │   │   ├── middleware/
-│   │   │   ├── auth.js           # JWT auth middleware (requireAdmin/requireWorker)
-│   │   │   └── apiLog.js         # API request logging middleware
+│   │   │   ├── auth.js                        # JWT auth middleware (requireAdmin/requireWorker)
+│   │   │   └── apiLog.js                      # API request logging middleware
 │   │   └── utils/
-│   │       ├── jwt.js            # JWT sign and verify (HS256, 20-minute expiry)
-│   │       ├── bcrypt.js         # bcrypt password hashing
-│   │       ├── status.js         # Unified status codes (1xxx errors / 9xxx success)
-│   │       └── response.js       # Standardized response format
-│   ├── package.json              # Dependencies: hono
-│   └── wrangler.toml             # Cloudflare deployment config
-├── nfcworkflow/                  # Frontend: Android Kotlin + Jetpack Compose
-│   ├── app/src/main/
-│   │   ├── java/icu/guestliang/nfcworkflow/
-│   │   │   ├── data/             # Local storage (DataStore Preferences)
-│   │   │   ├── navigation/       # NavGraph routing
-│   │   │   ├── network/          # Ktor client + API data models
-│   │   │   ├── nfc/              # NFC tag parsing
-│   │   │   ├── ui/               # All Compose screens
-│   │   │   │   ├── admin/        # Admin-only screens
-│   │   │   │   ├── worker/       # Worker-only screens
-│   │   │   │   ├── components/   # Shared UI components
-│   │   │   │   └── theme/        # Material 3 theme
-│   │   │   └── utils/            # Utility functions
-│   │   └── res/                  # Resources (layouts, strings, etc.)
+│   │       ├── jwt.js                         # JWT sign and verify (HS256, 20-minute expiry)
+│   │       ├── bcrypt.js                      # bcrypt password hashing
+│   │       ├── status.js                      # Unified status codes (1xxx errors / 9xxx success)
+│   │       └── response.js                    # Standardized response format
+│   ├── API-Description.md                     # API documentation
+│   ├── package.json                           # Dependencies: hono
+│   ├── pnpm-lock.yaml                         # pnpm lockfile
+│   └── wrangler.toml                          # Cloudflare deployment config
+├── nfcworkflow/                               # Frontend: Android Kotlin + Jetpack Compose
+│   ├── app/
+│   │   ├── src/main/
+│   │   │   ├── AndroidManifest.xml
+│   │   │   ├── java/icu/guestliang/nfcworkflow/
+│   │   │   │   ├── MainActivity.kt            # App entry point
+│   │   │   │   ├── NFCWorkFlowApp.kt          # Application class
+│   │   │   │   ├── data/
+│   │   │   │   │   ├── ApiConstants.kt        # Base URL and API path constants
+│   │   │   │   │   ├── Models.kt              # Shared data models
+│   │   │   │   │   └── PrefsDataStore.kt      # DataStore Preferences (token, role, theme)
+│   │   │   │   ├── logging/
+│   │   │   │   │   └── AppLogger.kt           # App-wide logging utility
+│   │   │   │   ├── navigation/
+│   │   │   │   │   └── NavGraph.kt            # Navigation graph and route definitions
+│   │   │   │   ├── network/
+│   │   │   │   │   ├── ApiClient.kt           # Ktor HTTP client configuration
+│   │   │   │   │   └── ApiModels.kt           # API request/response data models
+│   │   │   │   ├── nfc/
+│   │   │   │   │   └── NfcParser.kt           # NFC tag parsing logic
+│   │   │   │   ├── ui/
+│   │   │   │   │   ├── HomeScreen.kt          # Home screen (role-aware entry)
+│   │   │   │   │   ├── NfcScreen.kt           # NFC scan screen
+│   │   │   │   │   ├── SettingsScreen.kt      # App settings screen
+│   │   │   │   │   ├── admin/
+│   │   │   │   │   │   ├── AdminAssignOrderScreen.kt
+│   │   │   │   │   │   ├── AdminCreateOrderScreen.kt
+│   │   │   │   │   │   ├── AdminQueryLogsScreen.kt
+│   │   │   │   │   │   ├── AdminRegisterWorkerScreen.kt
+│   │   │   │   │   │   ├── AdminSearchOrdersScreen.kt
+│   │   │   │   │   │   └── AdminViewModel.kt
+│   │   │   │   │   ├── components/            # Shared UI components
+│   │   │   │   │   │   ├── SplicedWidgets.kt
+│   │   │   │   │   │   └── TimePickerWidgets.kt
+│   │   │   │   │   ├── login/
+│   │   │   │   │   │   ├── LoginScreen.kt
+│   │   │   │   │   │   ├── LoginViewModel.kt
+│   │   │   │   │   │   ├── RegisterScreen.kt
+│   │   │   │   │   │   └── RegisterViewModel.kt
+│   │   │   │   │   ├── theme/                 # Material 3 theme
+│   │   │   │   │   │   ├── Color.kt
+│   │   │   │   │   │   ├── Dimensions.kt
+│   │   │   │   │   │   ├── Theme.kt
+│   │   │   │   │   │   └── Typography.kt
+│   │   │   │   │   ├── view/
+│   │   │   │   │   │   └── MainPagerScreen.kt # Main pager/tab container
+│   │   │   │   │   └── worker/
+│   │   │   │   │       ├── CompleteOrderScreen.kt
+│   │   │   │   │       ├── ViewOrdersScreen.kt
+│   │   │   │   │       └── WorkerViewModel.kt
+│   │   │   │   └── utils/
+│   │   │   │       ├── ContextExt.kt          # Context extension functions
+│   │   │   │       └── LocalizationUtils.kt   # Localization helpers
+│   │   │   └── res/                           # Android resources
+│   │   │       ├── drawable/                  # Vector drawables (launcher icons)
+│   │   │       ├── mipmap-*/                  # Launcher icon densities (hdpi→xxxhdpi)
+│   │   │       ├── values/                    # Default strings, colors, themes
+│   │   │       ├── values-en/                 # English string overrides
+│   │   │       ├── values-night/              # Dark theme overrides
+│   │   │       └── xml/                       # Backup rules, locales config
+│   │   ├── build.gradle.kts                   # App module build config
+│   │   └── proguard-rules.pro                 # ProGuard / R8 rules
 │   ├── gradle/
-│   │   └── libs.versions.toml    # Version catalog (contains appVersion)
-│   └── build.gradle.kts          # Root Gradle build file
-├── crowdin.yml                   # Crowdin translation project config
-└── README.md                     # Project documentation (Chinese and English)
+│   │   ├── gradle-daemon-jvm.properties       # Gradle daemon JVM config
+│   │   ├── libs.versions.toml                 # Version catalog (contains appVersion)
+│   │   └── wrapper/
+│   │       ├── gradle-wrapper.jar
+│   │       └── gradle-wrapper.properties
+│   ├── .editorconfig                          # Code style config (import order, line length)
+│   ├── build.gradle.kts                       # Root Gradle build file
+│   ├── gradle.properties                      # Gradle properties
+│   ├── gradlew                                # Gradle wrapper script (Unix)
+│   ├── gradlew.bat                            # Gradle wrapper script (Windows)
+│   └── settings.gradle.kts                    # Gradle settings (module declarations)
+├── .gitignore                                 # Root gitignore
+├── crowdin.yml                                # Crowdin translation project config
+└── README.md                                  # Project documentation (Chinese and English)
 ```
 
 ---
