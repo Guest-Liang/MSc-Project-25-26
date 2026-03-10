@@ -4,6 +4,10 @@
 
 [![wakatime](https://wakatime.com/badge/github/Guest-Liang/MSc-Project-25-26.svg)](https://wakatime.com/badge/github/Guest-Liang/MSc-Project-25-26)
 
+还有额外的57小时5分钟：
+And extra 57h 5m:
+<img width="500px" src="https://storage.guestliang.icu/57h5m.png"/>
+
 ## 📖 简介 / Introduction
 
 **中文**  
