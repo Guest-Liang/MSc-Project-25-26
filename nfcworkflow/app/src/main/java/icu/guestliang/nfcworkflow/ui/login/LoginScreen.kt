@@ -4,6 +4,7 @@ import icu.guestliang.nfcworkflow.R
 import icu.guestliang.nfcworkflow.data.PrefsDataStore
 import icu.guestliang.nfcworkflow.ui.theme.Dimensions
 import android.widget.Toast
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -75,6 +76,7 @@ fun LoginScreen(
     Box(
         modifier = Modifier
             .fillMaxSize()
+            .background(MaterialTheme.colorScheme.background)
             .imePadding()
     ) {
         Column(
@@ -105,7 +107,8 @@ fun LoginScreen(
 
             Text(
                 stringResource(id = R.string.login_title), 
-                style = MaterialTheme.typography.headlineMedium
+                style = MaterialTheme.typography.headlineMedium,
+                color = MaterialTheme.colorScheme.onBackground
             )
             Spacer(Modifier.height(Dimensions.SpaceXXXL))
 
