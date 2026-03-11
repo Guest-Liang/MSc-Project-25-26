@@ -8,6 +8,7 @@ import icu.guestliang.nfcworkflow.ui.theme.Dimensions
 import icu.guestliang.nfcworkflow.utils.getLocalizedStatus
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import android.content.res.Configuration
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -56,6 +57,7 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -67,6 +69,8 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.input.nestedscroll.nestedScroll
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
@@ -90,6 +94,7 @@ fun AdminSearchOrdersScreen(
     var showFallbackDialog by remember { mutableStateOf(false) }
     var selectedOrder by remember { mutableStateOf<Order?>(null) }
     val coroutineScope = rememberCoroutineScope()
+    val isLandscape = LocalConfiguration.current.orientation == Configuration.ORIENTATION_LANDSCAPE
 
     // Search query states
     var titleQuery by remember { mutableStateOf("") }
@@ -102,10 +107,12 @@ fun AdminSearchOrdersScreen(
     var updatedStart by remember { mutableStateOf("") }
     var updatedEnd by remember { mutableStateOf("") }
 
-    var isFilterExpanded by remember { mutableStateOf(false) }
+    // Start with filter expanded if in landscape (it will be on the side), else collapsed
+    var isFilterExpanded by remember { mutableStateOf(isLandscape) }
     var showWorkerDialog by remember { mutableStateOf(false) }
 
     val statusOptions = listOf("created", "assigned", "completed")
+    val scrollBehavior = TopAppBarDefaults.enterAlwaysScrollBehavior()
 
     LaunchedEffect(Unit) {
         viewModel.fetchWorkers(context)
@@ -121,8 +128,14 @@ fun AdminSearchOrdersScreen(
             viewModel.clearFallbackTriggered()
         }
     }
+    
+    // Automatically manage filter expansion based on orientation changes if desired
+    LaunchedEffect(isLandscape) {
+        isFilterExpanded = isLandscape
+    }
 
     Scaffold(
+        modifier = Modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
         topBar = {
             TopAppBar(
                 title = { Text(stringResource(R.string.admin_search_orders)) },
@@ -130,50 +143,42 @@ fun AdminSearchOrdersScreen(
                     IconButton(onClick = dropUnlessResumed { navController.popBackStack() }) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
                     }
-                }
+                },
+                scrollBehavior = scrollBehavior
             )
         },
         containerColor = MaterialTheme.colorScheme.background
     ) { innerPadding ->
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(innerPadding)
-        ) {
-            // Filter Panel
-            Card(
+        if (isLandscape) {
+            Row(
                 modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(Dimensions.SpaceL),
-                shape = RoundedCornerShape(Dimensions.Radius.M),
-                elevation = CardDefaults.cardElevation(defaultElevation = Dimensions.Elevation.Low)
+                    .fillMaxSize()
+                    .padding(innerPadding)
             ) {
-                Column(modifier = Modifier.padding(Dimensions.SpaceL)) {
-                    Row(
+                // Side Panel for Filter
+                Card(
+                    modifier = Modifier
+                        .weight(0.45f)
+                        .fillMaxSize()
+                        .padding(start = Dimensions.SpaceL, top = Dimensions.SpaceL, bottom = Dimensions.SpaceL, end = Dimensions.SpaceS),
+                    shape = RoundedCornerShape(Dimensions.Radius.M),
+                    elevation = CardDefaults.cardElevation(defaultElevation = Dimensions.Elevation.Low)
+                ) {
+                    Column(
                         modifier = Modifier
-                            .fillMaxWidth()
-                            .clickable(onClick = dropUnlessResumed { isFilterExpanded = !isFilterExpanded })
-                            .padding(vertical = Dimensions.SpaceS),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
+                            .padding(Dimensions.SpaceL)
+                            .fillMaxSize()
                     ) {
                         Text(
                             text = stringResource(R.string.admin_advanced_search),
                             style = MaterialTheme.typography.titleMedium,
-                            color = MaterialTheme.colorScheme.primary
+                            color = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.padding(bottom = Dimensions.SpaceS)
                         )
-                        Icon(
-                            imageVector = if (isFilterExpanded) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
-                            contentDescription = "Toggle Filters",
-                            tint = MaterialTheme.colorScheme.primary
-                        )
-                    }
 
-                    AnimatedVisibility(visible = isFilterExpanded) {
                         Column(
                             modifier = Modifier
-                                .padding(top = Dimensions.SpaceL)
-                                .weight(weight = 1f, fill = false)
+                                .weight(1f)
                                 .verticalScroll(rememberScrollState()),
                             verticalArrangement = Arrangement.spacedBy(Dimensions.SpaceM)
                         ) {
@@ -244,264 +249,357 @@ fun AdminSearchOrdersScreen(
                                 }
                             }
 
-                            // Created Date Filters
-                            Row(horizontalArrangement = Arrangement.spacedBy(Dimensions.SpaceS)) {
-                                DateTimeSelectorField(
-                                    label = stringResource(R.string.admin_search_created_start),
-                                    value = createdStart,
-                                    onDateTimeSelected = { createdStart = it },
-                                    modifier = Modifier.weight(1f)
-                                )
-                                DateTimeSelectorField(
-                                    label = stringResource(R.string.admin_search_created_end),
-                                    value = createdEnd,
-                                    onDateTimeSelected = { createdEnd = it },
-                                    modifier = Modifier.weight(1f)
-                                )
-                            }
-
-                            // Updated Date Filters
-                            Row(horizontalArrangement = Arrangement.spacedBy(Dimensions.SpaceS)) {
-                                DateTimeSelectorField(
-                                    label = stringResource(R.string.admin_search_updated_start),
-                                    value = updatedStart,
-                                    onDateTimeSelected = { updatedStart = it },
-                                    modifier = Modifier.weight(1f)
-                                )
-                                DateTimeSelectorField(
-                                    label = stringResource(R.string.admin_search_updated_end),
-                                    value = updatedEnd,
-                                    onDateTimeSelected = { updatedEnd = it },
-                                    modifier = Modifier.weight(1f)
-                                )
-                            }
-
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.End,
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                TextButton(onClick = dropUnlessResumed {
-                                    titleQuery = ""
-                                    descQuery = ""
-                                    nfcTagQuery = ""
-                                    selectedStatuses.clear()
-                                    selectedAssigned.clear()
-                                    createdStart = ""
-                                    createdEnd = ""
-                                    updatedStart = ""
-                                    updatedEnd = ""
-                                    viewModel.fetchOrders(context, null)
-                                }) {
-                                    Text(stringResource(R.string.admin_search_clear_btn))
-                                }
-                                Spacer(modifier = Modifier.width(Dimensions.SpaceS))
-                                Button(onClick = dropUnlessResumed {
-                                    isFilterExpanded = false
-                                    val query = OrderSearchQuery(
-                                        title = titleQuery,
-                                        description = descQuery,
-                                        nfcTag = nfcTagQuery,
-                                        status = selectedStatuses,
-                                        assigned = selectedAssigned,
-                                        createdStart = createdStart,
-                                        createdEnd = createdEnd,
-                                        updatedStart = updatedStart,
-                                        updatedEnd = updatedEnd
-                                    )
-                                    viewModel.fetchOrders(context, query)
-                                }) {
-                                    Text(stringResource(R.string.admin_search_btn))
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-
-            if (showWorkerDialog) {
-                AlertDialog(
-                    onDismissRequest = { showWorkerDialog = false },
-                    title = { Text(stringResource(R.string.admin_select_worker)) },
-                    text = {
-                        LazyColumn {
-                            items(uiState.workers) { worker ->
-                                val isChecked = selectedAssigned.contains(worker.id.toString())
-                                Row(
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .clickable(onClick = dropUnlessResumed {
-                                            if (isChecked) {
-                                                selectedAssigned.remove(worker.id.toString())
-                                            } else {
-                                                selectedAssigned.remove("NULL")
-                                                selectedAssigned.add(worker.id.toString())
-                                            }
-                                        })
-                                        .padding(Dimensions.SpaceS),
-                                    verticalAlignment = Alignment.CenterVertically
-                                ) {
-                                    Checkbox(checked = isChecked, onCheckedChange = null)
-                                    Spacer(modifier = Modifier.width(Dimensions.SpaceS))
-                                    Text(worker.username)
-                                }
-                            }
-                        }
-                    },
-                    confirmButton = {
-                        TextButton(onClick = dropUnlessResumed { showWorkerDialog = false }) {
-                            Text(stringResource(R.string.ok))
-                        }
-                    }
-                )
-            }
-            
-            if (showFallbackDialog) {
-                AlertDialog(
-                    onDismissRequest = { 
-                        showFallbackDialog = false
-                        viewModel.clearFallbackTriggered()
-                    },
-                    title = { Text(stringResource(R.string.dialog_empty_state_title)) },
-                    text = { Text(stringResource(R.string.admin_search_fallback_msg)) },
-                    confirmButton = {
-                        TextButton(onClick = dropUnlessResumed { 
-                            showFallbackDialog = false 
-                            viewModel.clearFallbackTriggered()
-                        }) {
-                            Text(stringResource(R.string.ok))
-                        }
-                    }
-                )
-            }
-
-            // Results List
-            if (isInitialLoad || uiState.isLoading) {
-                Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                    CircularProgressIndicator()
-                }
-            } else if (uiState.error != null) {
-                Column(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(Dimensions.SpaceXXXL),
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.Center
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.CloudOff,
-                        contentDescription = "Network Error",
-                        modifier = Modifier.size(Dimensions.IconSize.XL),
-                        tint = MaterialTheme.colorScheme.error
-                    )
-                    Spacer(modifier = Modifier.height(Dimensions.SpaceL))
-                    Text(
-                        text = stringResource(R.string.error_network_title),
-                        style = MaterialTheme.typography.titleLarge,
-                        color = MaterialTheme.colorScheme.error
-                    )
-                    Spacer(modifier = Modifier.height(Dimensions.SpaceS))
-                    Text(
-                        text = uiState.error ?: stringResource(R.string.error_network_desc),
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        textAlign = TextAlign.Center
-                    )
-                    Spacer(modifier = Modifier.height(Dimensions.SpaceXXL))
-                    Button(
-                        onClick = dropUnlessResumed { 
-                            isInitialLoad = true
-                            viewModel.clearMessages()
-                            coroutineScope.launch {
-                                viewModel.fetchOrders(context).join()
-                                isInitialLoad = false
-                            }
-                        },
-                        enabled = !uiState.isLoading
-                    ) {
-                        if (uiState.isLoading) {
-                            CircularProgressIndicator(
-                                modifier = Modifier.size(Dimensions.IconSize.M),
-                                color = MaterialTheme.colorScheme.onPrimary
+                            // Date Filters (Vertical in Landscape)
+                            DateTimeSelectorField(
+                                label = stringResource(R.string.admin_search_created_start),
+                                value = createdStart,
+                                onDateTimeSelected = { createdStart = it },
+                                modifier = Modifier.fillMaxWidth()
                             )
-                        } else {
-                            Icon(imageVector = Icons.Default.Refresh, contentDescription = null)
-                            Spacer(modifier = Modifier.width(Dimensions.SpaceS))
-                            Text(stringResource(R.string.error_retry_btn))
+                            DateTimeSelectorField(
+                                label = stringResource(R.string.admin_search_created_end),
+                                value = createdEnd,
+                                onDateTimeSelected = { createdEnd = it },
+                                modifier = Modifier.fillMaxWidth()
+                            )
+                            DateTimeSelectorField(
+                                label = stringResource(R.string.admin_search_updated_start),
+                                value = updatedStart,
+                                onDateTimeSelected = { updatedStart = it },
+                                modifier = Modifier.fillMaxWidth()
+                            )
+                            DateTimeSelectorField(
+                                label = stringResource(R.string.admin_search_updated_end),
+                                value = updatedEnd,
+                                onDateTimeSelected = { updatedEnd = it },
+                                modifier = Modifier.fillMaxWidth()
+                            )
+                            
+                            Spacer(modifier = Modifier.height(Dimensions.SpaceS))
                         }
-                    }
-                }
-            } else {
-                LaunchedEffect(uiState.orders) {
-                    if (uiState.orders.isEmpty()) {
-                        showEmptyDialog = true
-                    }
-                }
 
-                if (showEmptyDialog) {
-                    AlertDialog(
-                        onDismissRequest = { showEmptyDialog = false },
-                        title = { Text(stringResource(R.string.dialog_empty_state_title)) },
-                        text = { Text(stringResource(R.string.admin_search_no_results)) },
-                        confirmButton = {
-                            TextButton(onClick = dropUnlessResumed { showEmptyDialog = false }) {
-                                Text(stringResource(R.string.ok))
+                        // Search Buttons fixed at bottom of the side panel
+                        Row(
+                            modifier = Modifier.fillMaxWidth().padding(top = Dimensions.SpaceS),
+                            horizontalArrangement = Arrangement.End,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            TextButton(onClick = dropUnlessResumed {
+                                titleQuery = ""
+                                descQuery = ""
+                                nfcTagQuery = ""
+                                selectedStatuses.clear()
+                                selectedAssigned.clear()
+                                createdStart = ""
+                                createdEnd = ""
+                                updatedStart = ""
+                                updatedEnd = ""
+                                viewModel.fetchOrders(context, null)
+                            }) {
+                                Text(stringResource(R.string.admin_search_clear_btn))
+                            }
+                            Spacer(modifier = Modifier.width(Dimensions.SpaceS))
+                            Button(onClick = dropUnlessResumed {
+                                val query = OrderSearchQuery(
+                                    title = titleQuery,
+                                    description = descQuery,
+                                    nfcTag = nfcTagQuery,
+                                    status = selectedStatuses,
+                                    assigned = selectedAssigned,
+                                    createdStart = createdStart,
+                                    createdEnd = createdEnd,
+                                    updatedStart = updatedStart,
+                                    updatedEnd = updatedEnd
+                                )
+                                viewModel.fetchOrders(context, query)
+                            }) {
+                                Text(stringResource(R.string.admin_search_btn))
                             }
                         }
-                    )
+                    }
                 }
 
-                if (uiState.orders.isEmpty()) {
-                    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                        Text(
-                            text = stringResource(R.string.admin_search_no_results),
-                            style = MaterialTheme.typography.bodyLarge,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    }
-                } else {
-                    LazyColumn(
-                        modifier = Modifier.fillMaxSize(),
-                        contentPadding = PaddingValues(Dimensions.SpaceL),
-                        verticalArrangement = Arrangement.spacedBy(Dimensions.SpaceL)
-                    ) {
-                        items(uiState.orders, key = { it.id ?: it.hashCode() }) { order ->
-                            Card(
+                // Results Panel
+                Box(modifier = Modifier.weight(0.55f).fillMaxSize()) {
+                    OrderResultsList(
+                        isInitialLoad = isInitialLoad,
+                        uiState = uiState,
+                        viewModel = viewModel,
+                        coroutineScope = coroutineScope,
+                        onOrderSelected = { selectedOrder = it }
+                    )
+                }
+            }
+        } else {
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(innerPadding)
+            ) {
+                // Filter Panel for Portrait
+                Card(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(Dimensions.SpaceL),
+                    shape = RoundedCornerShape(Dimensions.Radius.M),
+                    elevation = CardDefaults.cardElevation(defaultElevation = Dimensions.Elevation.Low)
+                ) {
+                    Column(modifier = Modifier.padding(Dimensions.SpaceL)) {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clickable(onClick = dropUnlessResumed { isFilterExpanded = !isFilterExpanded })
+                                .padding(vertical = Dimensions.SpaceS),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(
+                                text = stringResource(R.string.admin_advanced_search),
+                                style = MaterialTheme.typography.titleMedium,
+                                color = MaterialTheme.colorScheme.primary
+                            )
+                            Icon(
+                                imageVector = if (isFilterExpanded) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
+                                contentDescription = "Toggle Filters",
+                                tint = MaterialTheme.colorScheme.primary
+                            )
+                        }
+
+                        AnimatedVisibility(visible = isFilterExpanded) {
+                            Column(
                                 modifier = Modifier
-                                    .fillMaxWidth()
-                                    .clickable(onClick = dropUnlessResumed { selectedOrder = order }),
-                                elevation = CardDefaults.cardElevation(defaultElevation = Dimensions.Elevation.Low)
+                                    .padding(top = Dimensions.SpaceL)
+                                    .weight(weight = 1f, fill = false)
+                                    .verticalScroll(rememberScrollState()),
+                                verticalArrangement = Arrangement.spacedBy(Dimensions.SpaceM)
                             ) {
-                                Row(
-                                    modifier = Modifier.padding(Dimensions.SpaceL),
-                                    verticalAlignment = Alignment.CenterVertically
-                                ) {
-                                    Column(
+                                OutlinedTextField(
+                                    value = titleQuery,
+                                    onValueChange = { titleQuery = it },
+                                    label = { Text(stringResource(R.string.admin_order_title_hint)) },
+                                    modifier = Modifier.fillMaxWidth(),
+                                    singleLine = true
+                                )
+                                Row(horizontalArrangement = Arrangement.spacedBy(Dimensions.SpaceS)) {
+                                    OutlinedTextField(
+                                        value = descQuery,
+                                        onValueChange = { descQuery = it },
+                                        label = { Text(stringResource(R.string.admin_order_desc_hint)) },
                                         modifier = Modifier.weight(1f),
-                                        verticalArrangement = Arrangement.spacedBy(Dimensions.SpaceS)
-                                    ) {
-                                        Text(
-                                            text = stringResource(R.string.admin_order_item_title, order.id ?: 0, order.title),
-                                            style = MaterialTheme.typography.titleMedium
-                                        )
-                                        Text(text = stringResource(R.string.admin_order_status, getLocalizedStatus(order.status)), style = MaterialTheme.typography.bodyMedium)
-                                        Text(
-                                            text = stringResource(R.string.admin_order_description, order.description),
-                                            style = MaterialTheme.typography.bodySmall,
-                                            maxLines = 1
+                                        singleLine = true
+                                    )
+                                    OutlinedTextField(
+                                        value = nfcTagQuery,
+                                        onValueChange = { nfcTagQuery = it },
+                                        label = { Text(stringResource(R.string.admin_order_nfc_hint)) },
+                                        modifier = Modifier.weight(1f),
+                                        singleLine = true
+                                    )
+                                }
+
+                                // Status Filters
+                                Text(stringResource(R.string.admin_search_status_title), style = MaterialTheme.typography.bodySmall)
+                                FlowRow(horizontalArrangement = Arrangement.spacedBy(Dimensions.SpaceS)) {
+                                    statusOptions.forEach { status ->
+                                        val isSelected = selectedStatuses.contains(status)
+                                        FilterChip(
+                                            selected = isSelected,
+                                            onClick = dropUnlessResumed {
+                                                if (isSelected) selectedStatuses.remove(status)
+                                                else selectedStatuses.add(status)
+                                            },
+                                            label = { Text(getLocalizedStatus(status)) }
                                         )
                                     }
-                                    Icon(
-                                        imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
-                                        contentDescription = null,
-                                        tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
+                                }
+
+                                // Worker Filters
+                                Text(stringResource(R.string.admin_search_worker_title), style = MaterialTheme.typography.bodySmall)
+                                FlowRow(horizontalArrangement = Arrangement.spacedBy(Dimensions.SpaceS), verticalArrangement = Arrangement.Center) {
+                                    val unassignedLabel = stringResource(R.string.admin_search_unassigned)
+                                    val isNullSelected = selectedAssigned.contains("NULL")
+                                    
+                                    FilterChip(
+                                        selected = isNullSelected,
+                                        onClick = dropUnlessResumed {
+                                            if (isNullSelected) selectedAssigned.remove("NULL")
+                                            else {
+                                                selectedAssigned.clear()
+                                                selectedAssigned.add("NULL")
+                                            }
+                                        },
+                                        label = { Text(unassignedLabel) }
                                     )
+
+                                    OutlinedButton(onClick = dropUnlessResumed { showWorkerDialog = true }) {
+                                        val workerText = if (selectedAssigned.isEmpty() || isNullSelected) 
+                                            stringResource(R.string.admin_select_worker) 
+                                        else 
+                                            "Workers Selected (${selectedAssigned.size})"
+                                        Text(workerText)
+                                    }
+                                }
+
+                                // Created Date Filters
+                                Row(horizontalArrangement = Arrangement.spacedBy(Dimensions.SpaceS)) {
+                                    DateTimeSelectorField(
+                                        label = stringResource(R.string.admin_search_created_start),
+                                        value = createdStart,
+                                        onDateTimeSelected = { createdStart = it },
+                                        modifier = Modifier.weight(1f)
+                                    )
+                                    DateTimeSelectorField(
+                                        label = stringResource(R.string.admin_search_created_end),
+                                        value = createdEnd,
+                                        onDateTimeSelected = { createdEnd = it },
+                                        modifier = Modifier.weight(1f)
+                                    )
+                                }
+
+                                // Updated Date Filters
+                                Row(horizontalArrangement = Arrangement.spacedBy(Dimensions.SpaceS)) {
+                                    DateTimeSelectorField(
+                                        label = stringResource(R.string.admin_search_updated_start),
+                                        value = updatedStart,
+                                        onDateTimeSelected = { updatedStart = it },
+                                        modifier = Modifier.weight(1f)
+                                    )
+                                    DateTimeSelectorField(
+                                        label = stringResource(R.string.admin_search_updated_end),
+                                        value = updatedEnd,
+                                        onDateTimeSelected = { updatedEnd = it },
+                                        modifier = Modifier.weight(1f)
+                                    )
+                                }
+
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.End,
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    TextButton(onClick = dropUnlessResumed {
+                                        titleQuery = ""
+                                        descQuery = ""
+                                        nfcTagQuery = ""
+                                        selectedStatuses.clear()
+                                        selectedAssigned.clear()
+                                        createdStart = ""
+                                        createdEnd = ""
+                                        updatedStart = ""
+                                        updatedEnd = ""
+                                        viewModel.fetchOrders(context, null)
+                                    }) {
+                                        Text(stringResource(R.string.admin_search_clear_btn))
+                                    }
+                                    Spacer(modifier = Modifier.width(Dimensions.SpaceS))
+                                    Button(onClick = dropUnlessResumed {
+                                        isFilterExpanded = false
+                                        val query = OrderSearchQuery(
+                                            title = titleQuery,
+                                            description = descQuery,
+                                            nfcTag = nfcTagQuery,
+                                            status = selectedStatuses,
+                                            assigned = selectedAssigned,
+                                            createdStart = createdStart,
+                                            createdEnd = createdEnd,
+                                            updatedStart = updatedStart,
+                                            updatedEnd = updatedEnd
+                                        )
+                                        viewModel.fetchOrders(context, query)
+                                    }) {
+                                        Text(stringResource(R.string.admin_search_btn))
+                                    }
                                 }
                             }
                         }
                     }
                 }
+
+                // Results List Portrait
+                OrderResultsList(
+                    isInitialLoad = isInitialLoad,
+                    uiState = uiState,
+                    viewModel = viewModel,
+                    coroutineScope = coroutineScope,
+                    onOrderSelected = { selectedOrder = it }
+                )
             }
+        }
+        
+        // Common Dialogs
+        if (showWorkerDialog) {
+            AlertDialog(
+                onDismissRequest = { showWorkerDialog = false },
+                title = { Text(stringResource(R.string.admin_select_worker)) },
+                text = {
+                    LazyColumn {
+                        items(uiState.workers) { worker ->
+                            val isChecked = selectedAssigned.contains(worker.id.toString())
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .clickable(onClick = dropUnlessResumed {
+                                        if (isChecked) {
+                                            selectedAssigned.remove(worker.id.toString())
+                                        } else {
+                                            selectedAssigned.remove("NULL")
+                                            selectedAssigned.add(worker.id.toString())
+                                        }
+                                    })
+                                    .padding(Dimensions.SpaceS),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Checkbox(checked = isChecked, onCheckedChange = null)
+                                Spacer(modifier = Modifier.width(Dimensions.SpaceS))
+                                Text(worker.username)
+                            }
+                        }
+                    }
+                },
+                confirmButton = {
+                    TextButton(onClick = dropUnlessResumed { showWorkerDialog = false }) {
+                        Text(stringResource(R.string.ok))
+                    }
+                }
+            )
+        }
+        
+        if (showFallbackDialog) {
+            AlertDialog(
+                onDismissRequest = { 
+                    showFallbackDialog = false
+                    viewModel.clearFallbackTriggered()
+                },
+                title = { Text(stringResource(R.string.dialog_empty_state_title)) },
+                text = { Text(stringResource(R.string.admin_search_fallback_msg)) },
+                confirmButton = {
+                    TextButton(onClick = dropUnlessResumed { 
+                        showFallbackDialog = false 
+                        viewModel.clearFallbackTriggered()
+                    }) {
+                        Text(stringResource(R.string.ok))
+                    }
+                }
+            )
+        }
+        
+        LaunchedEffect(uiState.orders) {
+            if (uiState.orders.isEmpty() && !isInitialLoad && !uiState.isLoading) {
+                showEmptyDialog = true
+            }
+        }
+
+        if (showEmptyDialog) {
+            AlertDialog(
+                onDismissRequest = { showEmptyDialog = false },
+                title = { Text(stringResource(R.string.dialog_empty_state_title)) },
+                text = { Text(stringResource(R.string.admin_search_no_results)) },
+                confirmButton = {
+                    TextButton(onClick = dropUnlessResumed { showEmptyDialog = false }) {
+                        Text(stringResource(R.string.ok))
+                    }
+                }
+            )
         }
     }
 
@@ -511,6 +609,122 @@ fun AdminSearchOrdersScreen(
             workers = uiState.workers,
             onDismiss = { selectedOrder = null }
         )
+    }
+}
+
+@Composable
+fun OrderResultsList(
+    isInitialLoad: Boolean,
+    uiState: AdminUiState,
+    viewModel: AdminViewModel,
+    coroutineScope: kotlinx.coroutines.CoroutineScope,
+    onOrderSelected: (Order) -> Unit
+) {
+    val context = LocalContext.current
+    if (isInitialLoad || uiState.isLoading) {
+        Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+            CircularProgressIndicator()
+        }
+    } else if (uiState.error != null) {
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(Dimensions.SpaceXXXL),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center
+        ) {
+            Icon(
+                imageVector = Icons.Default.CloudOff,
+                contentDescription = "Network Error",
+                modifier = Modifier.size(Dimensions.IconSize.XL),
+                tint = MaterialTheme.colorScheme.error
+            )
+            Spacer(modifier = Modifier.height(Dimensions.SpaceL))
+            Text(
+                text = stringResource(R.string.error_network_title),
+                style = MaterialTheme.typography.titleLarge,
+                color = MaterialTheme.colorScheme.error
+            )
+            Spacer(modifier = Modifier.height(Dimensions.SpaceS))
+            Text(
+                text = uiState.error ?: stringResource(R.string.error_network_desc),
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                textAlign = TextAlign.Center
+            )
+            Spacer(modifier = Modifier.height(Dimensions.SpaceXXL))
+            Button(
+                onClick = dropUnlessResumed { 
+                    viewModel.clearMessages()
+                    coroutineScope.launch {
+                        viewModel.fetchOrders(context).join()
+                    }
+                },
+                enabled = !uiState.isLoading
+            ) {
+                if (uiState.isLoading) {
+                    CircularProgressIndicator(
+                        modifier = Modifier.size(Dimensions.IconSize.M),
+                        color = MaterialTheme.colorScheme.onPrimary
+                    )
+                } else {
+                    Icon(imageVector = Icons.Default.Refresh, contentDescription = null)
+                    Spacer(modifier = Modifier.width(Dimensions.SpaceS))
+                    Text(stringResource(R.string.error_retry_btn))
+                }
+            }
+        }
+    } else {
+        if (uiState.orders.isEmpty()) {
+            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                Text(
+                    text = stringResource(R.string.admin_search_no_results),
+                    style = MaterialTheme.typography.bodyLarge,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+        } else {
+            LazyColumn(
+                modifier = Modifier.fillMaxSize(),
+                contentPadding = PaddingValues(Dimensions.SpaceL),
+                verticalArrangement = Arrangement.spacedBy(Dimensions.SpaceL)
+            ) {
+                items(uiState.orders, key = { it.id ?: it.hashCode() }) { order ->
+                    Card(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable(onClick = dropUnlessResumed { onOrderSelected(order) }),
+                        elevation = CardDefaults.cardElevation(defaultElevation = Dimensions.Elevation.Low)
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(Dimensions.SpaceL),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Column(
+                                modifier = Modifier.weight(1f),
+                                verticalArrangement = Arrangement.spacedBy(Dimensions.SpaceS)
+                            ) {
+                                Text(
+                                    text = stringResource(R.string.admin_order_item_title, order.id ?: 0, order.title),
+                                    style = MaterialTheme.typography.titleMedium
+                                )
+                                Text(text = stringResource(R.string.admin_order_status, getLocalizedStatus(order.status)), style = MaterialTheme.typography.bodyMedium)
+                                Text(
+                                    text = stringResource(R.string.admin_order_description, order.description),
+                                    style = MaterialTheme.typography.bodySmall,
+                                    maxLines = 1
+                                )
+                            }
+                            Icon(
+                                imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
+                            )
+                        }
+                    }
+                }
+            }
+        }
     }
 }
 

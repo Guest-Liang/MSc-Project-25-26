@@ -4,14 +4,18 @@ import icu.guestliang.nfcworkflow.R
 import icu.guestliang.nfcworkflow.ui.theme.Dimensions
 import android.widget.Toast
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
@@ -61,80 +65,87 @@ fun RegisterScreen(
         }
     }
 
-    Column(
+    Box(
         modifier = Modifier
             .fillMaxSize()
-            .padding(Dimensions.SpaceL),
-        verticalArrangement = Arrangement.Center,
-        horizontalAlignment = Alignment.CenterHorizontally
+            .imePadding()
     ) {
-        val titleRes = if (isResetPassword) R.string.reset_password_title else R.string.register_title
-        Text(
-            stringResource(id = titleRes), 
-            style = MaterialTheme.typography.headlineMedium
-        )
-        Spacer(Modifier.height(Dimensions.SpaceXXXL))
-
-        OutlinedTextField(
-            value = username,
-            onValueChange = { username = it },
-            label = { Text(stringResource(id = R.string.login_username)) },
-            modifier = Modifier.fillMaxWidth(),
-            singleLine = true
-        )
-        Spacer(Modifier.height(Dimensions.SpaceL))
-
-        OutlinedTextField(
-            value = password,
-            onValueChange = { password = it },
-            label = { Text(stringResource(id = R.string.login_password)) },
-            modifier = Modifier.fillMaxWidth(),
-            visualTransformation = PasswordVisualTransformation(),
-            singleLine = true
-        )
-        Spacer(Modifier.height(Dimensions.SpaceL))
-
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.Center, 
-            modifier = Modifier.fillMaxWidth()
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(Dimensions.SpaceL)
+                .verticalScroll(rememberScrollState()),
+            verticalArrangement = Arrangement.Center,
+            horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            Text(stringResource(id = R.string.login_as_admin))
-            Switch(
-                checked = isWorker,
-                onCheckedChange = { isWorker = it },
-                modifier = Modifier.padding(horizontal = Dimensions.SpaceS)
+            val titleRes = if (isResetPassword) R.string.reset_password_title else R.string.register_title
+            Text(
+                stringResource(id = titleRes), 
+                style = MaterialTheme.typography.headlineMedium
             )
-            Text(stringResource(id = R.string.login_as_worker))
-        }
-        Spacer(Modifier.height(Dimensions.SpaceXXXL))
+            Spacer(Modifier.height(Dimensions.SpaceXXXL))
 
-        Button(
-            onClick = { 
-                if (isWorker) {
-                    showAdminDialog = true
-                } else {
-                    viewModel.registerAdmin(username, password)
-                }
-            }, 
-            modifier = Modifier.fillMaxWidth(),
-            enabled = registerState !is RegisterState.Loading
-        ) {
-            if (registerState is RegisterState.Loading) {
-                CircularProgressIndicator(
-                    modifier = Modifier.size(Dimensions.IconSize.M),
-                    strokeWidth = Dimensions.Divider.Thick,
-                    color = MaterialTheme.colorScheme.onPrimary
+            OutlinedTextField(
+                value = username,
+                onValueChange = { username = it },
+                label = { Text(stringResource(id = R.string.login_username)) },
+                modifier = Modifier.fillMaxWidth(),
+                singleLine = true
+            )
+            Spacer(Modifier.height(Dimensions.SpaceL))
+
+            OutlinedTextField(
+                value = password,
+                onValueChange = { password = it },
+                label = { Text(stringResource(id = R.string.login_password)) },
+                modifier = Modifier.fillMaxWidth(),
+                visualTransformation = PasswordVisualTransformation(),
+                singleLine = true
+            )
+            Spacer(Modifier.height(Dimensions.SpaceL))
+
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.Center, 
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text(stringResource(id = R.string.login_as_admin))
+                Switch(
+                    checked = isWorker,
+                    onCheckedChange = { isWorker = it },
+                    modifier = Modifier.padding(horizontal = Dimensions.SpaceS)
                 )
-            } else {
-                val buttonRes = if (isResetPassword) R.string.reset_password_button else R.string.register_button
-                Text(stringResource(id = buttonRes))
+                Text(stringResource(id = R.string.login_as_worker))
             }
-        }
-        Spacer(Modifier.height(Dimensions.SpaceS))
-        
-        TextButton(onClick = onBack) {
-            Text(stringResource(id = android.R.string.cancel))
+            Spacer(Modifier.height(Dimensions.SpaceXXXL))
+
+            Button(
+                onClick = { 
+                    if (isWorker) {
+                        showAdminDialog = true
+                    } else {
+                        viewModel.registerAdmin(username, password)
+                    }
+                }, 
+                modifier = Modifier.fillMaxWidth(),
+                enabled = registerState !is RegisterState.Loading
+            ) {
+                if (registerState is RegisterState.Loading) {
+                    CircularProgressIndicator(
+                        modifier = Modifier.size(Dimensions.IconSize.M),
+                        strokeWidth = Dimensions.Divider.Thick,
+                        color = MaterialTheme.colorScheme.onPrimary
+                    )
+                } else {
+                    val buttonRes = if (isResetPassword) R.string.reset_password_button else R.string.register_button
+                    Text(stringResource(id = buttonRes))
+                }
+            }
+            Spacer(Modifier.height(Dimensions.SpaceS))
+            
+            TextButton(onClick = onBack) {
+                Text(stringResource(id = android.R.string.cancel))
+            }
         }
     }
 

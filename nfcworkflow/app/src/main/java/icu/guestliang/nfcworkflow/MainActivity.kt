@@ -9,8 +9,6 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.Scaffold
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
@@ -21,7 +19,6 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         AppLogger.info(this, "MainActivity created", "App")
 
-        // Use the modern EdgeToEdge API
         enableEdgeToEdge()
 
         setContent {
@@ -29,12 +26,10 @@ class MainActivity : ComponentActivity() {
             prefs?.let { currentPrefs ->
                 NFCWorkFlowTheme(prefs = currentPrefs) {
                     val navController = rememberNavController()
-                    Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
-                        NavGraph(
-                            navController = navController,
-                            modifier = Modifier.fillMaxSize().padding(innerPadding)
-                        )
-                    }
+                    NavGraph(
+                        navController = navController,
+                        modifier = Modifier.fillMaxSize()
+                    )
                 }
             }
         }

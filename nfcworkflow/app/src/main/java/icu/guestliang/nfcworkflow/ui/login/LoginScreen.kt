@@ -5,15 +5,19 @@ import icu.guestliang.nfcworkflow.data.PrefsDataStore
 import icu.guestliang.nfcworkflow.ui.theme.Dimensions
 import android.widget.Toast
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
@@ -68,88 +72,95 @@ fun LoginScreen(
         }
     }
 
-    Column(
+    Box(
         modifier = Modifier
             .fillMaxSize()
-            .padding(Dimensions.SpaceL),
-        verticalArrangement = Arrangement.Center,
-        horizontalAlignment = Alignment.CenterHorizontally
+            .imePadding()
     ) {
-        if (healthStatus is HealthStatus.Checking) {
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.Center,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(bottom = Dimensions.SpaceL)
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(Dimensions.SpaceL)
+                .verticalScroll(rememberScrollState()),
+            verticalArrangement = Arrangement.Center,
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            if (healthStatus is HealthStatus.Checking) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.Center,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(bottom = Dimensions.SpaceL)
+                ) {
+                    CircularProgressIndicator(modifier = Modifier.size(Dimensions.IconSize.S), strokeWidth = Dimensions.Divider.Thick)
+                    Spacer(modifier = Modifier.width(Dimensions.SpaceS))
+                    Text(
+                        text = stringResource(id = R.string.login_checking_network),
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            }
+
+            Text(
+                stringResource(id = R.string.login_title), 
+                style = MaterialTheme.typography.headlineMedium
+            )
+            Spacer(Modifier.height(Dimensions.SpaceXXXL))
+
+            OutlinedTextField(
+                value = username,
+                onValueChange = { username = it },
+                label = { Text(stringResource(id = R.string.login_username)) },
+                modifier = Modifier.fillMaxWidth(),
+                singleLine = true
+            )
+            Spacer(Modifier.height(Dimensions.SpaceL))
+
+            OutlinedTextField(
+                value = password,
+                onValueChange = { password = it },
+                label = { Text(stringResource(id = R.string.login_password)) },
+                modifier = Modifier.fillMaxWidth(),
+                visualTransformation = PasswordVisualTransformation(),
+                singleLine = true
+            )
+            Spacer(Modifier.height(Dimensions.SpaceXXXL))
+
+            Button(
+                onClick = { viewModel.login(username, password) }, 
+                modifier = Modifier.fillMaxWidth(),
+                enabled = loginState !is LoginState.Loading
             ) {
-                CircularProgressIndicator(modifier = Modifier.size(Dimensions.IconSize.S), strokeWidth = Dimensions.Divider.Thick)
-                Spacer(modifier = Modifier.width(Dimensions.SpaceS))
-                Text(
-                    text = stringResource(id = R.string.login_checking_network),
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
+                if (loginState is LoginState.Loading) {
+                    CircularProgressIndicator(
+                        modifier = Modifier.size(Dimensions.IconSize.M),
+                        strokeWidth = Dimensions.Divider.Thick,
+                        color = MaterialTheme.colorScheme.onPrimary
+                    )
+                } else {
+                    Text(stringResource(id = R.string.login_button))
+                }
             }
-        }
+            Spacer(Modifier.height(Dimensions.SpaceS))
 
-        Text(
-            stringResource(id = R.string.login_title), 
-            style = MaterialTheme.typography.headlineMedium
-        )
-        Spacer(Modifier.height(Dimensions.SpaceXXXL))
-
-        OutlinedTextField(
-            value = username,
-            onValueChange = { username = it },
-            label = { Text(stringResource(id = R.string.login_username)) },
-            modifier = Modifier.fillMaxWidth(),
-            singleLine = true
-        )
-        Spacer(Modifier.height(Dimensions.SpaceL))
-
-        OutlinedTextField(
-            value = password,
-            onValueChange = { password = it },
-            label = { Text(stringResource(id = R.string.login_password)) },
-            modifier = Modifier.fillMaxWidth(),
-            visualTransformation = PasswordVisualTransformation(),
-            singleLine = true
-        )
-        Spacer(Modifier.height(Dimensions.SpaceXXXL))
-
-        Button(
-            onClick = { viewModel.login(username, password) }, 
-            modifier = Modifier.fillMaxWidth(),
-            enabled = loginState !is LoginState.Loading
-        ) {
-            if (loginState is LoginState.Loading) {
-                CircularProgressIndicator(
-                    modifier = Modifier.size(Dimensions.IconSize.M),
-                    strokeWidth = Dimensions.Divider.Thick,
-                    color = MaterialTheme.colorScheme.onPrimary
-                )
-            } else {
-                Text(stringResource(id = R.string.login_button))
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceEvenly
+            ) {
+                TextButton(onClick = onRegister) {
+                    Text(stringResource(id = R.string.login_register_button))
+                }
+                TextButton(onClick = onResetPassword) {
+                    Text(stringResource(id = R.string.login_reset_password_button))
+                }
             }
-        }
-        Spacer(Modifier.height(Dimensions.SpaceS))
+            Spacer(Modifier.height(Dimensions.SpaceL))
 
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceEvenly
-        ) {
-            TextButton(onClick = onRegister) {
-                Text(stringResource(id = R.string.login_register_button))
+            TextButton(onClick = onSkip) {
+                Text(stringResource(id = R.string.login_skip_button))
             }
-            TextButton(onClick = onResetPassword) {
-                Text(stringResource(id = R.string.login_reset_password_button))
-            }
-        }
-        Spacer(Modifier.height(Dimensions.SpaceL))
-
-        TextButton(onClick = onSkip) {
-            Text(stringResource(id = R.string.login_skip_button))
         }
     }
 

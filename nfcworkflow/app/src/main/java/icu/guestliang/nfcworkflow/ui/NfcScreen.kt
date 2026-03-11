@@ -12,6 +12,7 @@ import android.nfc.NfcAdapter
 import android.provider.Settings
 import android.widget.Toast
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
@@ -50,10 +51,13 @@ fun NfcScreen(navController: NavController) {
     ) { innerPadding ->
         LazyColumn(
             modifier = Modifier
-                .padding(innerPadding)
                 .fillMaxSize()
-                .padding(top = Dimensions.SpaceS, bottom = Dimensions.SpaceL),
+                .padding(innerPadding),
             state = rememberLazyListState(),
+            contentPadding = PaddingValues(
+                top = Dimensions.SpaceS,
+                bottom = Dimensions.SpaceL
+            ),
             verticalArrangement = Arrangement.spacedBy(Dimensions.SpaceS)
         ) {
             item {

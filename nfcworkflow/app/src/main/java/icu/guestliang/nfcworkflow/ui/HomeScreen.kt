@@ -10,7 +10,6 @@ import icu.guestliang.nfcworkflow.ui.theme.Dimensions
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.rememberLazyListState
@@ -47,11 +46,13 @@ fun HomeScreen(navController: NavController) {
     ) { innerPadding ->
         LazyColumn(
             modifier = Modifier
-                .padding(innerPadding)
                 .fillMaxSize()
-                .navigationBarsPadding(),
+                .padding(innerPadding),
             state = rememberLazyListState(),
-            contentPadding = PaddingValues(top = Dimensions.SpaceS, bottom = Dimensions.SpaceL),
+            contentPadding = PaddingValues(
+                top = Dimensions.SpaceS,
+                bottom = Dimensions.SpaceL
+            ),
             verticalArrangement = Arrangement.spacedBy(Dimensions.SpaceL)
         ) {
             item {
