@@ -31,7 +31,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -52,13 +52,13 @@ fun RegisterScreen(
     val registerState by viewModel.registerState.collectAsState()
     val isLandscape = LocalConfiguration.current.orientation == Configuration.ORIENTATION_LANDSCAPE
 
-    var username by remember { mutableStateOf("") }
-    var password by remember { mutableStateOf("") }
-    var isWorker by remember { mutableStateOf(false) }
+    var username by rememberSaveable { mutableStateOf("") }
+    var password by rememberSaveable { mutableStateOf("") }
+    var isWorker by rememberSaveable { mutableStateOf(false) }
 
-    var showAdminDialog by remember { mutableStateOf(false) }
-    var adminUsername by remember { mutableStateOf("") }
-    var adminPassword by remember { mutableStateOf("") }
+    var showAdminDialog by rememberSaveable { mutableStateOf(false) }
+    var adminUsername by rememberSaveable { mutableStateOf("") }
+    var adminPassword by rememberSaveable { mutableStateOf("") }
 
     LaunchedEffect(registerState) {
         if (registerState is RegisterState.Success) {
@@ -84,91 +84,35 @@ fun RegisterScreen(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 // Left Side (Inputs)
-                Column(
+                RegisterHeaderAndInputs(
+                    isResetPassword = isResetPassword,
+                    username = username,
+                    onUsernameChange = { username = it },
+                    password = password,
+                    onPasswordChange = { password = it },
+                    isWorker = isWorker,
+                    onWorkerChange = { isWorker = it },
                     modifier = Modifier
                         .weight(1f)
-                        .verticalScroll(rememberScrollState()),
-                    verticalArrangement = Arrangement.Center,
-                    horizontalAlignment = Alignment.CenterHorizontally
-                ) {
-                    val titleRes = if (isResetPassword) R.string.reset_password_title else R.string.register_title
-                    Text(
-                        stringResource(id = titleRes),
-                        style = MaterialTheme.typography.headlineMedium,
-                        color = MaterialTheme.colorScheme.onBackground
-                    )
-                    Spacer(Modifier.height(Dimensions.SpaceXXXL))
-
-                    OutlinedTextField(
-                        value = username,
-                        onValueChange = { username = it },
-                        label = { Text(stringResource(id = R.string.login_username)) },
-                        modifier = Modifier.fillMaxWidth(),
-                        singleLine = true
-                    )
-                    Spacer(Modifier.height(Dimensions.SpaceL))
-
-                    OutlinedTextField(
-                        value = password,
-                        onValueChange = { password = it },
-                        label = { Text(stringResource(id = R.string.login_password)) },
-                        modifier = Modifier.fillMaxWidth(),
-                        visualTransformation = PasswordVisualTransformation(),
-                        singleLine = true
-                    )
-                    Spacer(Modifier.height(Dimensions.SpaceL))
-
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.Center,
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        Text(stringResource(id = R.string.login_as_admin), color = MaterialTheme.colorScheme.onBackground)
-                        Switch(
-                            checked = isWorker,
-                            onCheckedChange = { isWorker = it },
-                            modifier = Modifier.padding(horizontal = Dimensions.SpaceS)
-                        )
-                        Text(stringResource(id = R.string.login_as_worker), color = MaterialTheme.colorScheme.onBackground)
-                    }
-                }
+                        .verticalScroll(rememberScrollState())
+                )
 
                 // Right Side (Buttons)
-                Column(
+                RegisterActions(
+                    isResetPassword = isResetPassword,
+                    registerState = registerState,
+                    onRegisterClick = {
+                        if (isWorker) {
+                            showAdminDialog = true
+                        } else {
+                            viewModel.registerAdmin(username, password)
+                        }
+                    },
+                    onBackClick = onBack,
                     modifier = Modifier
                         .weight(1f)
-                        .verticalScroll(rememberScrollState()),
-                    verticalArrangement = Arrangement.Center,
-                    horizontalAlignment = Alignment.CenterHorizontally
-                ) {
-                    Button(
-                        onClick = {
-                            if (isWorker) {
-                                showAdminDialog = true
-                            } else {
-                                viewModel.registerAdmin(username, password)
-                            }
-                        },
-                        modifier = Modifier.fillMaxWidth(),
-                        enabled = registerState !is RegisterState.Loading
-                    ) {
-                        if (registerState is RegisterState.Loading) {
-                            CircularProgressIndicator(
-                                modifier = Modifier.size(Dimensions.IconSize.M),
-                                strokeWidth = Dimensions.Divider.Thick,
-                                color = MaterialTheme.colorScheme.onPrimary
-                            )
-                        } else {
-                            val buttonRes = if (isResetPassword) R.string.reset_password_button else R.string.register_button
-                            Text(stringResource(id = buttonRes))
-                        }
-                    }
-                    Spacer(Modifier.height(Dimensions.SpaceS))
-
-                    TextButton(onClick = onBack) {
-                        Text(stringResource(id = android.R.string.cancel))
-                    }
-                }
+                        .verticalScroll(rememberScrollState())
+                )
             }
         } else {
             Column(
@@ -179,75 +123,30 @@ fun RegisterScreen(
                 verticalArrangement = Arrangement.Center,
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                val titleRes = if (isResetPassword) R.string.reset_password_title else R.string.register_title
-                Text(
-                    stringResource(id = titleRes),
-                    style = MaterialTheme.typography.headlineMedium,
-                    color = MaterialTheme.colorScheme.onBackground
+                RegisterHeaderAndInputs(
+                    isResetPassword = isResetPassword,
+                    username = username,
+                    onUsernameChange = { username = it },
+                    password = password,
+                    onPasswordChange = { password = it },
+                    isWorker = isWorker,
+                    onWorkerChange = { isWorker = it }
                 )
+                
                 Spacer(Modifier.height(Dimensions.SpaceXXXL))
-
-                OutlinedTextField(
-                    value = username,
-                    onValueChange = { username = it },
-                    label = { Text(stringResource(id = R.string.login_username)) },
-                    modifier = Modifier.fillMaxWidth(),
-                    singleLine = true
-                )
-                Spacer(Modifier.height(Dimensions.SpaceL))
-
-                OutlinedTextField(
-                    value = password,
-                    onValueChange = { password = it },
-                    label = { Text(stringResource(id = R.string.login_password)) },
-                    modifier = Modifier.fillMaxWidth(),
-                    visualTransformation = PasswordVisualTransformation(),
-                    singleLine = true
-                )
-                Spacer(Modifier.height(Dimensions.SpaceL))
-
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.Center,
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Text(stringResource(id = R.string.login_as_admin), color = MaterialTheme.colorScheme.onBackground)
-                    Switch(
-                        checked = isWorker,
-                        onCheckedChange = { isWorker = it },
-                        modifier = Modifier.padding(horizontal = Dimensions.SpaceS)
-                    )
-                    Text(stringResource(id = R.string.login_as_worker), color = MaterialTheme.colorScheme.onBackground)
-                }
-                Spacer(Modifier.height(Dimensions.SpaceXXXL))
-
-                Button(
-                    onClick = {
+                
+                RegisterActions(
+                    isResetPassword = isResetPassword,
+                    registerState = registerState,
+                    onRegisterClick = {
                         if (isWorker) {
                             showAdminDialog = true
                         } else {
                             viewModel.registerAdmin(username, password)
                         }
                     },
-                    modifier = Modifier.fillMaxWidth(),
-                    enabled = registerState !is RegisterState.Loading
-                ) {
-                    if (registerState is RegisterState.Loading) {
-                        CircularProgressIndicator(
-                            modifier = Modifier.size(Dimensions.IconSize.M),
-                            strokeWidth = Dimensions.Divider.Thick,
-                            color = MaterialTheme.colorScheme.onPrimary
-                        )
-                    } else {
-                        val buttonRes = if (isResetPassword) R.string.reset_password_button else R.string.register_button
-                        Text(stringResource(id = buttonRes))
-                    }
-                }
-                Spacer(Modifier.height(Dimensions.SpaceS))
-
-                TextButton(onClick = onBack) {
-                    Text(stringResource(id = android.R.string.cancel))
-                }
+                    onBackClick = onBack
+                )
             }
         }
     }
@@ -313,5 +212,101 @@ fun RegisterScreen(
                 }
             }
         )
+    }
+}
+
+@Composable
+private fun RegisterHeaderAndInputs(
+    isResetPassword: Boolean,
+    username: String,
+    onUsernameChange: (String) -> Unit,
+    password: String,
+    onPasswordChange: (String) -> Unit,
+    isWorker: Boolean,
+    onWorkerChange: (Boolean) -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Column(
+        modifier = modifier,
+        verticalArrangement = Arrangement.Center,
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        val titleRes = if (isResetPassword) R.string.reset_password_title else R.string.register_title
+        Text(
+            stringResource(id = titleRes),
+            style = MaterialTheme.typography.headlineMedium,
+            color = MaterialTheme.colorScheme.onBackground
+        )
+        Spacer(Modifier.height(Dimensions.SpaceXXXL))
+
+        OutlinedTextField(
+            value = username,
+            onValueChange = onUsernameChange,
+            label = { Text(stringResource(id = R.string.login_username)) },
+            modifier = Modifier.fillMaxWidth(),
+            singleLine = true
+        )
+        Spacer(Modifier.height(Dimensions.SpaceL))
+
+        OutlinedTextField(
+            value = password,
+            onValueChange = onPasswordChange,
+            label = { Text(stringResource(id = R.string.login_password)) },
+            modifier = Modifier.fillMaxWidth(),
+            visualTransformation = PasswordVisualTransformation(),
+            singleLine = true
+        )
+        Spacer(Modifier.height(Dimensions.SpaceL))
+
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.Center,
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Text(stringResource(id = R.string.login_as_admin), color = MaterialTheme.colorScheme.onBackground)
+            Switch(
+                checked = isWorker,
+                onCheckedChange = onWorkerChange,
+                modifier = Modifier.padding(horizontal = Dimensions.SpaceS)
+            )
+            Text(stringResource(id = R.string.login_as_worker), color = MaterialTheme.colorScheme.onBackground)
+        }
+    }
+}
+
+@Composable
+private fun RegisterActions(
+    isResetPassword: Boolean,
+    registerState: RegisterState,
+    onRegisterClick: () -> Unit,
+    onBackClick: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Column(
+        modifier = modifier,
+        verticalArrangement = Arrangement.Center,
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        Button(
+            onClick = onRegisterClick,
+            modifier = Modifier.fillMaxWidth(),
+            enabled = registerState !is RegisterState.Loading
+        ) {
+            if (registerState is RegisterState.Loading) {
+                CircularProgressIndicator(
+                    modifier = Modifier.size(Dimensions.IconSize.M),
+                    strokeWidth = Dimensions.Divider.Thick,
+                    color = MaterialTheme.colorScheme.onPrimary
+                )
+            } else {
+                val buttonRes = if (isResetPassword) R.string.reset_password_button else R.string.register_button
+                Text(stringResource(id = buttonRes))
+            }
+        }
+        Spacer(Modifier.height(Dimensions.SpaceS))
+
+        TextButton(onClick = onBackClick) {
+            Text(stringResource(id = android.R.string.cancel))
+        }
     }
 }

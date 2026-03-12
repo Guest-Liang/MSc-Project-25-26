@@ -102,59 +102,30 @@ fun AdminCreateOrderScreen(
                     .imePadding(),
                 horizontalArrangement = Arrangement.spacedBy(Dimensions.SpaceL)
             ) {
-                Column(
+                CreateOrderFormFields(
+                    title = title,
+                    onTitleChange = { title = it },
+                    description = description,
+                    onDescriptionChange = { description = it },
+                    nfcTag = nfcTag,
+                    onNfcTagChange = { nfcTag = it },
                     modifier = Modifier
                         .weight(1f)
                         .verticalScroll(rememberScrollState())
-                        .padding(vertical = Dimensions.SpaceL),
-                    verticalArrangement = Arrangement.spacedBy(Dimensions.SpaceL)
-                ) {
-                    OutlinedTextField(
-                        value = title,
-                        onValueChange = { title = it },
-                        label = { Text(stringResource(R.string.admin_order_title_hint)) },
-                        modifier = Modifier.fillMaxWidth(),
-                        singleLine = true
-                    )
-
-                    OutlinedTextField(
-                        value = description,
-                        onValueChange = { description = it },
-                        label = { Text(stringResource(R.string.admin_order_desc_hint)) },
-                        modifier = Modifier.fillMaxWidth(),
-                        minLines = Dimensions.App.TextFieldMinLines
-                    )
-
-                    OutlinedTextField(
-                        value = nfcTag,
-                        onValueChange = { nfcTag = it },
-                        label = { Text(stringResource(R.string.admin_order_nfc_hint)) },
-                        modifier = Modifier.fillMaxWidth(),
-                        singleLine = true
-                    )
-                }
+                        .padding(vertical = Dimensions.SpaceL)
+                )
 
                 Box(
                     modifier = Modifier.weight(0.4f).padding(vertical = Dimensions.SpaceL),
                     contentAlignment = Alignment.BottomCenter
                 ) {
-                    Button(
+                    SubmitButton(
+                        isLoading = uiState.isLoading,
                         onClick = dropUnlessResumed {
                             val finalTag = nfcTag.trim().ifEmpty { null }
                             viewModel.createOrder(context, title, description, finalTag)
-                        },
-                        modifier = Modifier.fillMaxWidth(),
-                        enabled = !uiState.isLoading
-                    ) {
-                        if (uiState.isLoading) {
-                            CircularProgressIndicator(
-                                modifier = Modifier.size(Dimensions.IconSize.M),
-                                color = MaterialTheme.colorScheme.onPrimary
-                            )
-                        } else {
-                            Text(stringResource(R.string.admin_order_create_btn))
                         }
-                    }
+                    )
                 }
             }
         } else {
@@ -168,51 +139,88 @@ fun AdminCreateOrderScreen(
                 verticalArrangement = Arrangement.spacedBy(Dimensions.SpaceL)
             ) {
                 Spacer(modifier = Modifier.height(Dimensions.SpaceXS))
-                OutlinedTextField(
-                    value = title,
-                    onValueChange = { title = it },
-                    label = { Text(stringResource(R.string.admin_order_title_hint)) },
-                    modifier = Modifier.fillMaxWidth(),
-                    singleLine = true
-                )
-
-                OutlinedTextField(
-                    value = description,
-                    onValueChange = { description = it },
-                    label = { Text(stringResource(R.string.admin_order_desc_hint)) },
-                    modifier = Modifier.fillMaxWidth(),
-                    minLines = Dimensions.App.TextFieldMinLines
-                )
-
-                OutlinedTextField(
-                    value = nfcTag,
-                    onValueChange = { nfcTag = it },
-                    label = { Text(stringResource(R.string.admin_order_nfc_hint)) },
-                    modifier = Modifier.fillMaxWidth(),
-                    singleLine = true
+                CreateOrderFormFields(
+                    title = title,
+                    onTitleChange = { title = it },
+                    description = description,
+                    onDescriptionChange = { description = it },
+                    nfcTag = nfcTag,
+                    onNfcTagChange = { nfcTag = it }
                 )
 
                 Spacer(modifier = Modifier.height(Dimensions.SpaceS))
 
-                Button(
+                SubmitButton(
+                    isLoading = uiState.isLoading,
                     onClick = dropUnlessResumed {
                         val finalTag = nfcTag.trim().ifEmpty { null }
                         viewModel.createOrder(context, title, description, finalTag)
-                    },
-                    modifier = Modifier.fillMaxWidth(),
-                    enabled = !uiState.isLoading
-                ) {
-                    if (uiState.isLoading) {
-                        CircularProgressIndicator(
-                            modifier = Modifier.size(Dimensions.IconSize.M),
-                            color = MaterialTheme.colorScheme.onPrimary
-                        )
-                    } else {
-                        Text(stringResource(R.string.admin_order_create_btn))
                     }
-                }
+                )
                 Spacer(modifier = Modifier.height(Dimensions.SpaceL))
             }
+        }
+    }
+}
+
+@Composable
+private fun CreateOrderFormFields(
+    title: String,
+    onTitleChange: (String) -> Unit,
+    description: String,
+    onDescriptionChange: (String) -> Unit,
+    nfcTag: String,
+    onNfcTagChange: (String) -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Column(
+        modifier = modifier,
+        verticalArrangement = Arrangement.spacedBy(Dimensions.SpaceL)
+    ) {
+        OutlinedTextField(
+            value = title,
+            onValueChange = onTitleChange,
+            label = { Text(stringResource(R.string.admin_order_title_hint)) },
+            modifier = Modifier.fillMaxWidth(),
+            singleLine = true
+        )
+
+        OutlinedTextField(
+            value = description,
+            onValueChange = onDescriptionChange,
+            label = { Text(stringResource(R.string.admin_order_desc_hint)) },
+            modifier = Modifier.fillMaxWidth(),
+            minLines = Dimensions.App.TextFieldMinLines
+        )
+
+        OutlinedTextField(
+            value = nfcTag,
+            onValueChange = onNfcTagChange,
+            label = { Text(stringResource(R.string.admin_order_nfc_hint)) },
+            modifier = Modifier.fillMaxWidth(),
+            singleLine = true
+        )
+    }
+}
+
+@Composable
+private fun SubmitButton(
+    isLoading: Boolean,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Button(
+        onClick = onClick,
+        modifier = modifier.fillMaxWidth(),
+        enabled = !isLoading
+    ) {
+        if (isLoading) {
+            CircularProgressIndicator(
+                modifier = Modifier.size(Dimensions.IconSize.M),
+                color = MaterialTheme.colorScheme.onPrimary
+            )
+        } else {
+            Text(stringResource(R.string.admin_order_create_btn))
         }
     }
 }
