@@ -243,8 +243,8 @@ fun AdminSearchOrdersScreen(
                                 OutlinedButton(onClick = dropUnlessResumed { showWorkerDialog = true }) {
                                     val workerText = if (selectedAssigned.isEmpty() || isNullSelected) 
                                         stringResource(R.string.admin_select_worker) 
-                                    else 
-                                        "Workers Selected (${selectedAssigned.size})"
+                                    else
+                                        stringResource(R.string.admin_workers_selected, selectedAssigned.size)
                                     Text(workerText)
                                 }
                             }

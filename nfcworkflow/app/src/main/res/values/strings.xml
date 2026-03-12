@@ -153,6 +153,7 @@
     <string name="admin_log_target">目标: %1$s #%2$s</string>
     <string name="admin_log_user">用户 ID: %1$d</string>
     <string name="admin_log_time">时间: %1$s</string>
+    <string name="admin_workers_selected">已选择工人数: %1$d</string>
 
     <string name="dialog_empty_state_title">提示</string>
     <string name="error_network_title">网络错误</string>
