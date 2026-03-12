@@ -68,7 +68,7 @@ fun ViewOrdersScreen(
                 title = { Text(stringResource(R.string.worker_view_orders)) },
                 navigationIcon = {
                     IconButton(onClick = dropUnlessResumed { navController.popBackStack() }) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.cd_back))
                     }
                 },
                 scrollBehavior = scrollBehavior
@@ -130,7 +130,7 @@ fun OrderCard(order: Order) {
             ) {
                 Icon(
                     imageVector = if (expanded) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
-                    contentDescription = null,
+                    contentDescription = stringResource(R.string.cd_toggle_filters),
                     tint = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }

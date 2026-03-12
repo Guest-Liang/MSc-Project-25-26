@@ -126,7 +126,7 @@ fun AdminQueryLogsScreen(
                 title = { Text(stringResource(R.string.admin_query_logs)) },
                 navigationIcon = {
                     IconButton(onClick = dropUnlessResumed { navController.popBackStack() }) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.cd_back))
                     }
                 },
                 scrollBehavior = scrollBehavior
@@ -290,7 +290,7 @@ fun AdminQueryLogsScreen(
                             )
                             Icon(
                                 imageVector = if (isFilterExpanded) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
-                                contentDescription = "Toggle Filters",
+                                contentDescription = stringResource(R.string.cd_toggle_filters),
                                 tint = MaterialTheme.colorScheme.primary
                             )
                         }

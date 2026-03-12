@@ -141,7 +141,7 @@ fun AdminSearchOrdersScreen(
                 title = { Text(stringResource(R.string.admin_search_orders)) },
                 navigationIcon = {
                     IconButton(onClick = dropUnlessResumed { navController.popBackStack() }) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.cd_back))
                     }
                 },
                 scrollBehavior = scrollBehavior
@@ -360,7 +360,7 @@ fun AdminSearchOrdersScreen(
                             )
                             Icon(
                                 imageVector = if (isFilterExpanded) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
-                                contentDescription = "Toggle Filters",
+                                contentDescription = stringResource(R.string.cd_toggle_filters),
                                 tint = MaterialTheme.colorScheme.primary
                             )
                         }
