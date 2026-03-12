@@ -4,7 +4,7 @@
     <string name="ok">OK</string>
     <string name="cancel">Cancel</string>
     <!-- Accessibility content descriptions -->
-    <string name="cd_back">return</string>
+    <string name="cd_back">Back</string>
     <string name="cd_toggle_filters">Expand/Collapse Filters</string>
     <!-- nav -->
     <string name="tab_home">Home</string>
