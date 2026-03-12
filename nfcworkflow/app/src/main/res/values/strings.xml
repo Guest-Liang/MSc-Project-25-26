@@ -7,6 +7,7 @@
     <!-- Accessibility content descriptions -->
     <string name="cd_back">返回</string>
     <string name="cd_toggle_filters">展开/收起筛选条件</string>
+    <string name="cd_toggle_order_details">展开/收起工单详情</string>
 
     <!-- nav -->
     <string name="tab_home">主页</string>

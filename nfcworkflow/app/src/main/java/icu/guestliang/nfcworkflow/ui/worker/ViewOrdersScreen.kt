@@ -130,7 +130,7 @@ fun OrderCard(order: Order) {
             ) {
                 Icon(
                     imageVector = if (expanded) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
-                    contentDescription = stringResource(R.string.cd_toggle_filters),
+                    contentDescription = stringResource(R.string.cd_toggle_order_details),
                     tint = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
