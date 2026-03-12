@@ -3,6 +3,9 @@
     <string name="app_name">NFCWorkFlow</string>
     <string name="ok">OK</string>
     <string name="cancel">Cancel</string>
+    <!-- Accessibility content descriptions -->
+    <string name="cd_back">return</string>
+    <string name="cd_toggle_filters">Expand/Collapse Filters</string>
     <!-- nav -->
     <string name="tab_home">Home</string>
     <string name="tab_nfc">NFC</string>
