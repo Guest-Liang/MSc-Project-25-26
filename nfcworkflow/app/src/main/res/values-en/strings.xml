@@ -6,7 +6,7 @@
     <!-- Accessibility content descriptions -->
     <string name="cd_back">Back</string>
     <string name="cd_toggle_filters">Expand/Collapse Filters</string>
-    <string name="cd_toggle_order_details">Expand/Collapse Ticket Details</string>
+    <string name="cd_toggle_order_details">Expand/Collapse Work Order Details</string>
     <!-- nav -->
     <string name="tab_home">Home</string>
     <string name="tab_nfc">NFC</string>
