@@ -16,7 +16,7 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Get current time
+      - name: 获取当前时间
         id: date
         run: |
             export TZ='Asia/Shanghai'
@@ -47,7 +47,7 @@ jobs:
         run: |
           echo "$KEYSTORE_B64" | base64 -d > release.jks
 
-      - name: Compute release info (apk names + tag)
+      - name: 创建 release info (apk names + tag)
         id: relinfo
         run: |
           set -euo pipefail
@@ -84,7 +84,7 @@ jobs:
             exit 1
           fi
 
-      - name: Generate changelog since previous tag
+      - name: 生成自上个 tag 以来的 Changelog
         id: changelog
         if: github.ref_name == 'main'
         run: |
@@ -112,7 +112,7 @@ jobs:
             echo "EOF"
           } >> "$GITHUB_OUTPUT"
 
-      - name: Build signed Release APK
+      - name: 编译带签名的 APK
         working-directory: nfcworkflow
         env:
           ANDROID_KEYSTORE_PATH: ${{ github.workspace }}/nfcworkflow/release.jks
@@ -135,7 +135,7 @@ jobs:
           path: nfcworkflow/app/build/outputs/apk/debug/*-debug.apk
           archive: false
 
-      - name: Create GitHub Release
+      - name: 创建 GitHub Release
         if: github.ref_name == 'main'
         uses: softprops/action-gh-release@v2
         with:
