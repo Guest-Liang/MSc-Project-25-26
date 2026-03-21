@@ -102,7 +102,11 @@ fun RegisterScreen(
                     isResetPassword = isResetPassword,
                     registerState = registerState,
                     onRegisterClick = {
-                        showAdminDialog = true
+                        if (username.isBlank() || password.isBlank()) {
+                            viewModel.triggerEmptyFieldsError()
+                        } else {
+                            showAdminDialog = true
+                        }
                     },
                     onBackClick = onBack,
                     modifier = Modifier
@@ -135,7 +139,11 @@ fun RegisterScreen(
                     isResetPassword = isResetPassword,
                     registerState = registerState,
                     onRegisterClick = {
-                        showAdminDialog = true
+                        if (username.isBlank() || password.isBlank()) {
+                            viewModel.triggerEmptyFieldsError()
+                        } else {
+                            showAdminDialog = true
+                        }
                     },
                     onBackClick = onBack
                 )

@@ -56,6 +56,10 @@ class RegisterViewModel : ViewModel() {
         return tokenStr
     }
 
+    fun triggerEmptyFieldsError() {
+        _registerState.value = RegisterState.Error(isEmptyFields = true)
+    }
+
     fun registerAdmin(newAdminUser: String, newAdminPass: String, adminUser: String, adminPass: String) {
         if (newAdminUser.isBlank() || newAdminPass.isBlank() || adminUser.isBlank() || adminPass.isBlank()) {
             _registerState.value = RegisterState.Error(isEmptyFields = true)
