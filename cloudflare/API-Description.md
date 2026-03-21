@@ -72,11 +72,17 @@ Authorization: Bearer <token>
 ## **POST /auth/register-admin**
 注册管理员账号   
 Register administrator account   
+### Headers
+```
+Authorization: Bearer <admin-token>
+```
 ### Body
 ```json
 { "username": "root", "password": "123456" }
 ```
 ### Notes / 说明
+- 首次部署时，请先在 Cloudflare D1 控制台手动插入一个初始管理员账号，再通过登录获取 token。  
+  On first deployment, manually insert an initial administrator account in the Cloudflare D1 console, then log in to obtain a token.
 - 若用户名不存在：创建 admin  
   If username does not exist: create admin.
 - 若用户名存在且密码相同：返回已存在  

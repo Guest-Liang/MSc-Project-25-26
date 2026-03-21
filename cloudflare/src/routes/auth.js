@@ -65,8 +65,8 @@ authRoutes.post("/logout", requireAuth(), async (c) => {
   return jsonResponse(INFO.LOGOUT_SUCCESS)
 })
 
-// 注册管理员 Register Admin (Initialization)
-authRoutes.post("/register-admin", async (c) => {
+// 注册管理员 Register Admin (Admin only)
+authRoutes.post("/register-admin", requireAdmin, async (c) => {
   const { username, password } = await c.req.json()
   const hash = await hashPassword(password)
 

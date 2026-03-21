@@ -87,6 +87,14 @@ CREATE INDEX idx_api_logs_created_at ON api_logs(created_at DESC);
 CREATE INDEX idx_api_logs_user_id ON api_logs(user_id);
 CREATE INDEX idx_api_logs_path ON api_logs(path);
 ```
+> [!WARNING]
+> **首次初始化时，需要先在 Cloudflare Dashboard 的 D1 SQL 控制台手动插入一个初始管理员账号！**
+> 
+> **During first-time setup, you must manually insert an initial administrator account in the Cloudflare Dashboard D1 SQL console!**
+
+`api_logs.action` 会按请求类别写入前缀，例如 `business:GET /auth/login`、`system:GET /healthz`、`unknown:GET /administrator/`，这样在不修改表结构的情况下也能区分业务流量、系统探针与未知扫描流量
+
+`api_logs.action` is prefixed by request category, for example `business:GET /auth/login`, `system:GET /healthz`, or `unknown:GET /administrator/`. This keeps business traffic, system probes, and unknown scanning traffic distinguishable without changing the table schema.
 
 ### 部署到 / Deploy to <img src="https://cf-assets.www.cloudflare.com/dzlvafdwdttg/69wNwfiY5mFmgpd9eQFW6j/d5131c08085a977aa70f19e7aada3fa9/1pixel-down__1_.svg" width="120" alt="Cloudflare 彩色标识">
 

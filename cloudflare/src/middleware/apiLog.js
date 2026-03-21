@@ -6,6 +6,28 @@ async function sha256Hex(input) {
     .join("")
 }
 
+const BUSINESS_ROUTE_PREFIXES = ["/auth", "/admin", "/worker", "/orders"]
+const NOISE_PATHS = new Set([
+  "/favicon.ico",
+  "/robots.txt"
+])
+
+function classifyPath(path) {
+  if (BUSINESS_ROUTE_PREFIXES.some((prefix) => path.startsWith(prefix))) {
+    return { routeGroup: "business", isBusinessRequest: true }
+  }
+
+  if (path === "/healthz") {
+    return { routeGroup: "system", isBusinessRequest: false }
+  }
+
+  if (NOISE_PATHS.has(path)) {
+    return { routeGroup: null, isBusinessRequest: false }
+  }
+
+  return { routeGroup: "unknown", isBusinessRequest: false }
+}
+
 async function resolveUserForLog(c, method, path) {
   const authUser = c.get("user") || null
   if (authUser?.id) {
@@ -18,7 +40,9 @@ async function resolveUserForLog(c, method, path) {
   return { userId: null, userRole: null }
 }
 
-async function resolveRequestMeta(c, method, path) {
+async function resolveRequestMeta(c, method, path, isBusinessRequest) {
+  if (!isBusinessRequest) return null
+
   const url = new URL(c.req.url)
   const queryParams = {}
   for (const [key, value] of url.searchParams.entries()) {
@@ -85,14 +109,12 @@ async function resolveRequestMeta(c, method, path) {
 export async function writeApiLog(c) {
   const method = c.req.method
   const path = new URL(c.req.url).pathname
+  const { routeGroup, isBusinessRequest } = classifyPath(path)
 
-  // Only log business APIs under /routes
-  if (!["/auth", "/admin", "/worker", "/orders"].some((prefix) => path.startsWith(prefix))) {
-    return
-  }
+  if (!routeGroup) return
 
   const { userId, userRole } = await resolveUserForLog(c, method, path)
-  const requestMeta = await resolveRequestMeta(c, method, path)
+  const requestMeta = await resolveRequestMeta(c, method, path, isBusinessRequest)
 
   let responseCode = null
   let responseMessage = null
@@ -134,7 +156,7 @@ export async function writeApiLog(c) {
     .bind(
       method,
       path,
-      `${method} ${path}`,
+      `${routeGroup}:${method} ${path}`,
       userId,
       userRole,
       success,

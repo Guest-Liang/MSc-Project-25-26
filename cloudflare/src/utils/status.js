@@ -25,7 +25,10 @@ export const ERR = {
 
   // System (5000–5999)
   DB_ERROR: { code: 5001, message: "Database error" },
-  INTERNAL_ERROR: { code: 5002, message: "Internal server error" }
+  INTERNAL_ERROR: { code: 5002, message: "Internal server error" },
+
+  // Others
+  NOT_FOUND: { code: 440044, message: "Not Found" },
 }
 
 export const INFO = {
