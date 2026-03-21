@@ -102,11 +102,7 @@ fun RegisterScreen(
                     isResetPassword = isResetPassword,
                     registerState = registerState,
                     onRegisterClick = {
-                        if (isWorker) {
-                            showAdminDialog = true
-                        } else {
-                            viewModel.registerAdmin(username, password)
-                        }
+                        showAdminDialog = true
                     },
                     onBackClick = onBack,
                     modifier = Modifier
@@ -139,11 +135,7 @@ fun RegisterScreen(
                     isResetPassword = isResetPassword,
                     registerState = registerState,
                     onRegisterClick = {
-                        if (isWorker) {
-                            showAdminDialog = true
-                        } else {
-                            viewModel.registerAdmin(username, password)
-                        }
+                        showAdminDialog = true
                     },
                     onBackClick = onBack
                 )
@@ -179,7 +171,11 @@ fun RegisterScreen(
                 TextButton(
                     onClick = {
                         showAdminDialog = false
-                        viewModel.registerWorker(username, password, adminUsername, adminPassword)
+                        if (isWorker) {
+                            viewModel.registerWorker(username, password, adminUsername, adminPassword)
+                        } else {
+                            viewModel.registerAdmin(username, password, adminUsername, adminPassword)
+                        }
                     },
                     enabled = adminUsername.isNotBlank() && adminPassword.isNotBlank()
                 ) {

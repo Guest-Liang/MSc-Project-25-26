@@ -31,8 +31,8 @@ class RegisterViewModel : ViewModel() {
     private val _registerState = MutableStateFlow<RegisterState>(RegisterState.Idle)
     val registerState: StateFlow<RegisterState> = _registerState
 
-    fun registerAdmin(username: String, password: String) {
-        if (username.isBlank() || password.isBlank()) {
+    fun registerAdmin(newAdminUser: String, newAdminPass: String, adminUser: String, adminPass: String) {
+        if (newAdminUser.isBlank() || newAdminPass.isBlank() || adminUser.isBlank() || adminPass.isBlank()) {
             _registerState.value = RegisterState.Error(isEmptyFields = true)
             return
         }
@@ -40,9 +40,31 @@ class RegisterViewModel : ViewModel() {
         viewModelScope.launch {
             _registerState.value = RegisterState.Loading
             try {
+                val loginResponse = ApiClient.client.post("auth/login") {
+                    contentType(ContentType.Application.Json)
+                    setBody(LoginRequest(username = adminUser, password = adminPass))
+                }.body<ApiResponse>()
+
+                if (!loginResponse.success) {
+                    _registerState.value = RegisterState.Error(errorMessage = "Admin login failed: ${loginResponse.message}")
+                    return@launch
+                }
+
+                val tokenStr = try {
+                    loginResponse.data?.jsonObject?.get("token")?.jsonPrimitive?.content
+                } catch (_: Exception) {
+                    null
+                }
+
+                if (tokenStr.isNullOrEmpty()) {
+                    _registerState.value = RegisterState.Error(errorMessage = "Admin login failed: No token returned")
+                    return@launch
+                }
+
                 val response = ApiClient.client.post("auth/register-admin") {
                     contentType(ContentType.Application.Json)
-                    setBody(LoginRequest(username = username, password = password))
+                    header(HttpHeaders.Authorization, "Bearer $tokenStr")
+                    setBody(LoginRequest(username = newAdminUser, password = newAdminPass))
                 }.body<ApiResponse>()
 
                 if (response.success) {
