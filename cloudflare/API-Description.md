@@ -69,6 +69,14 @@ Authorization: Bearer <token>
 }
 ```
 
+### Auth Flow Notes / 认证流程说明
+- 登录接口返回 `1001 User does not exist` 时，前端应引导到注册接口。  
+  When `/auth/login` returns `1001 User does not exist`, the frontend should guide the user to a registration API.
+- 登录接口返回 `1002 Wrong password` 时，前端应引导到重置密码接口。  
+  When `/auth/login` returns `1002 Wrong password`, the frontend should guide the user to a password reset API.
+- 从当前版本开始，注册接口与重置密码接口完全拆分：`register-*` 只负责创建账号，`reset-*-password` 只负责修改已存在账号的密码。  
+  In the current version, registration and password reset are fully separated: `register-*` only creates accounts, and `reset-*-password` only updates passwords for existing accounts.
+
 ## **POST /auth/register-admin**
 注册管理员账号   
 Register administrator account   
@@ -83,12 +91,8 @@ Authorization: Bearer <admin-token>
 ### Notes / 说明
 - 首次部署时，请先在 Cloudflare D1 控制台手动插入一个初始管理员账号，再通过登录获取 token。  
   On first deployment, manually insert an initial administrator account in the Cloudflare D1 console, then log in to obtain a token.
-- 若用户名不存在：创建 admin  
-  If username does not exist: create admin.
-- 若用户名存在且密码相同：返回已存在  
-  If username exists and password is the same: return already exists.
-- 若用户名存在但密码不同：更新密码。  
-  If username exists but password differs: update password.
+- 若用户名已存在（无论现有账号角色为何），返回 `1005 User already exists`。  
+  If the username already exists, regardless of the existing account role, it returns `1005 User already exists`.
 ### Response Example
 ```json
 {
@@ -111,18 +115,70 @@ Authorization: Bearer <admin-token>
 { "username": "worker1", "password": "123456" }
 ```
 ### Notes / 说明
-- 若用户名不存在：创建 worker  
-  If username does not exist: create worker.
-- 若用户名存在且密码相同：返回已存在。  
-  If username exists and password is the same: return already exists.
-- 若用户名存在但密码不同：更新密码  
-  If username exists but password differs: update password.
+- 若用户名已存在（无论现有账号角色为何），返回 `1005 User already exists`。  
+  If the username already exists, regardless of the existing account role, it returns `1005 User already exists`.
 ### Response Example
 ```json
 {
   "success": true,
   "code": 9007,
   "message": "Worker created success",
+  "data": {}
+}
+```
+
+## **POST /auth/reset-admin-password**
+重置管理员密码（需要管理员 Token）  
+Reset administrator password (administrator token required)  
+### Headers
+```
+Authorization: Bearer <admin-token>
+```
+### Body
+```json
+{ "username": "root", "password": "654321" }
+```
+### Notes / 说明
+- 若用户名不存在，返回 `1001 User does not exist`。  
+  If the username does not exist, it returns `1001 User does not exist`.
+- 若用户名存在但该账号角色不是 `admin`，返回 `1007 The specified user is not an admin`。  
+  If the username exists but the account role is not `admin`, it returns `1007 The specified user is not an admin`.
+- 成功后会更新密码哈希，并将该账号当前保存的 token 清空；该用户需要重新登录获取新 token。  
+  On success, the password hash is updated and the account's stored token is cleared; the user must log in again to obtain a new token.
+### Response Example
+```json
+{
+  "success": true,
+  "code": 9003,
+  "message": "Password updated",
+  "data": {}
+}
+```
+
+## **POST /auth/reset-worker-password**
+重置工人密码（需要管理员 Token）  
+Reset worker password (administrator token required)  
+### Headers
+```
+Authorization: Bearer <admin-token>
+```
+### Body
+```json
+{ "username": "worker1", "password": "654321" }
+```
+### Notes / 说明
+- 若用户名不存在，返回 `1001 User does not exist`。  
+  If the username does not exist, it returns `1001 User does not exist`.
+- 若用户名存在但该账号角色不是 `worker`，返回 `3002 The specified user is not a worker`。  
+  If the username exists but the account role is not `worker`, it returns `3002 The specified user is not a worker`.
+- 成功后会更新密码哈希，并将该账号当前保存的 token 清空；该用户需要重新登录获取新 token。  
+  On success, the password hash is updated and the account's stored token is cleared; the user must log in again to obtain a new token.
+### Response Example
+```json
+{
+  "success": true,
+  "code": 9003,
+  "message": "Password updated",
   "data": {}
 }
 ```

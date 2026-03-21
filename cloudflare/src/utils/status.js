@@ -6,6 +6,7 @@ export const ERR = {
   TOKEN_INVALID: { code: 1004, message: "Invalid token" },
   USER_ALREADY_EXISTS: { code: 1005, message: "User already exists" },
   TOKEN_REVOKED: { code: 1006, message: "Token has been revoked" },
+  NOT_AN_ADMIN: { code: 1007, message: "The specified user is not an admin" },
 
   // Permission (2000–2999)
   NO_PERMISSION: { code: 2001, message: "No permission" },
