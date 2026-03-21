@@ -13,7 +13,7 @@ const NOISE_PATHS = new Set([
 ])
 
 function classifyPath(path) {
-  if (BUSINESS_ROUTE_PREFIXES.some((prefix) => path.startsWith(prefix))) {
+  if (BUSINESS_ROUTE_PREFIXES.some((prefix) => path === prefix || path.startsWith(`${prefix}/`))) {
     return { routeGroup: "business", isBusinessRequest: true }
   }
 
