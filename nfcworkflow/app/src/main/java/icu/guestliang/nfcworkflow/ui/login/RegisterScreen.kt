@@ -180,9 +180,9 @@ fun RegisterScreen(
                     onClick = {
                         showAdminDialog = false
                         if (isWorker) {
-                            viewModel.registerWorker(username, password, adminUsername, adminPassword)
+                            viewModel.registerWorker(username, password, adminUsername, adminPassword, isResetPassword)
                         } else {
-                            viewModel.registerAdmin(username, password, adminUsername, adminPassword)
+                            viewModel.registerAdmin(username, password, adminUsername, adminPassword, isResetPassword)
                         }
                     },
                     enabled = adminUsername.isNotBlank() && adminPassword.isNotBlank()

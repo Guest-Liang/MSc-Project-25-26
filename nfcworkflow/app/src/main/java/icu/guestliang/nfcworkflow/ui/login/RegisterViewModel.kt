@@ -60,8 +60,8 @@ class RegisterViewModel : ViewModel() {
         _registerState.value = RegisterState.Error(isEmptyFields = true)
     }
 
-    fun registerAdmin(newAdminUser: String, newAdminPass: String, adminUser: String, adminPass: String) {
-        if (newAdminUser.isBlank() || newAdminPass.isBlank() || adminUser.isBlank() || adminPass.isBlank()) {
+    private fun submitAccountAction(targetUser: String, targetPass: String, adminUser: String, adminPass: String, endpoint: String) {
+        if (targetUser.isBlank() || targetPass.isBlank() || adminUser.isBlank() || adminPass.isBlank()) {
             _registerState.value = RegisterState.Error(isEmptyFields = true)
             return
         }
@@ -71,10 +71,10 @@ class RegisterViewModel : ViewModel() {
             try {
                 val tokenStr = getAdminAuthToken(adminUser, adminPass) ?: return@launch
 
-                val response = ApiClient.client.post("auth/register-admin") {
+                val response = ApiClient.client.post(endpoint) {
                     contentType(ContentType.Application.Json)
                     header(HttpHeaders.Authorization, "Bearer $tokenStr")
-                    setBody(LoginRequest(username = newAdminUser, password = newAdminPass))
+                    setBody(LoginRequest(username = targetUser, password = targetPass))
                 }.body<ApiResponse>()
 
                 if (response.success) {
@@ -95,39 +95,14 @@ class RegisterViewModel : ViewModel() {
         }
     }
 
-    fun registerWorker(workerUser: String, workerPass: String, adminUser: String, adminPass: String) {
-        if (workerUser.isBlank() || workerPass.isBlank() || adminUser.isBlank() || adminPass.isBlank()) {
-            _registerState.value = RegisterState.Error(isEmptyFields = true)
-            return
-        }
+    fun registerAdmin(newAdminUser: String, newAdminPass: String, adminUser: String, adminPass: String, isResetPassword: Boolean = false) {
+        val endpoint = if (isResetPassword) "auth/reset-admin-password" else "auth/register-admin"
+        submitAccountAction(newAdminUser, newAdminPass, adminUser, adminPass, endpoint)
+    }
 
-        viewModelScope.launch {
-            _registerState.value = RegisterState.Loading
-            try {
-                val tokenStr = getAdminAuthToken(adminUser, adminPass) ?: return@launch
-
-                val response = ApiClient.client.post("auth/register-worker") {
-                    contentType(ContentType.Application.Json)
-                    header(HttpHeaders.Authorization, "Bearer $tokenStr")
-                    setBody(LoginRequest(username = workerUser, password = workerPass))
-                }.body<ApiResponse>()
-
-                if (response.success) {
-                    _registerState.value = RegisterState.Success
-                } else {
-                    _registerState.value = RegisterState.Error(errorMessage = response.message)
-                }
-            } catch (e: ClientRequestException) {
-                try {
-                    val errorResponse = e.response.body<ApiResponse>()
-                    _registerState.value = RegisterState.Error(errorMessage = errorResponse.message)
-                } catch (_: Exception) {
-                    _registerState.value = RegisterState.Error(errorMessage = e.message)
-                }
-            } catch (e: Exception) {
-                _registerState.value = RegisterState.Error(errorMessage = e.message ?: "Unknown error")
-            }
-        }
+    fun registerWorker(workerUser: String, workerPass: String, adminUser: String, adminPass: String, isResetPassword: Boolean = false) {
+        val endpoint = if (isResetPassword) "auth/reset-worker-password" else "auth/register-worker"
+        submitAccountAction(workerUser, workerPass, adminUser, adminPass, endpoint)
     }
 
     fun resetState() {
