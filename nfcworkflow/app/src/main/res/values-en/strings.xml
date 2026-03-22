@@ -223,7 +223,7 @@
     <string name="admin_log_result">Execution result: %1$s</string>
     <string name="admin_log_scan_uid">Scan UID: %1$s</string>
     <string name="admin_log_location">Location: %1$s</string>
-    <string name="admin_log_action_scan">scanning</string>
+    <string name="admin_log_action_scan">Scan</string>
     <string name="admin_log_action_complete_deprecated">Manual completion (obsolete)</string>
     <string name="admin_log_action_steps_saved">Save Steps</string>
     <string name="admin_log_result_steps_saved">Sequential steps have been saved</string>
