@@ -163,7 +163,8 @@ fun AdminAssignOrderScreen(
                                         Text(text = stringResource(R.string.admin_order_description, order.description))
 
                                         var expanded by remember { mutableStateOf(false) }
-                                        var selectedWorkerId by remember(order.assigned_to) { mutableStateOf(order.assigned_to) }
+                                        val finalAssignedTo = order.assignedTo ?: order.assigned_to
+                                        var selectedWorkerId by remember(finalAssignedTo) { mutableStateOf(finalAssignedTo) }
 
                                         ExposedDropdownMenuBox(
                                             expanded = expanded,
