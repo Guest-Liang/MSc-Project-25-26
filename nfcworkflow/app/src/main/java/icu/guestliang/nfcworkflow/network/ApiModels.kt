@@ -29,6 +29,7 @@ data class Order(
     val locationCode: String? = null,
     val displayName: String? = null,
     val assignedAt: String? = null,
+    val createdAt: String? = null,
     val sequenceTotalSteps: Int = 0,
     val sequenceCompletedSteps: Int = 0,
     val nextStepIndex: Int? = null,

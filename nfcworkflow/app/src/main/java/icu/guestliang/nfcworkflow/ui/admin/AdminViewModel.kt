@@ -247,7 +247,7 @@ class AdminViewModel : ViewModel() {
                                 if (!matchAssigned) match = false
                             }
                             
-                            val createdField = order.assignedAt ?: order.created_at
+                            val createdField = order.createdAt ?: order.created_at
                             query.createdStart?.takeIf { it.isNotBlank() }?.let { start ->
                                 if (createdField == null || createdField < start) match = false
                             }
