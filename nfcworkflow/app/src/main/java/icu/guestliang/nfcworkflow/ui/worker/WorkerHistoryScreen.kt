@@ -2,8 +2,6 @@ package icu.guestliang.nfcworkflow.ui.worker
 
 import icu.guestliang.nfcworkflow.R
 import icu.guestliang.nfcworkflow.logging.AppLogger
-import icu.guestliang.nfcworkflow.network.LogEntry
-import icu.guestliang.nfcworkflow.network.WorkerSummary
 import icu.guestliang.nfcworkflow.nfc.parseNfcTagData
 import icu.guestliang.nfcworkflow.ui.components.CustomDateTimePickerDialog
 import icu.guestliang.nfcworkflow.ui.components.SplicedColumnGroup
@@ -265,8 +263,8 @@ fun WorkerHistoryScreen(
                                 val orderIds = orderIdQuery.split(",").map { it.trim() }.filter { it.isNotEmpty() }
                                 val query = WorkerHistoryQuery(
                                     orderId = orderIds.ifEmpty { null },
-                                    action = selectedActions.ifEmpty { null },
-                                    result = selectedResults.ifEmpty { null },
+                                    action = selectedActions.toList().ifEmpty { null },
+                                    result = selectedResults.toList().ifEmpty { null },
                                     uidHex = uidHexQuery.ifBlank { null },
                                     startTime = startTime.ifBlank { null },
                                     endTime = endTime.ifBlank { null }
@@ -422,8 +420,8 @@ fun WorkerHistoryScreen(
                                         val orderIds = orderIdQuery.split(",").map { it.trim() }.filter { it.isNotEmpty() }
                                         val query = WorkerHistoryQuery(
                                             orderId = orderIds.ifEmpty { null },
-                                            action = selectedActions.ifEmpty { null },
-                                            result = selectedResults.ifEmpty { null },
+                                            action = selectedActions.toList().ifEmpty { null },
+                                            result = selectedResults.toList().ifEmpty { null },
                                             uidHex = uidHexQuery.ifBlank { null },
                                             startTime = startTime.ifBlank { null },
                                             endTime = endTime.ifBlank { null }
@@ -538,7 +536,7 @@ fun HistoryResultsList(uiState: WorkerUiState) {
                             Column(
                                 modifier = Modifier.padding(Dimensions.SpaceL),
                                 verticalArrangement = Arrangement.spacedBy(Dimensions.SpaceS)
-                            ) {
+                              ) {
                                 Text(text = stringResource(R.string.admin_log_action, log.action))
                                 
                                 val orderId = log.orderId ?: log.order_id

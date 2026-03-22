@@ -363,8 +363,10 @@ fun AdminSearchOrdersScreen(
                                     title = titleQuery,
                                     description = descQuery,
                                     nfcTag = targetUidHexQuery,
-                                    status = selectedStatuses,
-                                    assigned = selectedAssigned,
+                                    orderType = selectedOrderTypes.toList(),
+                                    status = selectedStatuses.toList(),
+                                    assigned = selectedAssigned.toList(),
+                                    progress = selectedProgress.toList(),
                                     createdStart = createdStart,
                                     createdEnd = createdEnd,
                                     updatedStart = updatedStart,
@@ -597,14 +599,14 @@ fun AdminSearchOrdersScreen(
                                     Spacer(modifier = Modifier.width(Dimensions.SpaceS))
                                     Button(onClick = dropUnlessResumed {
                                         isFilterExpanded = false
-                                        val query = icu.guestliang.nfcworkflow.ui.admin.OrderSearchQuery(
+                                        val query = OrderSearchQuery(
                                             title = titleQuery,
                                             description = descQuery,
                                             nfcTag = targetUidHexQuery,
-                                            orderType = selectedOrderTypes,
-                                            status = selectedStatuses,
-                                            assigned = selectedAssigned,
-                                            progress = selectedProgress,
+                                            orderType = selectedOrderTypes.toList(),
+                                            status = selectedStatuses.toList(),
+                                            assigned = selectedAssigned.toList(),
+                                            progress = selectedProgress.toList(),
                                             createdStart = createdStart,
                                             createdEnd = createdEnd,
                                             updatedStart = updatedStart,
@@ -884,8 +886,8 @@ fun OrderDetailDialog(order: Order, workers: List<icu.guestliang.nfcworkflow.net
                     )
                 }
 
-                val workerName = workers.find { it.id == order.assignedTo ?: order.assigned_to }?.username
                 val finalWorkerId = order.assignedTo ?: order.assigned_to
+                val workerName = workers.find { it.id == finalWorkerId }?.username
                 if (workerName != null) {
                     Text(text = stringResource(R.string.admin_order_assigned_to, workerName, finalWorkerId ?: 0), style = MaterialTheme.typography.bodySmall)
                 } else {

@@ -244,7 +244,12 @@ fun AdminQueryLogsScreen(
                             FlowRow(horizontalArrangement = Arrangement.spacedBy(Dimensions.SpaceS)) {
                                 actionOptions.forEach { action ->
                                     val isSelected = selectedActions.contains(action)
-                                    val localizedAct = if (action == "scan") "扫描 (Scan)" else if(action == "complete") "手动完成 (废弃)" else if (action == "steps_saved") "保存步骤" else getLocalizedStatus(action)
+                                    val localizedAct = when(action) {
+                                        "scan" -> "扫描 (Scan)"
+                                        "complete" -> "手动完成 (废弃)"
+                                        "steps_saved" -> "保存步骤"
+                                        else -> getLocalizedStatus(action)
+                                    }
                                     FilterChip(
                                         selected = isSelected,
                                         onClick = dropUnlessResumed {
@@ -322,7 +327,7 @@ fun AdminQueryLogsScreen(
                             }
                             Spacer(modifier = Modifier.width(Dimensions.SpaceS))
                             Button(onClick = dropUnlessResumed {
-                                val query = icu.guestliang.nfcworkflow.ui.admin.LogSearchQuery(
+                                val query = LogSearchQuery(
                                     orderId = orderIdQuery.takeIf { it.isNotBlank() }?.split(",")?.map { it.trim() },
                                     action = selectedActions.toList().takeIf { it.isNotEmpty() },
                                     result = selectedResults.toList().takeIf { it.isNotEmpty() },
@@ -449,7 +454,12 @@ fun AdminQueryLogsScreen(
                                 FlowRow(horizontalArrangement = Arrangement.spacedBy(Dimensions.SpaceS)) {
                                     actionOptions.forEach { action ->
                                         val isSelected = selectedActions.contains(action)
-                                        val localizedAct = if (action == "scan") "扫描 (Scan)" else if(action == "complete") "手动完成 (废弃)" else if (action == "steps_saved") "保存步骤" else getLocalizedStatus(action)
+                                        val localizedAct = when(action) {
+                                            "scan" -> "扫描 (Scan)"
+                                            "complete" -> "手动完成 (废弃)"
+                                            "steps_saved" -> "保存步骤"
+                                            else -> getLocalizedStatus(action)
+                                        }
                                         FilterChip(
                                             selected = isSelected,
                                             onClick = dropUnlessResumed {
@@ -526,7 +536,7 @@ fun AdminQueryLogsScreen(
                                     Spacer(modifier = Modifier.width(Dimensions.SpaceS))
                                     Button(onClick = dropUnlessResumed {
                                         isFilterExpanded = false
-                                        val query = icu.guestliang.nfcworkflow.ui.admin.LogSearchQuery(
+                                        val query = LogSearchQuery(
                                             orderId = orderIdQuery.takeIf { it.isNotBlank() }?.split(",")?.map { it.trim() },
                                             action = selectedActions.toList().takeIf { it.isNotEmpty() },
                                             result = selectedResults.toList().takeIf { it.isNotEmpty() },
@@ -783,7 +793,7 @@ fun LogResultsList(
                                 val orderTitle = log.orderTitle ?: "Order"
                                 Text(text = stringResource(R.string.admin_log_target, orderTitle, orderId?.toString() ?: "N/A"))
                                 
-                                val opId = log.operator_id
+                                val opId = log.workerId ?: log.operator_id
                                 if (opId != null) {
                                     Text(text = stringResource(R.string.admin_log_user, opId))
                                 }

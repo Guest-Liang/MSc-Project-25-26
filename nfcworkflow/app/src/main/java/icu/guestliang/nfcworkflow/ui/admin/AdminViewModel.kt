@@ -320,6 +320,7 @@ class AdminViewModel : ViewModel() {
                     return@launch
                 }
 
+                // 手动构建 JSON 以确保 userId: null 被发送，避免全局启用 explicitNulls 带来的副作用
                 val requestBody = buildJsonObject {
                     put("orderId", JsonPrimitive(orderId))
                     put("userId", if (workerId == null) JsonNull else JsonPrimitive(workerId))
@@ -389,10 +390,10 @@ class AdminViewModel : ViewModel() {
                         AppLogger.error(context, e, "Logs fetch failed, falling back to local filter", "AdminViewModel")
                         val filtered = currentAllLogs.filter { log ->
                             var match = true
-                            query.orderId?.takeIf { it.isNotEmpty() }?.let { if (log.order_id?.toString() !in it && log.orderId?.toString() !in it) match = false }
+                            query.orderId?.takeIf { it.isNotEmpty() }?.let { if (log.orderId?.toString() !in it && log.order_id?.toString() !in it) match = false }
                             query.action?.takeIf { it.isNotEmpty() }?.let { if (log.action !in it) match = false }
                             query.result?.takeIf { it.isNotEmpty() }?.let { if (log.result !in it) match = false }
-                            query.operator?.takeIf { it.isNotEmpty() }?.let { if (log.operator_id?.toString() !in it) match = false }
+                            query.operator?.takeIf { it.isNotEmpty() }?.let { if (log.workerId?.toString() !in it && log.operator_id?.toString() !in it) match = false }
                             query.uidHex?.takeIf { it.isNotBlank() }?.let { if (log.scanUidHex?.contains(it, true) != true && log.expectedUidHex?.contains(it, true) != true) match = false }
                             query.orderType?.takeIf { it.isNotEmpty() }?.let { if (log.orderType !in it) match = false }
                             query.startTime?.takeIf { it.isNotBlank() }?.let { start ->

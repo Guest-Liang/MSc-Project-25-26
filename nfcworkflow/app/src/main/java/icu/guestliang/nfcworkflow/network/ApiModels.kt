@@ -125,11 +125,10 @@ data class WorkerUser(
 @Serializable
 data class LogEntry(
     val id: Int,
-    val order_id: Int? = null,
-    val action: String,
-    val operator_id: Int? = null,
-    val timestamp: String? = null,
     val orderId: Int? = null,
+    val action: String,
+    val workerId: Int? = null,
+    val timestamp: String? = null,
     val result: String? = null,
     val stepIndex: Int? = null,
     val scanUidHex: String? = null,
@@ -138,7 +137,10 @@ data class LogEntry(
     val displayName: String? = null,
     val orderType: String? = null,
     val orderTitle: String? = null,
-    val details: JsonElement? = null
+    val details: JsonElement? = null,
+    // Compatibility fields
+    val order_id: Int? = null,
+    val operator_id: Int? = null
 )
 
 @Serializable
