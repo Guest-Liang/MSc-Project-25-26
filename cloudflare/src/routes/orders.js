@@ -40,6 +40,25 @@ function parseOrderTypeList(rawValue) {
   return { values: parsed }
 }
 
+function appendOrderTypeCondition(column, orderTypes, conditions, values) {
+  if (orderTypes.length === 0) return
+
+  const uniqueOrderTypes = [...new Set(orderTypes)]
+  const includesStandard = uniqueOrderTypes.includes(ORDER_TYPES.STANDARD)
+  const orConditions = []
+
+  if (uniqueOrderTypes.length > 0) {
+    orConditions.push(`${column} IN (${uniqueOrderTypes.map(() => "?").join(",")})`)
+    values.push(...uniqueOrderTypes)
+  }
+
+  if (includesStandard) {
+    orConditions.push(`${column} IS NULL`)
+  }
+
+  conditions.push(`(${orConditions.join(" OR ")})`)
+}
+
 function parseUidHexList(rawValue) {
   const values = parseCsvParam(rawValue)
   const parsed = values.map((value) => normalizeUidHex(value))
@@ -245,10 +264,7 @@ orderRoutes.get("/logs", requireAdmin, async (c) => {
   if (params.orderType) {
     const { values: orderTypes, error } = parseOrderTypeList(params.orderType)
     if (error) return jsonResponse(null, error)
-    if (orderTypes.length > 0) {
-      conditions.push(`o.order_type IN (${orderTypes.map(() => "?").join(",")})`)
-      values.push(...orderTypes)
-    }
+    appendOrderTypeCondition("o.order_type", orderTypes, conditions, values)
   }
 
   if (params.startTime) {
@@ -320,11 +336,7 @@ orderRoutes.get("/search", requireAdmin, async (c) => {
   if (params.orderType) {
     const { values: orderTypes, error } = parseOrderTypeList(params.orderType)
     if (error) return jsonResponse(null, error)
-
-    if (orderTypes.length > 0) {
-      conditions.push(`order_type IN (${orderTypes.map(() => "?").join(",")})`)
-      values.push(...orderTypes)
-    }
+    appendOrderTypeCondition("order_type", orderTypes, conditions, values)
   }
 
   if (params.status) {

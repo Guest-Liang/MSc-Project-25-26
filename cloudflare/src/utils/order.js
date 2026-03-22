@@ -181,7 +181,7 @@ export function formatOrderLog(log) {
     expectedUidHex: log.expected_uid_hex ?? null,
     locationCode: log.location_code ?? null,
     displayName: log.display_name ?? null,
-    orderType: log.order_type ?? null,
+    orderType: log.order_type ?? ORDER_TYPES.STANDARD,
     orderTitle: log.order_title ?? null,
     details: parsedDetails
   }

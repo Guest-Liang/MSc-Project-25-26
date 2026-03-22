@@ -701,6 +701,11 @@ Admins query order lifecycle logs, scan evidence, and failure records.
 | `startTime` | `2026-03-20 00:00:00` | 起始时间（含） | Start time inclusive |
 | `endTime` | `2026-03-20 23:59:59` | 结束时间（含） | End time inclusive |
 
+### `orderType` 过滤说明 / `orderType` filter note
+
+- `orderType=standard` 会同时匹配 `order_type = 'standard'` 和 `order_type IS NULL` 的历史工单记录。  
+  `orderType=standard` matches both historical records with `order_type = 'standard'` and those with `order_type IS NULL`.
+
 ### 典型 action / result 值 / Typical action and result values
 
 | `action` | `result` 示例 / Examples |
@@ -733,6 +738,11 @@ Search work orders with multiple filters.
 | `createdEnd` | `2026-03-31 23:59:59` | 创建时间终点（含） | Created time end inclusive |
 | `updatedStart` | `2026-03-01 00:00:00` | 更新时间起点（含） | Updated time start inclusive |
 | `updatedEnd` | `2026-03-31 23:59:59` | 更新时间终点（含） | Updated time end inclusive |
+
+### `orderType` 过滤说明 / `orderType` filter note
+
+- `orderType=standard` 会同时匹配 `order_type = 'standard'` 和 `order_type IS NULL` 的历史工单。  
+  `orderType=standard` matches both historical orders with `order_type = 'standard'` and those with `order_type IS NULL`.
 
 ### `progress` 语义 / `progress` semantics
 
