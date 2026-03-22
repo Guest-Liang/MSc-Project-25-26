@@ -19,6 +19,7 @@ import androidx.compose.material.icons.automirrored.filled.List
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.AssignmentInd
 import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.filled.PersonAdd
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.MaterialTheme
@@ -132,6 +133,16 @@ fun WorkerFunctionsSection(navController: NavController) {
                 iconPlaceholder = true,
                 onClick = dropUnlessResumed {
                     navController.navigate(Screen.WorkerOrders.route)
+                }
+            )
+        }
+        item {
+            SplicedJumpPageWidget(
+                title = stringResource(id = R.string.worker_view_history),
+                icon = Icons.Default.History,
+                iconPlaceholder = true,
+                onClick = dropUnlessResumed {
+                    navController.navigate(Screen.WorkerHistory.route)
                 }
             )
         }

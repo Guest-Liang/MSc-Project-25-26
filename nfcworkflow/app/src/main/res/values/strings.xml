@@ -14,6 +14,8 @@
     <string name="tab_nfc">NFC</string>
     <string name="tab_settings">设置</string>
     <string name="tab_logs">日志</string>
+    <string name="tab_orders">工单</string>
+    <string name="tab_history">历史</string>
 
     <!-- settings -->
     <string name="appearance_title">外观设置</string>
@@ -47,15 +49,48 @@
     <string name="admin_query_logs">查询工单日志</string>
 
     <string name="worker_api_title">工人功能</string>
-    <string name="worker_view_orders">查看我的工单</string>
+    <string name="worker_view_orders">我的工单</string>
+    <string name="worker_view_history">历史记录</string>
     <string name="worker_no_orders">目前没有需要处理的工单</string>
-    <string name="worker_complete_order">完成工单</string>
+    <string name="worker_complete_order">完成工单 (已废弃)</string>
     <string name="worker_complete_order_desc">输入工单ID以标记为完成</string>
     <string name="worker_order_id">工单ID</string>
     <string name="worker_order_complete_success">工单完成成功！</string>
     <string name="worker_order_complete_error">错误: %1$s</string>
     <string name="worker_invalid_order_id">请输入有效的工单 ID</string>
     <string name="worker_complete_result_title">完成结果</string>
+
+    <!-- New Worker Order Strings -->
+    <string name="worker_order_type_standard">普通工单</string>
+    <string name="worker_order_type_sequence">顺序工单</string>
+    <string name="worker_order_target_uid">目标 UID: %1$s</string>
+    <string name="worker_order_location">地点: %1$s</string>
+    <string name="worker_order_step_progress">进度: 第 %1$d 步 / 共 %2$d 步</string>
+    <string name="worker_order_next_step">下一步: %1$s</string>
+    <string name="worker_scan_to_execute">扫描执行</string>
+    <string name="worker_scan_success_matched">扫描匹配成功！</string>
+    <string name="worker_scan_success_completed">工单已全部完成！</string>
+    <string name="worker_scan_success_sequence">已完成第 %1$d 步</string>
+    <string name="worker_scan_error_title">扫描失败</string>
+    <string name="worker_scan_error_mismatch">扫描的标签不匹配当前步骤或要求。</string>
+    <string name="worker_scan_error_out_of_order">标签扫描顺序错误。期望：第 %1$d 步 (%2$s)，实际扫到：第 %3$d 步。</string>
+
+    <!-- Worker History Strings -->
+    <string name="worker_history_summary_title">数据汇总</string>
+    <string name="worker_history_total_scans">总扫描次数: %1$d</string>
+    <string name="worker_history_successful_scans">成功匹配: %1$d</string>
+    <string name="worker_history_mismatch_count">未匹配: %1$d</string>
+    <string name="worker_history_out_of_order_count">顺序错误: %1$d</string>
+    <string name="worker_history_completed_orders">完成工单数: %1$d</string>
+    <string name="worker_history_last_scan">最后扫描: %1$s</string>
+    <string name="worker_history_no_last_scan">最后扫描: 无</string>
+    <string name="worker_history_filter_result_title">执行结果筛选 (多选)</string>
+    <string name="worker_history_filter_action_title">动作类型筛选 (多选)</string>
+    <string name="worker_history_result_matched">匹配成功 (标准单)</string>
+    <string name="worker_history_result_step_completed">完成步骤 (顺序单)</string>
+    <string name="worker_history_result_mismatch">UID 不匹配</string>
+    <string name="worker_history_result_out_of_order">扫描顺序错误</string>
+    <string name="worker_history_result_duplicate">重复扫描</string>
 
     <string name="nfc_read_title">NFC 读取</string>
     <string name="nfc_read_desc">打开开关以读取 NFC 标签</string>
@@ -126,8 +161,22 @@
     <!-- Admin New UI Strings -->
     <string name="admin_order_title_hint">工单标题</string>
     <string name="admin_order_desc_hint">工单描述</string>
-    <string name="admin_order_nfc_hint">NFC 标签 (可选)</string>
+
+    <!-- Changed: Create Order uses required, Search uses optional -->
+    <string name="admin_order_nfc_hint_required">NFC 标签 UID (必填)</string>
+    <string name="admin_order_nfc_hint_optional">NFC 标签 UID (可选)</string>
+
     <string name="admin_order_create_btn">创建工单</string>
+
+    <string name="admin_order_type_selector_title">选择工单类型</string>
+    <string name="admin_order_add_step_btn">添加步骤</string>
+    <string name="admin_order_remove_step_btn">移除</string>
+    <string name="admin_order_step_nfc_hint">步骤 UID</string>
+    <string name="admin_order_step_location_code_hint">步骤地点编码 (Location Code)</string>
+    <string name="admin_order_step_display_name_hint">步骤地点名称 (Display Name)</string>
+    <string name="admin_order_scan_nfc_btn">扫描 NFC</string>
+    <string name="admin_order_step_header">第 %1$d 步</string>
+
     <string name="admin_no_pending_orders">当前没有需要指派的工单</string>
     <string name="admin_all_orders_assigned">所有工单已指派或已完成。</string>
     <string name="admin_select_worker">选择工人</string>
@@ -141,7 +190,12 @@
     <string name="admin_advanced_search">点击展开高级搜索</string>
     <string name="admin_search_btn">搜索</string>
     <string name="admin_search_clear_btn">重置查询</string>
+    <string name="admin_search_order_type_title">工单类型 (多选)</string>
     <string name="admin_search_status_title">状态筛选 (多选)</string>
+    <string name="admin_search_progress_title">进度筛选 (多选)</string>
+    <string name="admin_search_progress_not_started">未开始</string>
+    <string name="admin_search_progress_in_progress">进行中</string>
+    <string name="admin_search_progress_completed">已完成</string>
     <string name="admin_search_worker_title">指派目标 (多选)</string>
     <string name="admin_search_unassigned">未指派 (NULL)</string>
     <string name="admin_search_created_start">创建时间 (起始)</string>
@@ -159,6 +213,12 @@
     <string name="admin_log_user">用户 ID: %1$d</string>
     <string name="admin_log_time">时间: %1$s</string>
     <string name="admin_workers_selected">已选择工人数: %1$d</string>
+
+    <string name="admin_analysis_summary_title">全局分析汇总</string>
+    <string name="admin_analysis_total_orders">工单总数: %1$d (普通: %2$d, 顺序: %3$d)</string>
+    <string name="admin_analysis_completed_orders">完成总数: %1$d</string>
+    <string name="admin_analysis_total_scans">扫描事件总数: %1$d</string>
+    <string name="admin_analysis_success_scans">有效扫描: %1$d (标准: %2$d, 步进: %3$d)</string>
 
     <string name="dialog_empty_state_title">提示</string>
     <string name="error_network_title">网络错误</string>

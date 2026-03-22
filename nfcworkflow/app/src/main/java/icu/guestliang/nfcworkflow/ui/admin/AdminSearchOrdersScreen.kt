@@ -99,9 +99,11 @@ fun AdminSearchOrdersScreen(
     // Search query states
     var titleQuery by remember { mutableStateOf("") }
     var descQuery by remember { mutableStateOf("") }
-    var nfcTagQuery by remember { mutableStateOf("") }
+    var targetUidHexQuery by remember { mutableStateOf("") }
+    val selectedOrderTypes = remember { mutableStateListOf<String>() }
     val selectedStatuses = remember { mutableStateListOf<String>() }
     val selectedAssigned = remember { mutableStateListOf<String>() }
+    val selectedProgress = remember { mutableStateListOf<String>() }
     var createdStart by remember { mutableStateOf("") }
     var createdEnd by remember { mutableStateOf("") }
     var updatedStart by remember { mutableStateOf("") }
@@ -111,7 +113,10 @@ fun AdminSearchOrdersScreen(
     var isFilterExpanded by remember { mutableStateOf(isLandscape) }
     var showWorkerDialog by remember { mutableStateOf(false) }
 
+    val orderTypeOptions = listOf("standard", "sequence")
     val statusOptions = listOf("created", "assigned", "completed")
+    val progressOptions = listOf("not_started", "in_progress", "completed")
+    
     val scrollBehavior = TopAppBarDefaults.enterAlwaysScrollBehavior()
 
     LaunchedEffect(Unit) {
@@ -198,12 +203,29 @@ fun AdminSearchOrdersScreen(
                                     singleLine = true
                                 )
                                 OutlinedTextField(
-                                    value = nfcTagQuery,
-                                    onValueChange = { nfcTagQuery = it },
-                                    label = { Text(stringResource(R.string.admin_order_nfc_hint)) },
+                                    value = targetUidHexQuery,
+                                    onValueChange = { targetUidHexQuery = it },
+                                    label = { Text(stringResource(R.string.admin_order_nfc_hint_optional)) },
                                     modifier = Modifier.weight(1f),
                                     singleLine = true
                                 )
+                            }
+
+                            // Order Type Filters
+                            Text(stringResource(R.string.admin_search_order_type_title), style = MaterialTheme.typography.bodySmall)
+                            FlowRow(horizontalArrangement = Arrangement.spacedBy(Dimensions.SpaceS)) {
+                                orderTypeOptions.forEach { type ->
+                                    val isSelected = selectedOrderTypes.contains(type)
+                                    val localizedLabel = if (type == "standard") stringResource(R.string.worker_order_type_standard) else stringResource(R.string.worker_order_type_sequence)
+                                    FilterChip(
+                                        selected = isSelected,
+                                        onClick = dropUnlessResumed {
+                                            if (isSelected) selectedOrderTypes.remove(type)
+                                            else selectedOrderTypes.add(type)
+                                        },
+                                        label = { Text(localizedLabel) }
+                                    )
+                                }
                             }
 
                             // Status Filters
@@ -218,6 +240,28 @@ fun AdminSearchOrdersScreen(
                                             else selectedStatuses.add(status)
                                         },
                                         label = { Text(getLocalizedStatus(status)) }
+                                    )
+                                }
+                            }
+
+                            // Progress Filters
+                            Text(stringResource(R.string.admin_search_progress_title), style = MaterialTheme.typography.bodySmall)
+                            FlowRow(horizontalArrangement = Arrangement.spacedBy(Dimensions.SpaceS)) {
+                                progressOptions.forEach { prog ->
+                                    val isSelected = selectedProgress.contains(prog)
+                                    val localizedProg = when(prog) {
+                                        "not_started" -> stringResource(R.string.admin_search_progress_not_started)
+                                        "in_progress" -> stringResource(R.string.admin_search_progress_in_progress)
+                                        "completed" -> stringResource(R.string.admin_search_progress_completed)
+                                        else -> prog
+                                    }
+                                    FilterChip(
+                                        selected = isSelected,
+                                        onClick = dropUnlessResumed {
+                                            if (isSelected) selectedProgress.remove(prog)
+                                            else selectedProgress.add(prog)
+                                        },
+                                        label = { Text(localizedProg) }
                                     )
                                 }
                             }
@@ -287,9 +331,11 @@ fun AdminSearchOrdersScreen(
                             TextButton(onClick = dropUnlessResumed {
                                 titleQuery = ""
                                 descQuery = ""
-                                nfcTagQuery = ""
+                                targetUidHexQuery = ""
+                                selectedOrderTypes.clear()
                                 selectedStatuses.clear()
                                 selectedAssigned.clear()
+                                selectedProgress.clear()
                                 createdStart = ""
                                 createdEnd = ""
                                 updatedStart = ""
@@ -300,12 +346,14 @@ fun AdminSearchOrdersScreen(
                             }
                             Spacer(modifier = Modifier.width(Dimensions.SpaceS))
                             Button(onClick = dropUnlessResumed {
-                                val query = OrderSearchQuery(
+                                val query = icu.guestliang.nfcworkflow.ui.admin.OrderSearchQuery(
                                     title = titleQuery,
                                     description = descQuery,
-                                    nfcTag = nfcTagQuery,
+                                    nfcTag = targetUidHexQuery,
+                                    orderType = selectedOrderTypes,
                                     status = selectedStatuses,
                                     assigned = selectedAssigned,
+                                    progress = selectedProgress,
                                     createdStart = createdStart,
                                     createdEnd = createdEnd,
                                     updatedStart = updatedStart,
@@ -389,12 +437,29 @@ fun AdminSearchOrdersScreen(
                                         singleLine = true
                                     )
                                     OutlinedTextField(
-                                        value = nfcTagQuery,
-                                        onValueChange = { nfcTagQuery = it },
-                                        label = { Text(stringResource(R.string.admin_order_nfc_hint)) },
+                                        value = targetUidHexQuery,
+                                        onValueChange = { targetUidHexQuery = it },
+                                        label = { Text(stringResource(R.string.admin_order_nfc_hint_optional)) },
                                         modifier = Modifier.weight(1f),
                                         singleLine = true
                                     )
+                                }
+                                
+                                // Order Type Filters
+                                Text(stringResource(R.string.admin_search_order_type_title), style = MaterialTheme.typography.bodySmall)
+                                FlowRow(horizontalArrangement = Arrangement.spacedBy(Dimensions.SpaceS)) {
+                                    orderTypeOptions.forEach { type ->
+                                        val isSelected = selectedOrderTypes.contains(type)
+                                        val localizedLabel = if (type == "standard") stringResource(R.string.worker_order_type_standard) else stringResource(R.string.worker_order_type_sequence)
+                                        FilterChip(
+                                            selected = isSelected,
+                                            onClick = dropUnlessResumed {
+                                                if (isSelected) selectedOrderTypes.remove(type)
+                                                else selectedOrderTypes.add(type)
+                                            },
+                                            label = { Text(localizedLabel) }
+                                        )
+                                    }
                                 }
 
                                 // Status Filters
@@ -409,6 +474,28 @@ fun AdminSearchOrdersScreen(
                                                 else selectedStatuses.add(status)
                                             },
                                             label = { Text(getLocalizedStatus(status)) }
+                                        )
+                                    }
+                                }
+                                
+                                // Progress Filters
+                                Text(stringResource(R.string.admin_search_progress_title), style = MaterialTheme.typography.bodySmall)
+                                FlowRow(horizontalArrangement = Arrangement.spacedBy(Dimensions.SpaceS)) {
+                                    progressOptions.forEach { prog ->
+                                        val isSelected = selectedProgress.contains(prog)
+                                        val localizedProg = when(prog) {
+                                            "not_started" -> stringResource(R.string.admin_search_progress_not_started)
+                                            "in_progress" -> stringResource(R.string.admin_search_progress_in_progress)
+                                            "completed" -> stringResource(R.string.admin_search_progress_completed)
+                                            else -> prog
+                                        }
+                                        FilterChip(
+                                            selected = isSelected,
+                                            onClick = dropUnlessResumed {
+                                                if (isSelected) selectedProgress.remove(prog)
+                                                else selectedProgress.add(prog)
+                                            },
+                                            label = { Text(localizedProg) }
                                         )
                                     }
                                 }
@@ -480,9 +567,11 @@ fun AdminSearchOrdersScreen(
                                     TextButton(onClick = dropUnlessResumed {
                                         titleQuery = ""
                                         descQuery = ""
-                                        nfcTagQuery = ""
+                                        targetUidHexQuery = ""
+                                        selectedOrderTypes.clear()
                                         selectedStatuses.clear()
                                         selectedAssigned.clear()
+                                        selectedProgress.clear()
                                         createdStart = ""
                                         createdEnd = ""
                                         updatedStart = ""
@@ -494,12 +583,14 @@ fun AdminSearchOrdersScreen(
                                     Spacer(modifier = Modifier.width(Dimensions.SpaceS))
                                     Button(onClick = dropUnlessResumed {
                                         isFilterExpanded = false
-                                        val query = OrderSearchQuery(
+                                        val query = icu.guestliang.nfcworkflow.ui.admin.OrderSearchQuery(
                                             title = titleQuery,
                                             description = descQuery,
-                                            nfcTag = nfcTagQuery,
+                                            nfcTag = targetUidHexQuery,
+                                            orderType = selectedOrderTypes,
                                             status = selectedStatuses,
                                             assigned = selectedAssigned,
+                                            progress = selectedProgress,
                                             createdStart = createdStart,
                                             createdEnd = createdEnd,
                                             updatedStart = updatedStart,
@@ -690,6 +781,11 @@ fun OrderResultsList(
                 verticalArrangement = Arrangement.spacedBy(Dimensions.SpaceL)
             ) {
                 items(uiState.orders, key = { it.id ?: it.hashCode() }) { order ->
+                    val orderTypeStr = if (order.orderType == "sequence") 
+                        stringResource(R.string.worker_order_type_sequence)
+                    else 
+                        stringResource(R.string.worker_order_type_standard)
+                        
                     Card(
                         modifier = Modifier
                             .fillMaxWidth()
@@ -708,7 +804,10 @@ fun OrderResultsList(
                                     text = stringResource(R.string.admin_order_item_title, order.id ?: 0, order.title),
                                     style = MaterialTheme.typography.titleMedium
                                 )
-                                Text(text = stringResource(R.string.admin_order_status, getLocalizedStatus(order.status)), style = MaterialTheme.typography.bodyMedium)
+                                Text(
+                                    text = stringResource(R.string.admin_order_status, getLocalizedStatus(order.status)) + " | " + orderTypeStr, 
+                                    style = MaterialTheme.typography.bodyMedium
+                                )
                                 Text(
                                     text = stringResource(R.string.admin_order_description, order.description),
                                     style = MaterialTheme.typography.bodySmall,
@@ -730,6 +829,11 @@ fun OrderResultsList(
 
 @Composable
 fun OrderDetailDialog(order: Order, workers: List<icu.guestliang.nfcworkflow.network.WorkerUser>, onDismiss: () -> Unit) {
+    val orderTypeStr = if (order.orderType == "sequence") 
+        stringResource(R.string.worker_order_type_sequence)
+    else 
+        stringResource(R.string.worker_order_type_standard)
+        
     AlertDialog(
         onDismissRequest = onDismiss,
         title = { Text(stringResource(R.string.admin_order_details_title), fontWeight = FontWeight.Bold) },
@@ -738,22 +842,35 @@ fun OrderDetailDialog(order: Order, workers: List<icu.guestliang.nfcworkflow.net
                 Text(text = stringResource(R.string.admin_order_item_title, order.id ?: 0, order.title), style = MaterialTheme.typography.titleMedium)
                 HorizontalDivider(modifier = Modifier.padding(vertical = Dimensions.SpaceXS))
                 
+                Text(text = "类型: $orderTypeStr", style = MaterialTheme.typography.bodyMedium)
                 Text(text = stringResource(R.string.admin_order_status, getLocalizedStatus(order.status)), style = MaterialTheme.typography.bodyMedium)
                 Text(text = stringResource(R.string.admin_order_description, order.description), style = MaterialTheme.typography.bodyMedium)
                 
-                if (!order.nfc_tag.isNullOrBlank()) {
-                    Text(text = stringResource(R.string.admin_order_nfc_tag, order.nfc_tag), style = MaterialTheme.typography.bodySmall)
+                if (order.orderType == "standard") {
+                    order.targetUidHex?.let {
+                        Text(text = stringResource(R.string.worker_order_target_uid, it), style = MaterialTheme.typography.bodySmall)
+                    }
+                    order.locationCode?.let {
+                        Text(text = stringResource(R.string.worker_order_location, it), style = MaterialTheme.typography.bodySmall)
+                    }
+                } else if (order.orderType == "sequence") {
+                    Text(
+                        text = stringResource(R.string.worker_order_step_progress, order.sequenceCompletedSteps, order.sequenceTotalSteps),
+                        style = MaterialTheme.typography.bodySmall
+                    )
                 }
 
-                val workerName = workers.find { it.id == order.assigned_to }?.username
+                val workerName = workers.find { it.id == order.assignedTo ?: order.assigned_to }?.username
+                val finalWorkerId = order.assignedTo ?: order.assigned_to
                 if (workerName != null) {
-                    Text(text = stringResource(R.string.admin_order_assigned_to, workerName, order.assigned_to ?: 0), style = MaterialTheme.typography.bodySmall)
+                    Text(text = stringResource(R.string.admin_order_assigned_to, workerName, finalWorkerId ?: 0), style = MaterialTheme.typography.bodySmall)
                 } else {
                     Text(text = stringResource(R.string.admin_order_not_assigned), style = MaterialTheme.typography.bodySmall)
                 }
 
-                if (!order.created_at.isNullOrBlank()) {
-                    Text(text = stringResource(R.string.admin_order_created_at, order.created_at), style = MaterialTheme.typography.bodySmall)
+                val createdAtStr = order.assignedAt ?: order.created_at
+                if (!createdAtStr.isNullOrBlank()) {
+                    Text(text = stringResource(R.string.admin_order_created_at, createdAtStr), style = MaterialTheme.typography.bodySmall)
                 }
                 if (!order.updated_at.isNullOrBlank()) {
                     Text(text = stringResource(R.string.admin_order_updated_at, order.updated_at), style = MaterialTheme.typography.bodySmall)

@@ -1,12 +1,11 @@
-package icu.guestliang.nfcworkflow.ui.admin
+package icu.guestliang.nfcworkflow.ui.worker
 
 import icu.guestliang.nfcworkflow.R
 import icu.guestliang.nfcworkflow.logging.AppLogger
 import icu.guestliang.nfcworkflow.ui.components.CustomDateTimePickerDialog
+import icu.guestliang.nfcworkflow.ui.components.SplicedColumnGroup
 import icu.guestliang.nfcworkflow.ui.theme.Dimensions
-import icu.guestliang.nfcworkflow.utils.getLocalizedStatus
 import kotlinx.coroutines.delay
-import kotlinx.coroutines.launch
 import android.content.res.Configuration
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.clickable
@@ -22,7 +21,6 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -31,11 +29,9 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.CloudOff
 import androidx.compose.material.icons.filled.DateRange
 import androidx.compose.material.icons.filled.ExpandLess
 import androidx.compose.material.icons.filled.ExpandMore
-import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
@@ -60,7 +56,6 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -68,45 +63,39 @@ import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.style.TextAlign
 import androidx.lifecycle.compose.dropUnlessResumed
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
-fun AdminQueryLogsScreen(
+fun WorkerHistoryScreen(
     navController: NavController,
-    viewModel: AdminViewModel = viewModel()
+    viewModel: WorkerViewModel = viewModel()
 ) {
     val context = LocalContext.current
-    AppLogger.debug(context, "AdminQueryLogsScreen recomposed", "UI")
+    AppLogger.debug(context, "WorkerHistoryScreen recomposed", "UI")
 
     val uiState by viewModel.uiState.collectAsState()
-    var isInitialLoad by remember { mutableStateOf(true) }
-    var showEmptyDialog by remember { mutableStateOf(false) }
-    var showFallbackDialog by remember { mutableStateOf(false) }
-    val coroutineScope = rememberCoroutineScope()
+    val scrollBehavior = TopAppBarDefaults.enterAlwaysScrollBehavior()
     val isLandscape = LocalConfiguration.current.orientation == Configuration.ORIENTATION_LANDSCAPE
 
-    // Search query states
+    var isFilterExpanded by remember { mutableStateOf(isLandscape) }
+    var showFallbackDialog by remember { mutableStateOf(false) }
+
+    // Query states
     var orderIdQuery by remember { mutableStateOf("") }
-    var operatorQuery by remember { mutableStateOf("") }
+    var uidHexQuery by remember { mutableStateOf("") }
     val selectedActions = remember { mutableStateListOf<String>() }
+    val selectedResults = remember { mutableStateListOf<String>() }
     var startTime by remember { mutableStateOf("") }
     var endTime by remember { mutableStateOf("") }
 
-    var isFilterExpanded by remember { mutableStateOf(isLandscape) }
-
-    val actionOptions = listOf("created", "assigned", "unassigned", "completed", "scan")
-    val scrollBehavior = TopAppBarDefaults.enterAlwaysScrollBehavior()
+    val actionOptions = listOf("scan", "completed")
+    val resultOptions = listOf("standard_matched", "sequence_step_completed", "mismatch", "out_of_order", "duplicate")
 
     LaunchedEffect(Unit) {
-        val job1 = viewModel.fetchLogs(context)
-        val job2 = viewModel.fetchAnalysisSummary(context)
-        job1.join()
-        job2.join()
-        isInitialLoad = false
+        viewModel.fetchHistory(context)
     }
 
     LaunchedEffect(uiState.isFallbackTriggered) {
@@ -117,7 +106,7 @@ fun AdminQueryLogsScreen(
             viewModel.clearFallbackTriggered()
         }
     }
-    
+
     LaunchedEffect(isLandscape) {
         isFilterExpanded = isLandscape
     }
@@ -126,7 +115,7 @@ fun AdminQueryLogsScreen(
         modifier = Modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
         topBar = {
             TopAppBar(
-                title = { Text(stringResource(R.string.admin_query_logs)) },
+                title = { Text(stringResource(R.string.worker_view_history)) },
                 navigationIcon = {
                     IconButton(onClick = dropUnlessResumed { navController.popBackStack() }) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.cd_back))
@@ -143,7 +132,7 @@ fun AdminQueryLogsScreen(
                     .fillMaxSize()
                     .padding(innerPadding)
             ) {
-                // Side Panel for Filter
+                // Filter Panel Side
                 Card(
                     modifier = Modifier
                         .weight(0.45f)
@@ -178,31 +167,51 @@ fun AdminQueryLogsScreen(
                                 singleLine = true
                             )
                             OutlinedTextField(
-                                value = operatorQuery,
-                                onValueChange = { operatorQuery = it },
-                                label = { Text(stringResource(R.string.admin_log_search_operator)) },
+                                value = uidHexQuery,
+                                onValueChange = { uidHexQuery = it },
+                                label = { Text(stringResource(R.string.admin_order_nfc_hint_optional)) },
                                 modifier = Modifier.fillMaxWidth(),
                                 singleLine = true
                             )
 
-                            // Action Filters
-                            Text(stringResource(R.string.admin_log_search_action_title), style = MaterialTheme.typography.bodySmall)
+                            Text(stringResource(R.string.worker_history_filter_action_title), style = MaterialTheme.typography.bodySmall)
                             FlowRow(horizontalArrangement = Arrangement.spacedBy(Dimensions.SpaceS)) {
                                 actionOptions.forEach { action ->
                                     val isSelected = selectedActions.contains(action)
-                                    val localizedAct = if (action == "scan") "扫描 (Scan)" else getLocalizedStatus(action)
                                     FilterChip(
                                         selected = isSelected,
                                         onClick = dropUnlessResumed {
                                             if (isSelected) selectedActions.remove(action)
                                             else selectedActions.add(action)
                                         },
-                                        label = { Text(localizedAct) }
+                                        label = { Text(action) }
                                     )
                                 }
                             }
 
-                            // Time Filters (Vertical in Landscape)
+                            Text(stringResource(R.string.worker_history_filter_result_title), style = MaterialTheme.typography.bodySmall)
+                            FlowRow(horizontalArrangement = Arrangement.spacedBy(Dimensions.SpaceS)) {
+                                resultOptions.forEach { result ->
+                                    val isSelected = selectedResults.contains(result)
+                                    val localizedRes = when (result) {
+                                        "standard_matched" -> stringResource(R.string.worker_history_result_matched)
+                                        "sequence_step_completed" -> stringResource(R.string.worker_history_result_step_completed)
+                                        "mismatch" -> stringResource(R.string.worker_history_result_mismatch)
+                                        "out_of_order" -> stringResource(R.string.worker_history_result_out_of_order)
+                                        "duplicate" -> stringResource(R.string.worker_history_result_duplicate)
+                                        else -> result
+                                    }
+                                    FilterChip(
+                                        selected = isSelected,
+                                        onClick = dropUnlessResumed {
+                                            if (isSelected) selectedResults.remove(result)
+                                            else selectedResults.add(result)
+                                        },
+                                        label = { Text(localizedRes) }
+                                    )
+                                }
+                            }
+
                             DateTimeSelectorField(
                                 label = stringResource(R.string.admin_log_search_start_time),
                                 value = startTime,
@@ -215,11 +224,8 @@ fun AdminQueryLogsScreen(
                                 onDateTimeSelected = { endTime = it },
                                 modifier = Modifier.fillMaxWidth()
                             )
-                            
-                            Spacer(modifier = Modifier.height(Dimensions.SpaceS))
                         }
 
-                        // Search Buttons
                         Row(
                             modifier = Modifier.fillMaxWidth().padding(top = Dimensions.SpaceS),
                             horizontalArrangement = Arrangement.End,
@@ -227,24 +233,27 @@ fun AdminQueryLogsScreen(
                         ) {
                             TextButton(onClick = dropUnlessResumed {
                                 orderIdQuery = ""
-                                operatorQuery = ""
+                                uidHexQuery = ""
                                 selectedActions.clear()
+                                selectedResults.clear()
                                 startTime = ""
                                 endTime = ""
-                                viewModel.fetchLogs(context, null)
+                                viewModel.fetchHistory(context, null)
                             }) {
                                 Text(stringResource(R.string.admin_search_clear_btn))
                             }
                             Spacer(modifier = Modifier.width(Dimensions.SpaceS))
                             Button(onClick = dropUnlessResumed {
-                                val query = icu.guestliang.nfcworkflow.ui.admin.LogSearchQuery(
-                                    orderId = orderIdQuery.takeIf { it.isNotBlank() }?.split(",")?.map { it.trim() },
-                                    status = selectedActions.toList().takeIf { it.isNotEmpty() },
-                                    operator = operatorQuery.takeIf { it.isNotBlank() }?.split(",")?.map { it.trim() },
-                                    startTime = startTime.takeIf { it.isNotBlank() },
-                                    endTime = endTime.takeIf { it.isNotBlank() }
+                                val orderIds = orderIdQuery.split(",").map { it.trim() }.filter { it.isNotEmpty() }
+                                val query = WorkerHistoryQuery(
+                                    orderId = orderIds.ifEmpty { null },
+                                    action = selectedActions.ifEmpty { null },
+                                    result = selectedResults.ifEmpty { null },
+                                    uidHex = uidHexQuery.ifBlank { null },
+                                    startTime = startTime.ifBlank { null },
+                                    endTime = endTime.ifBlank { null }
                                 )
-                                viewModel.fetchLogs(context, query)
+                                viewModel.fetchHistory(context, query)
                             }) {
                                 Text(stringResource(R.string.admin_search_btn))
                             }
@@ -254,14 +263,7 @@ fun AdminQueryLogsScreen(
 
                 // Results Panel
                 Box(modifier = Modifier.weight(0.55f).fillMaxSize()) {
-                    LogResultsList(
-                        isInitialLoad = isInitialLoad,
-                        uiState = uiState,
-                        viewModel = viewModel,
-                        coroutineScope = coroutineScope,
-                        showEmptyDialog = showEmptyDialog,
-                        onShowEmptyDialogChange = { showEmptyDialog = it }
-                    )
+                    HistoryResultsList(uiState = uiState)
                 }
             }
         } else {
@@ -270,7 +272,7 @@ fun AdminQueryLogsScreen(
                     .fillMaxSize()
                     .padding(innerPadding)
             ) {
-                // Filter Panel
+                // Filter Panel Portrait
                 Card(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -307,39 +309,61 @@ fun AdminQueryLogsScreen(
                                     .verticalScroll(rememberScrollState()),
                                 verticalArrangement = Arrangement.spacedBy(Dimensions.SpaceM)
                             ) {
-                                OutlinedTextField(
-                                    value = orderIdQuery,
-                                    onValueChange = { orderIdQuery = it },
-                                    label = { Text(stringResource(R.string.admin_log_search_order_id)) },
-                                    modifier = Modifier.fillMaxWidth(),
-                                    singleLine = true
-                                )
-                                OutlinedTextField(
-                                    value = operatorQuery,
-                                    onValueChange = { operatorQuery = it },
-                                    label = { Text(stringResource(R.string.admin_log_search_operator)) },
-                                    modifier = Modifier.fillMaxWidth(),
-                                    singleLine = true
-                                )
+                                Row(horizontalArrangement = Arrangement.spacedBy(Dimensions.SpaceS)) {
+                                    OutlinedTextField(
+                                        value = orderIdQuery,
+                                        onValueChange = { orderIdQuery = it },
+                                        label = { Text(stringResource(R.string.admin_log_search_order_id)) },
+                                        modifier = Modifier.weight(1f),
+                                        singleLine = true
+                                    )
+                                    OutlinedTextField(
+                                        value = uidHexQuery,
+                                        onValueChange = { uidHexQuery = it },
+                                        label = { Text(stringResource(R.string.admin_order_nfc_hint_optional)) },
+                                        modifier = Modifier.weight(1f),
+                                        singleLine = true
+                                    )
+                                }
 
-                                // Action Filters
-                                Text(stringResource(R.string.admin_log_search_action_title), style = MaterialTheme.typography.bodySmall)
+                                Text(stringResource(R.string.worker_history_filter_action_title), style = MaterialTheme.typography.bodySmall)
                                 FlowRow(horizontalArrangement = Arrangement.spacedBy(Dimensions.SpaceS)) {
                                     actionOptions.forEach { action ->
                                         val isSelected = selectedActions.contains(action)
-                                        val localizedAct = if (action == "scan") "扫描 (Scan)" else getLocalizedStatus(action)
                                         FilterChip(
                                             selected = isSelected,
                                             onClick = dropUnlessResumed {
                                                 if (isSelected) selectedActions.remove(action)
                                                 else selectedActions.add(action)
                                             },
-                                            label = { Text(localizedAct) }
+                                            label = { Text(action) }
                                         )
                                     }
                                 }
 
-                                // Time Filters
+                                Text(stringResource(R.string.worker_history_filter_result_title), style = MaterialTheme.typography.bodySmall)
+                                FlowRow(horizontalArrangement = Arrangement.spacedBy(Dimensions.SpaceS)) {
+                                    resultOptions.forEach { result ->
+                                        val isSelected = selectedResults.contains(result)
+                                        val localizedRes = when (result) {
+                                            "standard_matched" -> stringResource(R.string.worker_history_result_matched)
+                                            "sequence_step_completed" -> stringResource(R.string.worker_history_result_step_completed)
+                                            "mismatch" -> stringResource(R.string.worker_history_result_mismatch)
+                                            "out_of_order" -> stringResource(R.string.worker_history_result_out_of_order)
+                                            "duplicate" -> stringResource(R.string.worker_history_result_duplicate)
+                                            else -> result
+                                        }
+                                        FilterChip(
+                                            selected = isSelected,
+                                            onClick = dropUnlessResumed {
+                                                if (isSelected) selectedResults.remove(result)
+                                                else selectedResults.add(result)
+                                            },
+                                            label = { Text(localizedRes) }
+                                        )
+                                    }
+                                }
+
                                 Row(horizontalArrangement = Arrangement.spacedBy(Dimensions.SpaceS)) {
                                     DateTimeSelectorField(
                                         label = stringResource(R.string.admin_log_search_start_time),
@@ -362,25 +386,28 @@ fun AdminQueryLogsScreen(
                                 ) {
                                     TextButton(onClick = dropUnlessResumed {
                                         orderIdQuery = ""
-                                        operatorQuery = ""
+                                        uidHexQuery = ""
                                         selectedActions.clear()
+                                        selectedResults.clear()
                                         startTime = ""
                                         endTime = ""
-                                        viewModel.fetchLogs(context, null)
+                                        viewModel.fetchHistory(context, null)
                                     }) {
                                         Text(stringResource(R.string.admin_search_clear_btn))
                                     }
                                     Spacer(modifier = Modifier.width(Dimensions.SpaceS))
                                     Button(onClick = dropUnlessResumed {
                                         isFilterExpanded = false
-                                        val query = icu.guestliang.nfcworkflow.ui.admin.LogSearchQuery(
-                                            orderId = orderIdQuery.takeIf { it.isNotBlank() }?.split(",")?.map { it.trim() },
-                                            status = selectedActions.toList().takeIf { it.isNotEmpty() },
-                                            operator = operatorQuery.takeIf { it.isNotBlank() }?.split(",")?.map { it.trim() },
-                                            startTime = startTime.takeIf { it.isNotBlank() },
-                                            endTime = endTime.takeIf { it.isNotBlank() }
+                                        val orderIds = orderIdQuery.split(",").map { it.trim() }.filter { it.isNotEmpty() }
+                                        val query = WorkerHistoryQuery(
+                                            orderId = orderIds.ifEmpty { null },
+                                            action = selectedActions.ifEmpty { null },
+                                            result = selectedResults.ifEmpty { null },
+                                            uidHex = uidHexQuery.ifBlank { null },
+                                            startTime = startTime.ifBlank { null },
+                                            endTime = endTime.ifBlank { null }
                                         )
-                                        viewModel.fetchLogs(context, query)
+                                        viewModel.fetchHistory(context, query)
                                     }) {
                                         Text(stringResource(R.string.admin_search_btn))
                                     }
@@ -390,20 +417,11 @@ fun AdminQueryLogsScreen(
                     }
                 }
 
-                // Results List Portrait
-                Box(modifier = Modifier.fillMaxSize()) {
-                    LogResultsList(
-                        isInitialLoad = isInitialLoad,
-                        uiState = uiState,
-                        viewModel = viewModel,
-                        coroutineScope = coroutineScope,
-                        showEmptyDialog = showEmptyDialog,
-                        onShowEmptyDialogChange = { showEmptyDialog = it }
-                    )
-                }
+                // Results List
+                HistoryResultsList(uiState = uiState)
             }
         }
-        
+
         if (showFallbackDialog) {
             AlertDialog(
                 onDismissRequest = { 
@@ -426,163 +444,76 @@ fun AdminQueryLogsScreen(
 }
 
 @Composable
-fun LogResultsList(
-    isInitialLoad: Boolean,
-    uiState: AdminUiState,
-    viewModel: AdminViewModel,
-    coroutineScope: kotlinx.coroutines.CoroutineScope,
-    showEmptyDialog: Boolean,
-    onShowEmptyDialogChange: (Boolean) -> Unit
-) {
-    val context = LocalContext.current
-    when {
-        isInitialLoad || (uiState.isLoading && uiState.logs.isEmpty()) -> {
-            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                CircularProgressIndicator()
-            }
+fun HistoryResultsList(uiState: WorkerUiState) {
+    if (uiState.isLoading) {
+        Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+            CircularProgressIndicator()
         }
-        uiState.error != null && uiState.logs.isEmpty() -> {
-            Column(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(Dimensions.SpaceXXXL),
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.Center
-            ) {
-                Icon(
-                    imageVector = Icons.Default.CloudOff,
-                    contentDescription = "Network Error",
-                    modifier = Modifier.size(Dimensions.IconSize.XL),
-                    tint = MaterialTheme.colorScheme.error
-                )
-                Spacer(modifier = Modifier.height(Dimensions.SpaceL))
-                Text(
-                    text = stringResource(R.string.error_network_title),
-                    style = MaterialTheme.typography.titleLarge,
-                    color = MaterialTheme.colorScheme.error
-                )
-                Spacer(modifier = Modifier.height(Dimensions.SpaceS))
-                Text(
-                    text = uiState.error ?: stringResource(R.string.error_network_desc),
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    textAlign = TextAlign.Center
-                )
-                Spacer(modifier = Modifier.height(Dimensions.SpaceXXL))
-                Button(
-                    onClick = dropUnlessResumed { 
-                        viewModel.clearMessages()
-                        coroutineScope.launch {
-                            val job1 = viewModel.fetchLogs(context)
-                            val job2 = viewModel.fetchAnalysisSummary(context)
-                            job1.join()
-                            job2.join()
-                        }
-                    },
-                    enabled = !uiState.isLoading
-                ) {
-                    if (uiState.isLoading) {
-                        CircularProgressIndicator(
-                            modifier = Modifier.size(Dimensions.IconSize.M),
-                            color = MaterialTheme.colorScheme.onPrimary
-                        )
-                    } else {
-                        Icon(imageVector = Icons.Default.Refresh, contentDescription = null)
-                        Spacer(modifier = Modifier.width(Dimensions.SpaceS))
-                        Text(stringResource(R.string.error_retry_btn))
-                    }
-                }
-            }
+    } else if (uiState.error != null) {
+        Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+            Text(text = uiState.error!!, color = MaterialTheme.colorScheme.error)
         }
-        else -> {
-            LaunchedEffect(uiState.logs) {
-                if (uiState.logs.isEmpty() && !isInitialLoad && !uiState.isLoading) {
-                    onShowEmptyDialogChange(true)
-                }
-            }
-
-            if (showEmptyDialog) {
-                AlertDialog(
-                    onDismissRequest = { onShowEmptyDialogChange(false) },
-                    title = { Text(stringResource(R.string.dialog_empty_state_title)) },
-                    text = { Text(stringResource(R.string.admin_logs_no_data)) },
-                    confirmButton = {
-                        TextButton(onClick = dropUnlessResumed { onShowEmptyDialogChange(false) }) {
-                            Text(stringResource(R.string.ok))
-                        }
-                    }
-                )
-            }
-
-            LazyColumn(
-                modifier = Modifier.fillMaxSize(),
-                contentPadding = PaddingValues(bottom = Dimensions.SpaceL)
-            ) {
-                // Show Global Analysis Summary
-                uiState.analysisSummary?.let { summary ->
-                    item {
-                        Card(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(horizontal = Dimensions.SpaceL, vertical = Dimensions.SpaceS),
-                            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.secondaryContainer),
-                            elevation = CardDefaults.cardElevation(defaultElevation = Dimensions.Elevation.Low)
-                        ) {
-                            Column(modifier = Modifier.padding(Dimensions.SpaceL), verticalArrangement = Arrangement.spacedBy(Dimensions.SpaceS)) {
-                                Text(text = stringResource(R.string.admin_analysis_summary_title), style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.onSecondaryContainer)
-                                Spacer(modifier = Modifier.height(Dimensions.SpaceXS))
-                                
-                                val totals = summary.totals
-                                if (totals != null) {
-                                    Text(stringResource(R.string.admin_analysis_total_orders, totals.totalOrders, totals.standardOrders, totals.sequenceOrders), style = MaterialTheme.typography.bodyMedium)
-                                    Text(stringResource(R.string.admin_analysis_completed_orders, totals.completedOrders), style = MaterialTheme.typography.bodyMedium)
-                                }
-                                
-                                val scans = summary.scans
-                                if (scans != null) {
-                                    Text(stringResource(R.string.admin_analysis_total_scans, scans.totalScanEvidenceCount), style = MaterialTheme.typography.bodyMedium)
-                                    val successCount = scans.standardMatchedCount + scans.sequenceStepCompletedCount
-                                    Text(stringResource(R.string.admin_analysis_success_scans, successCount, scans.standardMatchedCount, scans.sequenceStepCompletedCount), style = MaterialTheme.typography.bodyMedium)
-                                }
+    } else {
+        LazyColumn(
+            modifier = Modifier.fillMaxSize(),
+            contentPadding = PaddingValues(bottom = Dimensions.SpaceL)
+        ) {
+            // Worker Summary Card
+            uiState.historySummary?.let { summary ->
+                item {
+                    Card(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = Dimensions.SpaceL, vertical = Dimensions.SpaceS),
+                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer),
+                        elevation = CardDefaults.cardElevation(defaultElevation = Dimensions.Elevation.Low)
+                    ) {
+                        Column(modifier = Modifier.padding(Dimensions.SpaceL), verticalArrangement = Arrangement.spacedBy(Dimensions.SpaceS)) {
+                            Text(text = stringResource(R.string.worker_history_summary_title), style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.onPrimaryContainer)
+                            Spacer(modifier = Modifier.height(Dimensions.SpaceXS))
+                            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                                Text(stringResource(R.string.worker_history_total_scans, summary.totalScanCount), style = MaterialTheme.typography.bodyMedium)
+                                Text(stringResource(R.string.worker_history_successful_scans, summary.successfulScanCount), style = MaterialTheme.typography.bodyMedium)
+                            }
+                            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                                Text(stringResource(R.string.worker_history_mismatch_count, summary.mismatchCount), style = MaterialTheme.typography.bodyMedium)
+                                Text(stringResource(R.string.worker_history_out_of_order_count, summary.outOfOrderCount), style = MaterialTheme.typography.bodyMedium)
+                            }
+                            Text(stringResource(R.string.worker_history_completed_orders, summary.completedOrderCount), style = MaterialTheme.typography.bodyMedium)
+                            if (summary.lastScanAt != null) {
+                                Text(stringResource(R.string.worker_history_last_scan, summary.lastScanAt), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.8f))
+                            } else {
+                                Text(stringResource(R.string.worker_history_no_last_scan), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.8f))
                             }
                         }
                     }
                 }
+            }
 
-                if (uiState.logs.isEmpty()) {
-                    item {
-                        Box(modifier = Modifier.fillMaxWidth().padding(Dimensions.SpaceXL), contentAlignment = Alignment.Center) {
-                            Text(
-                                text = stringResource(R.string.admin_logs_no_data),
-                                style = MaterialTheme.typography.bodyLarge,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                        }
+            if (uiState.history.isEmpty()) {
+                item {
+                    Box(modifier = Modifier.fillMaxWidth().padding(Dimensions.SpaceXL), contentAlignment = Alignment.Center) {
+                        Text(
+                            text = stringResource(R.string.admin_logs_no_data),
+                            style = MaterialTheme.typography.bodyLarge,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
                     }
-                } else {
-                    items(uiState.logs, key = { it.id }) { log ->
-                        Card(
-                            modifier = Modifier.fillMaxWidth().padding(horizontal = Dimensions.SpaceL, vertical = Dimensions.SpaceS),
-                            elevation = CardDefaults.cardElevation(defaultElevation = Dimensions.Elevation.Low)
-                        ) {
+                }
+            } else {
+                items(uiState.history) { log ->
+                    SplicedColumnGroup(title = stringResource(R.string.admin_log_item_title, log.id)) {
+                        item {
                             Column(
                                 modifier = Modifier.padding(Dimensions.SpaceL),
-                                verticalArrangement = Arrangement.spacedBy(Dimensions.SpaceXXS)
+                                verticalArrangement = Arrangement.spacedBy(Dimensions.SpaceS)
                             ) {
-                                Text(
-                                    text = stringResource(R.string.admin_log_item_title, log.id),
-                                    style = MaterialTheme.typography.titleSmall
-                                )
-                                val actStr = if (log.action == "scan") "扫描 (Scan)" else getLocalizedStatus(log.action)
-                                Text(text = stringResource(R.string.admin_log_action, actStr))
+                                Text(text = stringResource(R.string.admin_log_action, log.action))
                                 
                                 val orderId = log.orderId ?: log.order_id
-                                val orderTitle = log.orderTitle ?: "Order"
-                                Text(text = stringResource(R.string.admin_log_target, orderTitle, orderId?.toString() ?: "N/A"))
-                                
-                                val opId = log.operator_id
-                                if (opId != null) {
-                                    Text(text = stringResource(R.string.admin_log_user, opId))
+                                if (orderId != null) {
+                                    val targetTitle = log.orderTitle ?: "Order"
+                                    Text(text = stringResource(R.string.admin_log_target, targetTitle, orderId.toString()))
                                 }
                                 
                                 if (log.result != null) {
@@ -604,8 +535,10 @@ fun LogResultsList(
                                 if (log.locationCode != null) {
                                     Text(text = "地点: ${log.displayName ?: log.locationCode}", style = MaterialTheme.typography.bodySmall)
                                 }
-
-                                Text(text = stringResource(R.string.admin_log_time, log.timestamp ?: "N/A"), style = MaterialTheme.typography.bodySmall)
+                                
+                                log.timestamp?.let {
+                                    Text(text = stringResource(R.string.admin_log_time, it), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                }
                             }
                         }
                     }
@@ -627,7 +560,7 @@ private fun DateTimeSelectorField(label: String, value: String, onDateTimeSelect
             readOnly = true,
             trailingIcon = { Icon(Icons.Default.DateRange, contentDescription = "Select Date and Time") },
             modifier = Modifier.fillMaxWidth(),
-            enabled = false, // disabled to enforce clicking the Box instead of typing
+            enabled = false, 
             colors = OutlinedTextFieldDefaults.colors(
                 disabledTextColor = MaterialTheme.colorScheme.onSurface,
                 disabledBorderColor = MaterialTheme.colorScheme.outline,
@@ -635,7 +568,6 @@ private fun DateTimeSelectorField(label: String, value: String, onDateTimeSelect
                 disabledTrailingIconColor = MaterialTheme.colorScheme.onSurfaceVariant
             )
         )
-        // Invisible clickable overlay
         Box(
             modifier = Modifier
                 .matchParentSize()

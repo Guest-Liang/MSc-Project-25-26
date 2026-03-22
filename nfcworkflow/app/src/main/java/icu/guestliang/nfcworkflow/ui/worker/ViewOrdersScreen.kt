@@ -2,6 +2,7 @@ package icu.guestliang.nfcworkflow.ui.worker
 
 import icu.guestliang.nfcworkflow.R
 import icu.guestliang.nfcworkflow.logging.AppLogger
+import icu.guestliang.nfcworkflow.navigation.Screen
 import icu.guestliang.nfcworkflow.network.Order
 import icu.guestliang.nfcworkflow.ui.components.SplicedBaseWidget
 import icu.guestliang.nfcworkflow.ui.components.SplicedColumnGroup
@@ -20,6 +21,7 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.Assignment
 import androidx.compose.material.icons.filled.ExpandLess
 import androidx.compose.material.icons.filled.ExpandMore
+import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -106,7 +108,7 @@ fun ViewOrdersScreen(
                         contentPadding = PaddingValues(bottom = Dimensions.SpaceL)
                     ) {
                         items(uiState.orders) { order ->
-                            OrderCard(order = order)
+                            OrderCard(order = order, navController = navController)
                         }
                     }
                 }
@@ -116,15 +118,20 @@ fun ViewOrdersScreen(
 }
 
 @Composable
-fun OrderCard(order: Order) {
+fun OrderCard(order: Order, navController: NavController) {
     var expanded by remember { mutableStateOf(false) }
+    
+    val orderTypeStr = if (order.orderType == "sequence") 
+        stringResource(R.string.worker_order_type_sequence)
+    else 
+        stringResource(R.string.worker_order_type_standard)
 
     SplicedColumnGroup(title = stringResource(R.string.admin_order_item_title, order.id ?: 0, order.title)) {
         item {
             SplicedBaseWidget(
                 icon = Icons.AutoMirrored.Filled.Assignment,
                 title = order.title,
-                description = stringResource(R.string.admin_order_status, getLocalizedStatus(order.status)),
+                description = stringResource(R.string.admin_order_status, getLocalizedStatus(order.status)) + " | " + orderTypeStr,
                 iconPlaceholder = true,
                 onClick = dropUnlessResumed { expanded = !expanded }
             ) {
@@ -149,29 +156,43 @@ fun OrderCard(order: Order) {
                             text = stringResource(R.string.admin_order_description, order.description),
                             style = MaterialTheme.typography.bodyMedium
                         )
-                        if (!order.nfc_tag.isNullOrBlank()) {
+                        
+                        if (order.orderType == "standard") {
+                            order.targetUidHex?.let {
+                                Text(
+                                    text = stringResource(R.string.worker_order_target_uid, it),
+                                    style = MaterialTheme.typography.bodySmall
+                                )
+                            }
+                            order.locationCode?.let {
+                                Text(
+                                    text = stringResource(R.string.worker_order_location, it),
+                                    style = MaterialTheme.typography.bodySmall
+                                )
+                            }
+                        } else if (order.orderType == "sequence") {
                             Text(
-                                text = stringResource(R.string.admin_order_nfc_tag, order.nfc_tag),
+                                text = stringResource(R.string.worker_order_step_progress, order.sequenceCompletedSteps, order.sequenceTotalSteps),
                                 style = MaterialTheme.typography.bodySmall
                             )
+                            order.nextDisplayName?.let {
+                                Text(
+                                    text = stringResource(R.string.worker_order_next_step, it),
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.primary
+                                )
+                            }
                         }
-                        if (order.assigned_to != null) {
-                            Text(
-                                text = stringResource(R.string.admin_order_assigned_to, "", order.assigned_to),
-                                style = MaterialTheme.typography.bodySmall
-                            )
-                        }
-                        if (!order.created_at.isNullOrBlank()) {
-                            Text(
-                                text = stringResource(R.string.admin_order_created_at, order.created_at),
-                                style = MaterialTheme.typography.bodySmall
-                            )
-                        }
-                        if (!order.updated_at.isNullOrBlank()) {
-                            Text(
-                                text = stringResource(R.string.admin_order_updated_at, order.updated_at),
-                                style = MaterialTheme.typography.bodySmall
-                            )
+
+                        if (order.status != "completed") {
+                            Button(
+                                onClick = dropUnlessResumed { 
+                                    order.id?.let { navController.navigate(Screen.WorkerScanOrder.createRoute(it)) }
+                                },
+                                modifier = Modifier.padding(top = Dimensions.SpaceM)
+                            ) {
+                                Text(text = stringResource(R.string.worker_scan_to_execute))
+                            }
                         }
                     }
                 }

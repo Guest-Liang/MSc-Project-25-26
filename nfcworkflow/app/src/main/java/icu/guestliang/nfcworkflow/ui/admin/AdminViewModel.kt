@@ -2,11 +2,15 @@ package icu.guestliang.nfcworkflow.ui.admin
 
 import icu.guestliang.nfcworkflow.data.PrefsDataStore
 import icu.guestliang.nfcworkflow.logging.AppLogger
+import icu.guestliang.nfcworkflow.network.AdminAnalysisSummary
 import icu.guestliang.nfcworkflow.network.ApiClient
 import icu.guestliang.nfcworkflow.network.ApiResponse
 import icu.guestliang.nfcworkflow.network.CreateOrderRequest
+import icu.guestliang.nfcworkflow.network.CreateOrderResponseData
 import icu.guestliang.nfcworkflow.network.LogEntry
 import icu.guestliang.nfcworkflow.network.Order
+import icu.guestliang.nfcworkflow.network.OrderStep
+import icu.guestliang.nfcworkflow.network.SaveOrderStepsRequest
 import icu.guestliang.nfcworkflow.network.WorkerUser
 import io.ktor.client.call.body
 import io.ktor.client.plugins.HttpRequestTimeoutException
@@ -42,8 +46,10 @@ data class OrderSearchQuery(
     val title: String? = null,
     val description: String? = null,
     val nfcTag: String? = null,
+    val orderType: List<String>? = null,
     val status: List<String>? = null,
     val assigned: List<String>? = null,
+    val progress: List<String>? = null,
     val createdStart: String? = null,
     val createdEnd: String? = null,
     val updatedStart: String? = null,
@@ -67,14 +73,15 @@ data class AdminUiState(
     val isFallbackTriggered: Boolean = false,
     val workers: List<WorkerUser> = emptyList(),
     val logs: List<LogEntry> = emptyList(),
-    val allLogs: List<LogEntry> = emptyList()
+    val allLogs: List<LogEntry> = emptyList(),
+    val analysisSummary: AdminAnalysisSummary? = null
 )
 
 class AdminViewModel : ViewModel() {
     private val _uiState = MutableStateFlow(AdminUiState())
     val uiState: StateFlow<AdminUiState> = _uiState.asStateFlow()
 
-    private val json = Json { ignoreUnknownKeys = true }
+    private val json = Json { ignoreUnknownKeys = true; isLenient = true }
 
     fun clearMessages() {
         _uiState.update { it.copy(error = null, successMessage = null) }
@@ -88,10 +95,27 @@ class AdminViewModel : ViewModel() {
         return PrefsDataStore.flow(context).firstOrNull()?.token
     }
 
-    fun createOrder(context: Context, title: String, description: String, nfcTag: String?): Job {
+    fun createOrder(
+        context: Context,
+        title: String,
+        description: String,
+        orderType: String,
+        targetUidHex: String?,
+        steps: List<OrderStep>
+    ): Job {
         return viewModelScope.launch {
             if (title.isBlank() || description.isBlank()) {
                 _uiState.update { it.copy(error = "Title and description cannot be empty") }
+                return@launch
+            }
+
+            if (orderType == "standard" && targetUidHex.isNullOrBlank()) {
+                _uiState.update { it.copy(error = "Standard order must have a target UID") }
+                return@launch
+            }
+            
+            if (orderType == "sequence" && steps.isEmpty()) {
+                _uiState.update { it.copy(error = "Sequence order must have at least one step") }
                 return@launch
             }
 
@@ -103,14 +127,40 @@ class AdminViewModel : ViewModel() {
                     return@launch
                 }
 
-                val request = CreateOrderRequest(title, description, nfcTag)
+                val createReq = CreateOrderRequest(
+                    title = title,
+                    description = description,
+                    orderType = orderType,
+                    targetUidHex = if (orderType == "standard") targetUidHex else null,
+                    tag = if (orderType == "standard") targetUidHex else null
+                )
+
                 val response: ApiResponse = ApiClient.client.post("admin/orders/create") {
                     header(HttpHeaders.Authorization, "Bearer $token")
                     contentType(ContentType.Application.Json)
-                    setBody(request)
+                    setBody(createReq)
                 }.body()
 
-                if (response.success) {
+                if (response.success && response.data != null) {
+                    val dataObj = try {
+                        json.decodeFromJsonElement<CreateOrderResponseData>(response.data)
+                    } catch (e: Exception) { null }
+                    
+                    val orderId = dataObj?.orderId
+                    if (orderType == "sequence" && orderId != null) {
+                        // Save steps
+                        val stepsReq = SaveOrderStepsRequest(orderId, steps)
+                        val stepsResp: ApiResponse = ApiClient.client.post("admin/orders/steps/save") {
+                            header(HttpHeaders.Authorization, "Bearer $token")
+                            contentType(ContentType.Application.Json)
+                            setBody(stepsReq)
+                        }.body()
+                        
+                        if (!stepsResp.success) {
+                            _uiState.update { it.copy(isLoading = false, error = "Order created but failed to save steps: " + stepsResp.message) }
+                            return@launch
+                        }
+                    }
                     _uiState.update { it.copy(isLoading = false, successMessage = "Order created successfully") }
                 } else {
                     _uiState.update { it.copy(isLoading = false, error = response.message) }
@@ -137,9 +187,11 @@ class AdminViewModel : ViewModel() {
                     query?.let { q ->
                         q.title?.takeIf { it.isNotBlank() }?.let { parameter("title", it) }
                         q.description?.takeIf { it.isNotBlank() }?.let { parameter("description", it) }
-                        q.nfcTag?.takeIf { it.isNotBlank() }?.let { parameter("nfc_tag", it) }
+                        q.nfcTag?.takeIf { it.isNotBlank() }?.let { parameter("targetUidHex", it) }
+                        q.orderType?.takeIf { it.isNotEmpty() }?.let { parameter("orderType", it.joinToString(",")) }
                         q.status?.takeIf { it.isNotEmpty() }?.let { parameter("status", it.joinToString(",")) }
                         q.assigned?.takeIf { it.isNotEmpty() }?.let { parameter("assigned", it.joinToString(",")) }
+                        q.progress?.takeIf { it.isNotEmpty() }?.let { parameter("progress", it.joinToString(",")) }
                         q.createdStart?.takeIf { it.isNotBlank() }?.let { parameter("createdStart", it) }
                         q.createdEnd?.takeIf { it.isNotBlank() }?.let { parameter("createdEnd", it) }
                         q.updatedStart?.takeIf { it.isNotBlank() }?.let { parameter("updatedStart", it) }
@@ -170,20 +222,39 @@ class AdminViewModel : ViewModel() {
                             var match = true
                             query.title?.takeIf { it.isNotBlank() }?.let { if (!order.title.contains(it, true)) match = false }
                             query.description?.takeIf { it.isNotBlank() }?.let { if (!order.description.contains(it, true)) match = false }
-                            query.nfcTag?.takeIf { it.isNotBlank() }?.let { if (order.nfc_tag?.contains(it, true) != true) match = false }
+                            
+                            val uidField = order.targetUidHex ?: order.nfc_tag
+                            query.nfcTag?.takeIf { it.isNotBlank() }?.let { if (uidField?.contains(it, true) != true) match = false }
+                            
+                            query.orderType?.takeIf { it.isNotEmpty() }?.let { if (order.orderType !in it) match = false }
                             query.status?.takeIf { it.isNotEmpty() }?.let { if (order.status !in it) match = false }
+                            
+                            query.progress?.takeIf { it.isNotEmpty() }?.let { progressList ->
+                                val computedProgress = if (order.status == "completed") {
+                                    "completed"
+                                } else if (order.orderType == "sequence" && order.sequenceCompletedSteps > 0) {
+                                    "in_progress"
+                                } else {
+                                    "not_started"
+                                }
+                                if (computedProgress !in progressList) match = false
+                            }
+
                             query.assigned?.takeIf { it.isNotEmpty() }?.let { assignedList ->
-                                val isUnassigned = order.assigned_to == null
-                                val assignedStr = order.assigned_to?.toString()
+                                val finalAssignedTo = order.assignedTo ?: order.assigned_to
+                                val isUnassigned = finalAssignedTo == null
+                                val assignedStr = finalAssignedTo?.toString()
                                 val wantUnassigned = "NULL" in assignedList
                                 val matchAssigned = (wantUnassigned && isUnassigned) || (assignedStr != null && assignedStr in assignedList)
                                 if (!matchAssigned) match = false
                             }
+                            
+                            val createdField = order.assignedAt ?: order.created_at
                             query.createdStart?.takeIf { it.isNotBlank() }?.let { start ->
-                                if (order.created_at == null || order.created_at < start) match = false
+                                if (createdField == null || createdField < start) match = false
                             }
                             query.createdEnd?.takeIf { it.isNotBlank() }?.let { end ->
-                                if (order.created_at == null || order.created_at > end) match = false
+                                if (createdField == null || createdField > end) match = false
                             }
                             query.updatedStart?.takeIf { it.isNotBlank() }?.let { start ->
                                 if (order.updated_at == null || order.updated_at < start) match = false
@@ -337,6 +408,24 @@ class AdminViewModel : ViewModel() {
                     AppLogger.error(context, e, "Failed to fetch logs", "AdminViewModel")
                     _uiState.update { it.copy(isLoading = false, error = e.message ?: "Unknown error") }
                 }
+            }
+        }
+    }
+    
+    fun fetchAnalysisSummary(context: Context): Job {
+        return viewModelScope.launch {
+            try {
+                val token = getToken(context) ?: return@launch
+                val response: ApiResponse = ApiClient.client.get("orders/analysis/summary") {
+                    header(HttpHeaders.Authorization, "Bearer $token")
+                }.body()
+
+                if (response.success && response.data != null) {
+                    val summary: AdminAnalysisSummary = json.decodeFromJsonElement(response.data)
+                    _uiState.update { it.copy(analysisSummary = summary) }
+                }
+            } catch (e: Exception) {
+                AppLogger.error(context, e, "Failed to fetch analysis summary", "AdminViewModel")
             }
         }
     }

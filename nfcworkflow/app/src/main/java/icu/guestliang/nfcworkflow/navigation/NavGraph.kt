@@ -10,6 +10,8 @@ import icu.guestliang.nfcworkflow.ui.login.LoginScreen
 import icu.guestliang.nfcworkflow.ui.login.RegisterScreen
 import icu.guestliang.nfcworkflow.ui.worker.CompleteOrderScreen
 import icu.guestliang.nfcworkflow.ui.worker.ViewOrdersScreen
+import icu.guestliang.nfcworkflow.ui.worker.WorkerHistoryScreen
+import icu.guestliang.nfcworkflow.ui.worker.WorkerScanScreen
 import androidx.compose.animation.AnimatedContentTransitionScope
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
@@ -29,9 +31,13 @@ sealed class Screen(val route: String, val resourceId: Int? = null, val icon: Im
     object Login : Screen("login")
     object Register : Screen("register")
     object ResetPassword : Screen("reset_password")
-    object Main : Screen("main") // This will contain the ViewPager for Home, Nfc, Settings
+    object Main : Screen("main")
     object WorkerOrders : Screen("worker_orders")
+    object WorkerHistory : Screen("worker_history")
     object WorkerCompleteOrder : Screen("worker_complete_order")
+    object WorkerScanOrder : Screen("worker_scan_order/{orderId}") {
+        fun createRoute(orderId: Int) = "worker_scan_order/$orderId"
+    }
     object AdminRegisterWorker : Screen("admin_register_worker")
     object AdminCreateOrder : Screen("admin_create_order")
     object AdminAssignOrder : Screen("admin_assign_order")
@@ -54,27 +60,23 @@ fun NavGraph(navController: NavHostController, modifier: androidx.compose.ui.Mod
         startDestination = Screen.Login.route,
         modifier = modifier,
         enterTransition = {
-            // 子页面进入：从右向左滑入并淡入
             slideIntoContainer(
                 AnimatedContentTransitionScope.SlideDirection.Left,
                 animationSpec = tween(300)
             ) + fadeIn(tween(300))
         },
         exitTransition = {
-            // 父页面退出：淡出
             fadeOut(tween(300))
         },
         popEnterTransition = {
-            // 父页面返回：从左向右（与子页面进入方向相反）滑入并淡入
             slideIntoContainer(
                 AnimatedContentTransitionScope.SlideDirection.Right,
                 animationSpec = tween(300)
             ) + fadeIn(tween(300))
         },
         popExitTransition = {
-            // 子页面返回退出：向中心收缩并淡出
             scaleOut(
-                targetScale = 0.85f, // 收缩到 85% 大小
+                targetScale = 0.85f,
                 animationSpec = tween(300)
             ) + fadeOut(tween(300))
         }
@@ -83,46 +85,30 @@ fun NavGraph(navController: NavHostController, modifier: androidx.compose.ui.Mod
             LoginScreen(
                 onLoginSuccess = {
                     navController.navigate(Screen.Main.route) {
-                        popUpTo(Screen.Login.route) {
-                            inclusive = true
-                        }
+                        popUpTo(Screen.Login.route) { inclusive = true }
                     }
                 },
                 onSkip = {
                     navController.navigate(Screen.Main.route) {
-                        popUpTo(Screen.Login.route) {
-                            inclusive = true
-                        }
+                        popUpTo(Screen.Login.route) { inclusive = true }
                     }
                 },
-                onRegister = {
-                    navController.navigate(Screen.Register.route)
-                },
-                onResetPassword = {
-                    navController.navigate(Screen.ResetPassword.route)
-                }
+                onRegister = { navController.navigate(Screen.Register.route) },
+                onResetPassword = { navController.navigate(Screen.ResetPassword.route) }
             )
         }
         composable(Screen.Register.route) {
             RegisterScreen(
                 isResetPassword = false,
-                onSuccess = {
-                    navController.popBackStack()
-                },
-                onBack = {
-                    navController.popBackStack()
-                }
+                onSuccess = { navController.popBackStack() },
+                onBack = { navController.popBackStack() }
             )
         }
         composable(Screen.ResetPassword.route) {
             RegisterScreen(
                 isResetPassword = true,
-                onSuccess = {
-                    navController.popBackStack()
-                },
-                onBack = {
-                    navController.popBackStack()
-                }
+                onSuccess = { navController.popBackStack() },
+                onBack = { navController.popBackStack() }
             )
         }
         composable(Screen.Main.route) {
@@ -138,8 +124,15 @@ fun NavGraph(navController: NavHostController, modifier: androidx.compose.ui.Mod
         composable(Screen.WorkerOrders.route) {
             ViewOrdersScreen(navController)
         }
+        composable(Screen.WorkerHistory.route) {
+            WorkerHistoryScreen(navController)
+        }
         composable(Screen.WorkerCompleteOrder.route) {
             CompleteOrderScreen(navController)
+        }
+        composable(Screen.WorkerScanOrder.route) { backStackEntry ->
+            val orderId = backStackEntry.arguments?.getString("orderId")?.toIntOrNull() ?: 0
+            WorkerScanScreen(navController, orderId)
         }
         composable(Screen.AdminRegisterWorker.route) {
             AdminRegisterWorkerScreen(navController)

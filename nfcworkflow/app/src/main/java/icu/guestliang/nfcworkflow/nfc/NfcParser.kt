@@ -23,6 +23,46 @@ fun getUriPrefix(identifierCode: Byte): String {
     }
 }
 
+data class ParsedNfcData(
+    val uidHex: String,
+    val rawText: String,
+    val ndefText: String?
+)
+
+fun parseNfcTagData(tag: Tag, context: Context): ParsedNfcData {
+    val uidHex = tag.id.joinToString("") { "%02X".format(it) }
+    val rawText = parseNfcTag(tag, context)
+    var ndefText: String? = null
+
+    val ndef = Ndef.get(tag)
+    if (ndef != null) {
+        try {
+            ndef.connect()
+            val ndefMessage = ndef.ndefMessage
+            if (ndefMessage != null) {
+                for (record in ndefMessage.records) {
+                    if (record.tnf == NdefRecord.TNF_WELL_KNOWN && record.type.contentEquals(NdefRecord.RTD_TEXT)) {
+                        try {
+                            val payload = record.payload
+                            val textEncoding = if ((payload[0].toInt() and 128) == 0) "UTF-8" else "UTF-16"
+                            val languageCodeLength = payload[0].toInt() and 51
+                            ndefText = String(payload, languageCodeLength + 1, payload.size - languageCodeLength - 1, Charset.forName(textEncoding))
+                            break
+                        } catch (e: Exception) {
+                            // Ignore
+                        }
+                    }
+                }
+            }
+        } catch (e: Exception) {
+            // Ignore
+        } finally {
+            try { ndef.close() } catch (_: Exception) {}
+        }
+    }
+    return ParsedNfcData(uidHex, rawText, ndefText)
+}
+
 fun parseNfcTag(tag: Tag, context: Context): String {
     val sb = StringBuilder()
     
