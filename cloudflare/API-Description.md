@@ -21,7 +21,7 @@ All APIs return JSON with the following unified envelope.
   "message": "Scanned UID Hex is out of the required order",
   "data": {
     "expectedStepIndex": 2,
-    "expectedUidHex": "0D000D000D00"
+    "expectedUidHex": "0D000D000D000D00"
   }
 }
 ```
@@ -45,6 +45,12 @@ See `cloudflare/src/utils/status.js` for the status-code definitions.
 
 **English**  
 This document is centered on the canonical API only. Among the older endpoints, `POST /worker/orders/complete` is deprecated and is kept here only with a deprecation note. Use `POST /worker/orders/scan` instead.
+
+**中文补充**  
+当前后端只接受规范化后长度为 `14 / 16 / 20` 个十六进制字符的 UID Hex，也就是 `7 / 8 / 10 bytes` 的 NFC UID。
+
+**English note**  
+The backend currently accepts UID Hex values whose normalized length is `14 / 16 / 20` hexadecimal characters only, i.e. `7 / 8 / 10 bytes` NFC UIDs.
 
 ## 工单模型 / Order Model
 
@@ -247,7 +253,7 @@ Authorization: Bearer <admin-token>
   "title": "Check Room 301",
   "description": "Arrive at room 301 and confirm the maintenance task",
   "orderType": "standard",
-  "targetUidHex": "04AABBCCDD11",
+  "targetUidHex": "04AABBCCDD1122",
   "locationCode": "room301",
   "displayName": "Room 301"
 }
@@ -306,13 +312,13 @@ Authorization: Bearer <admin-token>
   "steps": [
     {
       "stepIndex": 1,
-      "targetUidHex": "04AABBCCDD11",
+      "targetUidHex": "04AABBCCDD1122",
       "locationCode": "room301",
       "displayName": "Room 301"
     },
     {
       "stepIndex": 2,
-      "targetUidHex": "04EEFF001122",
+      "targetUidHex": "04EEFF00112233",
       "locationCode": "room302-server1",
       "displayName": "Room 302 Server 1"
     }
@@ -436,7 +442,7 @@ Authorization: Bearer <worker-token>
       "sequenceTotalSteps": 3,
       "sequenceCompletedSteps": 1,
       "nextStepIndex": 2,
-      "nextExpectedUidHex": "04EEFF001122",
+      "nextExpectedUidHex": "04EEFF00112233",
       "nextLocationCode": "room302-server1",
       "nextDisplayName": "Room 302 Server 1"
     }
@@ -460,8 +466,8 @@ Authorization: Bearer <worker-token>
 ```json
 {
   "orderId": 101,
-  "uidHex": "04AABBCCDD11",
-  "rawText": "ID: 04AABBCCDD11",
+  "uidHex": "04AABBCCDD1122",
+  "rawText": "ID: 04AABBCCDD1122",
   "ndefText": "room301"
 }
 ```
@@ -489,8 +495,8 @@ Authorization: Bearer <worker-token>
     "orderType": "standard",
     "matched": true,
     "completed": true,
-    "scannedUidHex": "04AABBCCDD11",
-    "expectedUidHex": "04AABBCCDD11",
+    "scannedUidHex": "04AABBCCDD1122",
+    "expectedUidHex": "04AABBCCDD1122",
     "locationCode": "room301",
     "displayName": "Room 301",
     "sequenceTotalSteps": 0,
@@ -513,12 +519,12 @@ Authorization: Bearer <worker-token>
     "orderType": "sequence",
     "matched": true,
     "completed": false,
-    "scannedUidHex": "04AABBCCDD11",
+    "scannedUidHex": "04AABBCCDD1122",
     "completedStepIndex": 1,
     "sequenceTotalSteps": 3,
     "sequenceCompletedSteps": 1,
     "nextStepIndex": 2,
-    "nextExpectedUidHex": "04EEFF001122",
+    "nextExpectedUidHex": "04EEFF00112233",
     "nextLocationCode": "room302-server1",
     "nextDisplayName": "Room 302 Server 1"
   }
@@ -535,9 +541,9 @@ Authorization: Bearer <worker-token>
   "data": {
     "orderId": 101,
     "orderType": "sequence",
-    "scannedUidHex": "04FFFF889900",
+    "scannedUidHex": "04FFFF88990077",
     "expectedStepIndex": 2,
-    "expectedUidHex": "04EEFF001122",
+    "expectedUidHex": "04EEFF00112233",
     "expectedLocationCode": "room302-server1",
     "expectedDisplayName": "Room 302 Server 1",
     "scannedStepIndex": 3
@@ -598,7 +604,7 @@ Authorization: Bearer <worker-token>
 | `orderId` | `101,102` | 仅查询这些工单 | Only these order IDs |
 | `action` | `scan,completed` | 日志动作筛选 | Log action filter |
 | `result` | `standard_matched,mismatch` | 执行结果筛选 | Execution result filter |
-| `uidHex` | `04AABBCCDD11` | 按扫描或期望 UID 过滤 | Filter by scanned or expected UID |
+| `uidHex` | `04AABBCCDD1122` | 按扫描或期望 UID 过滤 | Filter by scanned or expected UID |
 | `startTime` | `2026-03-20 00:00:00` | 起始时间（含） | Start time inclusive |
 | `endTime` | `2026-03-20 23:59:59` | 结束时间（含） | End time inclusive |
 
@@ -618,20 +624,20 @@ Authorization: Bearer <worker-token>
       "timestamp": "2026-03-22 11:20:30",
       "result": "sequence_step_completed",
       "step_index": 1,
-      "scan_uid_hex": "04AABBCCDD11",
-      "expected_uid_hex": "04AABBCCDD11",
+      "scan_uid_hex": "04AABBCCDD1122",
+      "expected_uid_hex": "04AABBCCDD1122",
       "location_code": "room301",
       "display_name": "Room 301",
       "orderType": "sequence",
       "orderTitle": "Floor 3 Sequence Patrol",
       "stepIndex": 1,
-      "scanUidHex": "04AABBCCDD11",
-      "expectedUidHex": "04AABBCCDD11",
+      "scanUidHex": "04AABBCCDD1122",
+      "expectedUidHex": "04AABBCCDD1122",
       "locationCode": "room301",
       "displayName": "Room 301",
       "details": {
         "orderType": "sequence",
-        "rawText": "ID: 04AABBCCDD11"
+        "rawText": "ID: 04AABBCCDD1122"
       }
     }
   ]
@@ -705,11 +711,11 @@ View the step definition of a sequence order.
         "id": 1,
         "order_id": 101,
         "step_index": 1,
-        "target_uid_hex": "04AABBCCDD11",
+        "target_uid_hex": "04AABBCCDD1122",
         "location_code": "room301",
         "display_name": "Room 301",
         "stepIndex": 1,
-        "targetUidHex": "04AABBCCDD11",
+        "targetUidHex": "04AABBCCDD1122",
         "locationCode": "room301",
         "displayName": "Room 301"
       }
@@ -731,7 +737,7 @@ Admins query order lifecycle logs, scan evidence, and failure records.
 | `action` | `created,assigned,scan,completed` | 动作筛选 | Action filter |
 | `result` | `sequence_step_completed,mismatch` | 扫描/完成结果筛选 | Scan / completion result filter |
 | `workerId` | `2,3` | 按工人操作人过滤 | Filter by worker operator ID |
-| `uidHex` | `04AABBCCDD11` | 按扫描或期望 UID 过滤 | Filter by scanned or expected UID |
+| `uidHex` | `04AABBCCDD1122` | 按扫描或期望 UID 过滤 | Filter by scanned or expected UID |
 | `orderType` | `standard,sequence` | 按工单类型过滤 | Filter by order type |
 | `startTime` | `2026-03-20 00:00:00` | 起始时间（含） | Start time inclusive |
 | `endTime` | `2026-03-20 23:59:59` | 结束时间（含） | End time inclusive |
@@ -759,7 +765,7 @@ Search work orders with multiple filters.
 | --- | --- | --- | --- |
 | `title` | `Floor 3` | 标题模糊匹配 | Fuzzy match on title |
 | `description` | `server` | 描述模糊匹配 | Fuzzy match on description |
-| `targetUidHex` | `04AABBCCDD11` | 按标准 UID Hex 精确过滤 | Exact filter on canonical UID Hex |
+| `targetUidHex` | `04AABBCCDD1122` | 按标准 UID Hex 精确过滤 | Exact filter on canonical UID Hex |
 | `orderType` | `standard,sequence` | 工单类型 | Order type |
 | `status` | `created,assigned,completed` | 工单状态 | Order status |
 | `assigned` | `2,3` / `NULL` | 指派工人或未指派 | Assigned worker IDs or unassigned |

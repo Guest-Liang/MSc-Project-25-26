@@ -5,6 +5,9 @@ export const ORDER_TYPES = {
 
 const UID_HEX_ALLOWED_PATTERN = /^[0-9a-fA-F:\-\s]+$/
 const HEX_ONLY_PATTERN = /^[0-9A-F]+$/
+const SUPPORTED_UID_HEX_LENGTHS = new Set([14, 16, 20])
+
+export const UID_HEX_LENGTHS = [14, 16, 20]
 
 export function toOptionalTrimmedString(value) {
   if (typeof value !== "string") return null
@@ -31,7 +34,13 @@ export function normalizeUidHex(value) {
   if (!trimmed || !UID_HEX_ALLOWED_PATTERN.test(trimmed)) return null
 
   const normalized = trimmed.replace(/[^0-9a-fA-F]/g, "").toUpperCase()
-  if (normalized.length < 8 || normalized.length % 2 !== 0 || !HEX_ONLY_PATTERN.test(normalized)) {
+  // For this project we only accept canonical NFC UID lengths commonly
+  // produced by the deployed Android scanning flow: 7, 8, or 10 bytes.
+  if (
+    normalized.length % 2 !== 0 ||
+    !HEX_ONLY_PATTERN.test(normalized) ||
+    !SUPPORTED_UID_HEX_LENGTHS.has(normalized.length)
+  ) {
     return null
   }
 

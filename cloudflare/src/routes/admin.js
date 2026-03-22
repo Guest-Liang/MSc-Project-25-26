@@ -4,6 +4,7 @@ import { ERR, INFO } from "../utils/status.js"
 import { jsonResponse } from "../utils/response.js"
 import {
   ORDER_TYPES,
+  UID_HEX_LENGTHS,
   countOrderSteps,
   getOrderById,
   normalizeUidHex,
@@ -16,6 +17,18 @@ import {
 export const adminRoutes = new Hono()
 
 adminRoutes.use("*", requireAdmin)
+
+function buildInvalidUidHexError(field, receivedValue, extraData = {}) {
+  return {
+    ...ERR.INVALID_UID_HEX,
+    data: {
+      field,
+      receivedValue,
+      supportedUidHexLengths: UID_HEX_LENGTHS,
+      ...extraData
+    }
+  }
+}
 
 function validateSequenceSteps(rawSteps) {
   if (!Array.isArray(rawSteps) || rawSteps.length === 0) {
@@ -33,8 +46,16 @@ function validateSequenceSteps(rawSteps) {
     const stepIndex = parsePositiveInteger(rawStep.stepIndex)
     const targetUidHex = normalizeUidHex(rawStep.targetUidHex)
 
-    if (!stepIndex || !targetUidHex || stepIndexes.has(stepIndex)) {
-      return { error: !targetUidHex ? ERR.INVALID_UID_HEX : ERR.INVALID_ORDER_STEPS_PAYLOAD }
+    if (!stepIndex || stepIndexes.has(stepIndex)) {
+      return { error: ERR.INVALID_ORDER_STEPS_PAYLOAD }
+    }
+
+    if (!targetUidHex) {
+      return {
+        error: buildInvalidUidHexError("steps.targetUidHex", rawStep.targetUidHex ?? null, {
+          stepIndex
+        })
+      }
     }
 
     stepIndexes.add(stepIndex)
@@ -90,7 +111,9 @@ adminRoutes.post("/orders/create", async (c) => {
 
   if (!title || !description) return jsonResponse(null, ERR.INVALID_ORDER_PAYLOAD)
   if (!orderType) return jsonResponse(null, ERR.INVALID_ORDER_TYPE)
-  if (rawTargetUidHex != null && !targetUidHex) return jsonResponse(null, ERR.INVALID_UID_HEX)
+  if (rawTargetUidHex != null && !targetUidHex) {
+    return jsonResponse(null, buildInvalidUidHexError("targetUidHex", rawTargetUidHex))
+  }
   if (orderType === ORDER_TYPES.STANDARD && !targetUidHex) {
     return jsonResponse(null, ERR.ORDER_TARGET_UID_REQUIRED)
   }
