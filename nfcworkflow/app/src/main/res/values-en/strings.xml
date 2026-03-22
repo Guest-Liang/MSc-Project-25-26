@@ -147,7 +147,6 @@
     <!-- Admin New UI Strings -->
     <string name="admin_order_title_hint">Order title</string>
     <string name="admin_order_desc_hint">Work order description</string>
-    <!-- Changed: Create Order uses required, Search uses optional -->
     <string name="admin_order_nfc_hint_required">NFC tag UID (required)</string>
     <string name="admin_order_nfc_hint_optional">NFC tag UID (optional)</string>
     <string name="admin_order_create_btn">Create Order</string>
@@ -205,6 +204,7 @@
     <string name="error_retry_btn">Retry</string>
     <!-- Order Detail Dialog -->
     <string name="admin_order_details_title">Order details</string>
+    <string name="admin_order_type">Type: %1$s</string>
     <string name="admin_order_nfc_tag">NFC tag: %1$s</string>
     <string name="admin_order_assigned_to">Assigned to: %1$s (ID: %2$d)</string>
     <string name="admin_order_created_at">Creation time: %1$s</string>
@@ -219,6 +219,17 @@
     <string name="admin_log_search_result_title">Filtering Execution Results (multi-select)</string>
     <string name="admin_log_search_start_time">Start time</string>
     <string name="admin_log_search_end_time">End time</string>
+    <!-- Log Item Detail Extra -->
+    <string name="admin_log_result">Execution result: %1$s</string>
+    <string name="admin_log_scan_uid">Scan UID: %1$s</string>
+    <string name="admin_log_location">Location: %1$s</string>
+    <string name="admin_log_action_scan">Scan</string>
+    <string name="admin_log_action_complete_deprecated">Manual completion (obsolete)</string>
+    <string name="admin_log_action_steps_saved">Save Steps</string>
+    <string name="admin_log_result_steps_saved">Sequential steps have been saved</string>
+    <string name="admin_log_result_standard_completed">Standard order completed</string>
+    <string name="admin_log_result_sequence_completed">Sequential order list has been completed</string>
+    <string name="admin_log_result_deprecated">Obsolete manual completion</string>
     <!-- Time Picker Strings -->
     <string name="time_picker_title">Select time</string>
     <string name="time_picker_year">Y</string>
