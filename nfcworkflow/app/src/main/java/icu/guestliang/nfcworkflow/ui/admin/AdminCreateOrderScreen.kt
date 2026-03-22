@@ -3,14 +3,10 @@ package icu.guestliang.nfcworkflow.ui.admin
 import icu.guestliang.nfcworkflow.R
 import icu.guestliang.nfcworkflow.logging.AppLogger
 import icu.guestliang.nfcworkflow.network.OrderStep
-import icu.guestliang.nfcworkflow.nfc.parseNfcTagData
+import icu.guestliang.nfcworkflow.ui.components.NfcScannerDialog
 import icu.guestliang.nfcworkflow.ui.components.SplicedColumnGroup
 import icu.guestliang.nfcworkflow.ui.theme.Dimensions
-import icu.guestliang.nfcworkflow.utils.findActivity
-import android.content.Intent
 import android.content.res.Configuration
-import android.nfc.NfcAdapter
-import android.provider.Settings
 import android.widget.Toast
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -31,7 +27,6 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Nfc
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -46,7 +41,6 @@ import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -59,7 +53,6 @@ import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.dropUnlessResumed
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
@@ -235,7 +228,7 @@ fun AdminCreateOrderScreen(
     }
 
     if (showNfcDialog) {
-        AdminNfcScannerDialog(
+        NfcScannerDialog(
             onDismiss = { showNfcDialog = false },
             onScanned = { uidHex, text ->
                 if (scanningForStepIndex == null) {
@@ -441,72 +434,4 @@ private fun SubmitButton(
             Text(stringResource(R.string.admin_order_create_btn))
         }
     }
-}
-
-@Composable
-fun AdminNfcScannerDialog(
-    onDismiss: () -> Unit,
-    onScanned: (String, String?) -> Unit
-) {
-    val context = LocalContext.current
-    val activity = context.findActivity()
-    
-    val nfcNotSupportedStr = stringResource(id = R.string.nfc_not_supported)
-    val nfcDisabledStr = stringResource(id = R.string.nfc_disabled_prompt)
-
-    LaunchedEffect(Unit) {
-        val nfcAdapter = activity?.let { NfcAdapter.getDefaultAdapter(it) }
-        if (nfcAdapter == null) {
-            Toast.makeText(context, nfcNotSupportedStr, Toast.LENGTH_SHORT).show()
-            onDismiss()
-        } else if (!nfcAdapter.isEnabled) {
-            Toast.makeText(context, nfcDisabledStr, Toast.LENGTH_SHORT).show()
-            context.startActivity(Intent(Settings.ACTION_NFC_SETTINGS))
-            onDismiss()
-        }
-    }
-
-    DisposableEffect(activity) {
-        val nfcAdapter = activity?.let { NfcAdapter.getDefaultAdapter(it) }
-        
-        if (nfcAdapter != null && nfcAdapter.isEnabled) {
-            val flags = NfcAdapter.FLAG_READER_NFC_A or 
-                        NfcAdapter.FLAG_READER_NFC_B or
-                        NfcAdapter.FLAG_READER_NFC_F or 
-                        NfcAdapter.FLAG_READER_NFC_V
-            
-            val readerCallback = NfcAdapter.ReaderCallback { tag ->
-                val parsedData = parseNfcTagData(tag, context)
-                activity.runOnUiThread {
-                    onScanned(parsedData.uidHex, parsedData.ndefText)
-                }
-            }
-            nfcAdapter.enableReaderMode(activity, readerCallback, flags, null)
-        }
-
-        onDispose {
-            nfcAdapter?.disableReaderMode(activity)
-        }
-    }
-
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        title = { Text(stringResource(id = R.string.nfc_dialog_title)) },
-        text = {
-            Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.fillMaxWidth()) {
-                Icon(
-                    Icons.Default.Nfc, 
-                    contentDescription = null, 
-                    modifier = Modifier.size(64.dp).padding(bottom = Dimensions.SpaceL),
-                    tint = MaterialTheme.colorScheme.primary
-                )
-                Text(stringResource(id = R.string.nfc_dialog_prompt))
-            }
-        },
-        confirmButton = {
-            TextButton(onClick = onDismiss) {
-                Text(stringResource(id = R.string.cancel))
-            }
-        }
-    )
 }
