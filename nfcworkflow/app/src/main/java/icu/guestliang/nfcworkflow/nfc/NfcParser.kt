@@ -44,10 +44,21 @@ fun parseNfcTagData(tag: Tag, context: Context): ParsedNfcData {
                     if (record.tnf == NdefRecord.TNF_WELL_KNOWN && record.type.contentEquals(NdefRecord.RTD_TEXT)) {
                         try {
                             val payload = record.payload
-                            val textEncoding = if ((payload[0].toInt() and 128) == 0) "UTF-8" else "UTF-16"
-                            val languageCodeLength = payload[0].toInt() and 51
-                            ndefText = String(payload, languageCodeLength + 1, payload.size - languageCodeLength - 1, Charset.forName(textEncoding))
-                            break
+                            if (payload.isNotEmpty()) {
+                                val textEncoding = if ((payload[0].toInt() and 128) == 0) "UTF-8" else "UTF-16"
+                                // Standard: mask with 0x3F (63) to get language code length from bottom 6 bits
+                                val languageCodeLength = payload[0].toInt() and 63
+                                
+                                if (payload.size > languageCodeLength) {
+                                    ndefText = String(
+                                        payload, 
+                                        languageCodeLength + 1, 
+                                        payload.size - languageCodeLength - 1, 
+                                        Charset.forName(textEncoding)
+                                    )
+                                    break
+                                }
+                            }
                         } catch (e: Exception) {
                             // Ignore
                         }
@@ -112,10 +123,16 @@ fun parseNfcTag(tag: Tag, context: Context): String {
                         NdefRecord.TNF_WELL_KNOWN if record.type.contentEquals(NdefRecord.RTD_TEXT) -> {
                             try {
                                 val payload = record.payload
-                                val textEncoding = if ((payload[0].toInt() and 128) == 0) "UTF-8" else "UTF-16"
-                                val languageCodeLength = payload[0].toInt() and 51
-                                val text = String(payload, languageCodeLength + 1, payload.size - languageCodeLength - 1, Charset.forName(textEncoding))
-                                sb.append(context.getString(R.string.nfc_record_text, text)).append("\n")
+                                if (payload.isNotEmpty()) {
+                                    val textEncoding = if ((payload[0].toInt() and 128) == 0) "UTF-8" else "UTF-16"
+                                    val languageCodeLength = payload[0].toInt() and 63
+                                    if (payload.size > languageCodeLength) {
+                                        val text = String(payload, languageCodeLength + 1, payload.size - languageCodeLength - 1, Charset.forName(textEncoding))
+                                        sb.append(context.getString(R.string.nfc_record_text, text)).append("\n")
+                                    } else {
+                                        sb.append(context.getString(R.string.nfc_record_text_fail)).append("\n")
+                                    }
+                                }
                             } catch (_: Exception) {
                                 sb.append(context.getString(R.string.nfc_record_text_fail)).append("\n")
                             }
@@ -123,9 +140,11 @@ fun parseNfcTag(tag: Tag, context: Context): String {
                         NdefRecord.TNF_WELL_KNOWN if record.type.contentEquals(NdefRecord.RTD_URI) -> {
                             try {
                                 val payload = record.payload
-                                val prefix = getUriPrefix(payload[0])
-                                val uri = String(payload, 1, payload.size - 1, Charset.forName("UTF-8"))
-                                sb.append(context.getString(R.string.nfc_record_uri, prefix + uri)).append("\n")
+                                if (payload.isNotEmpty()) {
+                                    val prefix = getUriPrefix(payload[0])
+                                    val uri = String(payload, 1, payload.size - 1, Charset.forName("UTF-8"))
+                                    sb.append(context.getString(R.string.nfc_record_uri, prefix + uri)).append("\n")
+                                }
                             } catch (_: Exception) {
                                 sb.append(context.getString(R.string.nfc_record_uri_fail)).append("\n")
                             }
