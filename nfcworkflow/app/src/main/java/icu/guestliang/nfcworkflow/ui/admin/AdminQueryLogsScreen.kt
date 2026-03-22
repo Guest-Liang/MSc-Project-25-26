@@ -2,12 +2,18 @@ package icu.guestliang.nfcworkflow.ui.admin
 
 import icu.guestliang.nfcworkflow.R
 import icu.guestliang.nfcworkflow.logging.AppLogger
+import icu.guestliang.nfcworkflow.nfc.parseNfcTagData
 import icu.guestliang.nfcworkflow.ui.components.CustomDateTimePickerDialog
 import icu.guestliang.nfcworkflow.ui.theme.Dimensions
+import icu.guestliang.nfcworkflow.utils.findActivity
 import icu.guestliang.nfcworkflow.utils.getLocalizedStatus
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import android.content.Intent
 import android.content.res.Configuration
+import android.nfc.NfcAdapter
+import android.provider.Settings
+import android.widget.Toast
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -35,17 +41,20 @@ import androidx.compose.material.icons.filled.CloudOff
 import androidx.compose.material.icons.filled.DateRange
 import androidx.compose.material.icons.filled.ExpandLess
 import androidx.compose.material.icons.filled.ExpandMore
+import androidx.compose.material.icons.filled.Nfc
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.Checkbox
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Scaffold
@@ -54,6 +63,7 @@ import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -69,6 +79,7 @@ import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.dropUnlessResumed
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
@@ -86,24 +97,33 @@ fun AdminQueryLogsScreen(
     var isInitialLoad by remember { mutableStateOf(true) }
     var showEmptyDialog by remember { mutableStateOf(false) }
     var showFallbackDialog by remember { mutableStateOf(false) }
+    var showNfcDialog by remember { mutableStateOf(false) }
     val coroutineScope = rememberCoroutineScope()
     val isLandscape = LocalConfiguration.current.orientation == Configuration.ORIENTATION_LANDSCAPE
 
     // Search query states
     var orderIdQuery by remember { mutableStateOf("") }
-    var operatorQuery by remember { mutableStateOf("") }
+    var uidHexQuery by remember { mutableStateOf("") }
+    val selectedWorkers = remember { mutableStateListOf<String>() }
+    val selectedOrderTypes = remember { mutableStateListOf<String>() }
     val selectedActions = remember { mutableStateListOf<String>() }
+    val selectedResults = remember { mutableStateListOf<String>() }
     var startTime by remember { mutableStateOf("") }
     var endTime by remember { mutableStateOf("") }
 
     var isFilterExpanded by remember { mutableStateOf(isLandscape) }
+    var showWorkerDialog by remember { mutableStateOf(false) }
 
-    val actionOptions = listOf("created", "assigned", "unassigned", "completed", "scan")
+    val orderTypeOptions = listOf("standard", "sequence")
+    val actionOptions = listOf("created", "assigned", "unassigned", "scan", "completed", "steps_saved", "complete")
+    val resultOptions = listOf("standard_matched", "sequence_step_completed", "sequence_steps_saved", "mismatch", "out_of_order", "duplicate", "standard_completed", "sequence_completed", "deprecated_complete_api")
     val scrollBehavior = TopAppBarDefaults.enterAlwaysScrollBehavior()
 
     LaunchedEffect(Unit) {
+        val job0 = viewModel.fetchWorkers(context)
         val job1 = viewModel.fetchLogs(context)
         val job2 = viewModel.fetchAnalysisSummary(context)
+        job0.join()
         job1.join()
         job2.join()
         isInitialLoad = false
@@ -177,20 +197,54 @@ fun AdminQueryLogsScreen(
                                 modifier = Modifier.fillMaxWidth(),
                                 singleLine = true
                             )
-                            OutlinedTextField(
-                                value = operatorQuery,
-                                onValueChange = { operatorQuery = it },
-                                label = { Text(stringResource(R.string.admin_log_search_operator)) },
-                                modifier = Modifier.fillMaxWidth(),
-                                singleLine = true
-                            )
+                            Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                                OutlinedTextField(
+                                    value = uidHexQuery,
+                                    onValueChange = { uidHexQuery = it },
+                                    label = { Text(stringResource(R.string.admin_log_search_uid_hex)) },
+                                    modifier = Modifier.weight(1f),
+                                    singleLine = true
+                                )
+                                IconButton(onClick = { showNfcDialog = true }) {
+                                    Icon(Icons.Default.Nfc, contentDescription = "Scan NFC")
+                                }
+                            }
+                            
+                            // Worker Filters
+                            Text(stringResource(R.string.admin_search_worker_title), style = MaterialTheme.typography.bodySmall)
+                            FlowRow(horizontalArrangement = Arrangement.spacedBy(Dimensions.SpaceS)) {
+                                OutlinedButton(onClick = dropUnlessResumed { showWorkerDialog = true }) {
+                                    val workerText = if (selectedWorkers.isEmpty()) 
+                                        stringResource(R.string.admin_select_worker) 
+                                    else
+                                        stringResource(R.string.admin_workers_selected, selectedWorkers.size)
+                                    Text(workerText)
+                                }
+                            }
+                            
+                            // Order Type Filters
+                            Text(stringResource(R.string.admin_log_search_order_type_title), style = MaterialTheme.typography.bodySmall)
+                            FlowRow(horizontalArrangement = Arrangement.spacedBy(Dimensions.SpaceS)) {
+                                orderTypeOptions.forEach { type ->
+                                    val isSelected = selectedOrderTypes.contains(type)
+                                    val localizedLabel = if (type == "standard") stringResource(R.string.worker_order_type_standard) else stringResource(R.string.worker_order_type_sequence)
+                                    FilterChip(
+                                        selected = isSelected,
+                                        onClick = dropUnlessResumed {
+                                            if (isSelected) selectedOrderTypes.remove(type)
+                                            else selectedOrderTypes.add(type)
+                                        },
+                                        label = { Text(localizedLabel) }
+                                    )
+                                }
+                            }
 
                             // Action Filters
                             Text(stringResource(R.string.admin_log_search_action_title), style = MaterialTheme.typography.bodySmall)
                             FlowRow(horizontalArrangement = Arrangement.spacedBy(Dimensions.SpaceS)) {
                                 actionOptions.forEach { action ->
                                     val isSelected = selectedActions.contains(action)
-                                    val localizedAct = if (action == "scan") "扫描 (Scan)" else getLocalizedStatus(action)
+                                    val localizedAct = if (action == "scan") "扫描 (Scan)" else if(action == "complete") "手动完成 (废弃)" else if (action == "steps_saved") "保存步骤" else getLocalizedStatus(action)
                                     FilterChip(
                                         selected = isSelected,
                                         onClick = dropUnlessResumed {
@@ -198,6 +252,34 @@ fun AdminQueryLogsScreen(
                                             else selectedActions.add(action)
                                         },
                                         label = { Text(localizedAct) }
+                                    )
+                                }
+                            }
+                            
+                            // Result Filters
+                            Text(stringResource(R.string.admin_log_search_result_title), style = MaterialTheme.typography.bodySmall)
+                            FlowRow(horizontalArrangement = Arrangement.spacedBy(Dimensions.SpaceS)) {
+                                resultOptions.forEach { res ->
+                                    val isSelected = selectedResults.contains(res)
+                                    val localizedRes = when (res) {
+                                        "standard_matched" -> stringResource(R.string.worker_history_result_matched)
+                                        "sequence_step_completed" -> stringResource(R.string.worker_history_result_step_completed)
+                                        "mismatch" -> stringResource(R.string.worker_history_result_mismatch)
+                                        "out_of_order" -> stringResource(R.string.worker_history_result_out_of_order)
+                                        "duplicate" -> stringResource(R.string.worker_history_result_duplicate)
+                                        "sequence_steps_saved" -> "顺序单步骤已保存"
+                                        "standard_completed" -> "标准单已完成"
+                                        "sequence_completed" -> "顺序单已全部完成"
+                                        "deprecated_complete_api" -> "已废弃的手动完成"
+                                        else -> res
+                                    }
+                                    FilterChip(
+                                        selected = isSelected,
+                                        onClick = dropUnlessResumed {
+                                            if (isSelected) selectedResults.remove(res)
+                                            else selectedResults.add(res)
+                                        },
+                                        label = { Text(localizedRes) }
                                     )
                                 }
                             }
@@ -227,8 +309,11 @@ fun AdminQueryLogsScreen(
                         ) {
                             TextButton(onClick = dropUnlessResumed {
                                 orderIdQuery = ""
-                                operatorQuery = ""
+                                selectedWorkers.clear()
+                                uidHexQuery = ""
+                                selectedOrderTypes.clear()
                                 selectedActions.clear()
+                                selectedResults.clear()
                                 startTime = ""
                                 endTime = ""
                                 viewModel.fetchLogs(context, null)
@@ -239,8 +324,11 @@ fun AdminQueryLogsScreen(
                             Button(onClick = dropUnlessResumed {
                                 val query = icu.guestliang.nfcworkflow.ui.admin.LogSearchQuery(
                                     orderId = orderIdQuery.takeIf { it.isNotBlank() }?.split(",")?.map { it.trim() },
-                                    status = selectedActions.toList().takeIf { it.isNotEmpty() },
-                                    operator = operatorQuery.takeIf { it.isNotBlank() }?.split(",")?.map { it.trim() },
+                                    action = selectedActions.toList().takeIf { it.isNotEmpty() },
+                                    result = selectedResults.toList().takeIf { it.isNotEmpty() },
+                                    operator = selectedWorkers.toList().takeIf { it.isNotEmpty() },
+                                    uidHex = uidHexQuery.takeIf { it.isNotBlank() },
+                                    orderType = selectedOrderTypes.toList().takeIf { it.isNotEmpty() },
                                     startTime = startTime.takeIf { it.isNotBlank() },
                                     endTime = endTime.takeIf { it.isNotBlank() }
                                 )
@@ -314,20 +402,54 @@ fun AdminQueryLogsScreen(
                                     modifier = Modifier.fillMaxWidth(),
                                     singleLine = true
                                 )
-                                OutlinedTextField(
-                                    value = operatorQuery,
-                                    onValueChange = { operatorQuery = it },
-                                    label = { Text(stringResource(R.string.admin_log_search_operator)) },
-                                    modifier = Modifier.fillMaxWidth(),
-                                    singleLine = true
-                                )
+                                Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                                    OutlinedTextField(
+                                        value = uidHexQuery,
+                                        onValueChange = { uidHexQuery = it },
+                                        label = { Text(stringResource(R.string.admin_log_search_uid_hex)) },
+                                        modifier = Modifier.weight(1f),
+                                        singleLine = true
+                                    )
+                                    IconButton(onClick = { showNfcDialog = true }) {
+                                        Icon(Icons.Default.Nfc, contentDescription = "Scan NFC")
+                                    }
+                                }
+
+                                // Worker Filters
+                                Text(stringResource(R.string.admin_search_worker_title), style = MaterialTheme.typography.bodySmall)
+                                FlowRow(horizontalArrangement = Arrangement.spacedBy(Dimensions.SpaceS)) {
+                                    OutlinedButton(onClick = dropUnlessResumed { showWorkerDialog = true }) {
+                                        val workerText = if (selectedWorkers.isEmpty()) 
+                                            stringResource(R.string.admin_select_worker) 
+                                        else 
+                                            "Workers Selected (${selectedWorkers.size})"
+                                        Text(workerText)
+                                    }
+                                }
+                                
+                                // Order Type Filters
+                                Text(stringResource(R.string.admin_log_search_order_type_title), style = MaterialTheme.typography.bodySmall)
+                                FlowRow(horizontalArrangement = Arrangement.spacedBy(Dimensions.SpaceS)) {
+                                    orderTypeOptions.forEach { type ->
+                                        val isSelected = selectedOrderTypes.contains(type)
+                                        val localizedLabel = if (type == "standard") stringResource(R.string.worker_order_type_standard) else stringResource(R.string.worker_order_type_sequence)
+                                        FilterChip(
+                                            selected = isSelected,
+                                            onClick = dropUnlessResumed {
+                                                if (isSelected) selectedOrderTypes.remove(type)
+                                                else selectedOrderTypes.add(type)
+                                            },
+                                            label = { Text(localizedLabel) }
+                                        )
+                                    }
+                                }
 
                                 // Action Filters
                                 Text(stringResource(R.string.admin_log_search_action_title), style = MaterialTheme.typography.bodySmall)
                                 FlowRow(horizontalArrangement = Arrangement.spacedBy(Dimensions.SpaceS)) {
                                     actionOptions.forEach { action ->
                                         val isSelected = selectedActions.contains(action)
-                                        val localizedAct = if (action == "scan") "扫描 (Scan)" else getLocalizedStatus(action)
+                                        val localizedAct = if (action == "scan") "扫描 (Scan)" else if(action == "complete") "手动完成 (废弃)" else if (action == "steps_saved") "保存步骤" else getLocalizedStatus(action)
                                         FilterChip(
                                             selected = isSelected,
                                             onClick = dropUnlessResumed {
@@ -335,6 +457,34 @@ fun AdminQueryLogsScreen(
                                                 else selectedActions.add(action)
                                             },
                                             label = { Text(localizedAct) }
+                                        )
+                                    }
+                                }
+                                
+                                // Result Filters
+                                Text(stringResource(R.string.admin_log_search_result_title), style = MaterialTheme.typography.bodySmall)
+                                FlowRow(horizontalArrangement = Arrangement.spacedBy(Dimensions.SpaceS)) {
+                                    resultOptions.forEach { res ->
+                                        val isSelected = selectedResults.contains(res)
+                                        val localizedRes = when (res) {
+                                            "standard_matched" -> stringResource(R.string.worker_history_result_matched)
+                                            "sequence_step_completed" -> stringResource(R.string.worker_history_result_step_completed)
+                                            "mismatch" -> stringResource(R.string.worker_history_result_mismatch)
+                                            "out_of_order" -> stringResource(R.string.worker_history_result_out_of_order)
+                                            "duplicate" -> stringResource(R.string.worker_history_result_duplicate)
+                                            "sequence_steps_saved" -> "顺序单步骤已保存"
+                                            "standard_completed" -> "标准单已完成"
+                                            "sequence_completed" -> "顺序单已全部完成"
+                                            "deprecated_complete_api" -> "已废弃的手动完成"
+                                            else -> res
+                                        }
+                                        FilterChip(
+                                            selected = isSelected,
+                                            onClick = dropUnlessResumed {
+                                                if (isSelected) selectedResults.remove(res)
+                                                else selectedResults.add(res)
+                                            },
+                                            label = { Text(localizedRes) }
                                         )
                                     }
                                 }
@@ -362,8 +512,11 @@ fun AdminQueryLogsScreen(
                                 ) {
                                     TextButton(onClick = dropUnlessResumed {
                                         orderIdQuery = ""
-                                        operatorQuery = ""
+                                        selectedWorkers.clear()
+                                        uidHexQuery = ""
+                                        selectedOrderTypes.clear()
                                         selectedActions.clear()
+                                        selectedResults.clear()
                                         startTime = ""
                                         endTime = ""
                                         viewModel.fetchLogs(context, null)
@@ -375,8 +528,11 @@ fun AdminQueryLogsScreen(
                                         isFilterExpanded = false
                                         val query = icu.guestliang.nfcworkflow.ui.admin.LogSearchQuery(
                                             orderId = orderIdQuery.takeIf { it.isNotBlank() }?.split(",")?.map { it.trim() },
-                                            status = selectedActions.toList().takeIf { it.isNotEmpty() },
-                                            operator = operatorQuery.takeIf { it.isNotBlank() }?.split(",")?.map { it.trim() },
+                                            action = selectedActions.toList().takeIf { it.isNotEmpty() },
+                                            result = selectedResults.toList().takeIf { it.isNotEmpty() },
+                                            operator = selectedWorkers.toList().takeIf { it.isNotEmpty() },
+                                            uidHex = uidHexQuery.takeIf { it.isNotBlank() },
+                                            orderType = selectedOrderTypes.toList().takeIf { it.isNotEmpty() },
                                             startTime = startTime.takeIf { it.isNotBlank() },
                                             endTime = endTime.takeIf { it.isNotBlank() }
                                         )
@@ -404,6 +560,43 @@ fun AdminQueryLogsScreen(
             }
         }
         
+        // Common Dialogs
+        if (showWorkerDialog) {
+            AlertDialog(
+                onDismissRequest = { showWorkerDialog = false },
+                title = { Text(stringResource(R.string.admin_select_worker)) },
+                text = {
+                    LazyColumn {
+                        items(uiState.workers) { worker ->
+                            val isChecked = selectedWorkers.contains(worker.id.toString())
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .clickable(onClick = dropUnlessResumed {
+                                        if (isChecked) {
+                                            selectedWorkers.remove(worker.id.toString())
+                                        } else {
+                                            selectedWorkers.add(worker.id.toString())
+                                        }
+                                    })
+                                    .padding(Dimensions.SpaceS),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Checkbox(checked = isChecked, onCheckedChange = null)
+                                Spacer(modifier = Modifier.width(Dimensions.SpaceS))
+                                Text(worker.username)
+                            }
+                        }
+                    }
+                },
+                confirmButton = {
+                    TextButton(onClick = dropUnlessResumed { showWorkerDialog = false }) {
+                        Text(stringResource(R.string.ok))
+                    }
+                }
+            )
+        }
+        
         if (showFallbackDialog) {
             AlertDialog(
                 onDismissRequest = { 
@@ -419,6 +612,16 @@ fun AdminQueryLogsScreen(
                     }) {
                         Text(stringResource(R.string.ok))
                     }
+                }
+            )
+        }
+        
+        if (showNfcDialog) {
+            SearchNfcScannerDialog(
+                onDismiss = { showNfcDialog = false },
+                onScanned = { uidHex ->
+                    uidHexQuery = uidHex
+                    showNfcDialog = false
                 }
             )
         }
@@ -573,7 +776,7 @@ fun LogResultsList(
                                     text = stringResource(R.string.admin_log_item_title, log.id),
                                     style = MaterialTheme.typography.titleSmall
                                 )
-                                val actStr = if (log.action == "scan") "扫描 (Scan)" else getLocalizedStatus(log.action)
+                                val actStr = if (log.action == "scan") "扫描 (Scan)" else if(log.action == "complete") "手动完成 (废弃)" else if (log.action == "steps_saved") "保存步骤" else getLocalizedStatus(log.action)
                                 Text(text = stringResource(R.string.admin_log_action, actStr))
                                 
                                 val orderId = log.orderId ?: log.order_id
@@ -592,6 +795,10 @@ fun LogResultsList(
                                         "mismatch" -> stringResource(R.string.worker_history_result_mismatch)
                                         "out_of_order" -> stringResource(R.string.worker_history_result_out_of_order)
                                         "duplicate" -> stringResource(R.string.worker_history_result_duplicate)
+                                        "sequence_steps_saved" -> "顺序单步骤已保存"
+                                        "standard_completed" -> "标准单已完成"
+                                        "sequence_completed" -> "顺序单已全部完成"
+                                        "deprecated_complete_api" -> "已废弃的手动完成"
                                         else -> log.result
                                     }
                                     Text(text = "结果: $localizedRes")
@@ -652,4 +859,72 @@ private fun DateTimeSelectorField(label: String, value: String, onDateTimeSelect
             }
         )
     }
+}
+
+@Composable
+private fun SearchNfcScannerDialog(
+    onDismiss: () -> Unit,
+    onScanned: (String) -> Unit
+) {
+    val context = LocalContext.current
+    val activity = context.findActivity()
+    
+    val nfcNotSupportedStr = stringResource(id = R.string.nfc_not_supported)
+    val nfcDisabledStr = stringResource(id = R.string.nfc_disabled_prompt)
+
+    LaunchedEffect(Unit) {
+        val nfcAdapter = activity?.let { NfcAdapter.getDefaultAdapter(it) }
+        if (nfcAdapter == null) {
+            Toast.makeText(context, nfcNotSupportedStr, Toast.LENGTH_SHORT).show()
+            onDismiss()
+        } else if (!nfcAdapter.isEnabled) {
+            Toast.makeText(context, nfcDisabledStr, Toast.LENGTH_SHORT).show()
+            context.startActivity(Intent(Settings.ACTION_NFC_SETTINGS))
+            onDismiss()
+        }
+    }
+
+    DisposableEffect(activity) {
+        val nfcAdapter = activity?.let { NfcAdapter.getDefaultAdapter(it) }
+        
+        if (nfcAdapter != null && nfcAdapter.isEnabled) {
+            val flags = NfcAdapter.FLAG_READER_NFC_A or 
+                        NfcAdapter.FLAG_READER_NFC_B or
+                        NfcAdapter.FLAG_READER_NFC_F or 
+                        NfcAdapter.FLAG_READER_NFC_V
+            
+            val readerCallback = NfcAdapter.ReaderCallback { tag ->
+                val parsedData = parseNfcTagData(tag, context)
+                activity.runOnUiThread {
+                    onScanned(parsedData.uidHex)
+                }
+            }
+            nfcAdapter.enableReaderMode(activity, readerCallback, flags, null)
+        }
+
+        onDispose {
+            nfcAdapter?.disableReaderMode(activity)
+        }
+    }
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(stringResource(id = R.string.nfc_dialog_title)) },
+        text = {
+            Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.fillMaxWidth()) {
+                Icon(
+                    Icons.Default.Nfc, 
+                    contentDescription = null, 
+                    modifier = Modifier.size(64.dp).padding(bottom = Dimensions.SpaceL),
+                    tint = MaterialTheme.colorScheme.primary
+                )
+                Text(stringResource(id = R.string.nfc_dialog_prompt))
+            }
+        },
+        confirmButton = {
+            TextButton(onClick = onDismiss) {
+                Text(stringResource(id = R.string.cancel))
+            }
+        }
+    )
 }

@@ -58,8 +58,11 @@ data class OrderSearchQuery(
 
 data class LogSearchQuery(
     val orderId: List<String>? = null,
-    val status: List<String>? = null,
+    val action: List<String>? = null,
+    val result: List<String>? = null,
     val operator: List<String>? = null,
+    val uidHex: String? = null,
+    val orderType: List<String>? = null,
     val startTime: String? = null,
     val endTime: String? = null
 )
@@ -109,11 +112,6 @@ class AdminViewModel : ViewModel() {
                 return@launch
             }
 
-            if (orderType == "standard" && targetUidHex.isNullOrBlank()) {
-                _uiState.update { it.copy(error = "Standard order must have a target UID") }
-                return@launch
-            }
-            
             if (orderType == "sequence" && steps.isEmpty()) {
                 _uiState.update { it.copy(error = "Sequence order must have at least one step") }
                 return@launch
@@ -322,7 +320,6 @@ class AdminViewModel : ViewModel() {
                     return@launch
                 }
 
-                // 手动构建 JSON 以确保 userId: null 被发送，避免全局启用 explicitNulls 带来的副作用
                 val requestBody = buildJsonObject {
                     put("orderId", JsonPrimitive(orderId))
                     put("userId", if (workerId == null) JsonNull else JsonPrimitive(workerId))
@@ -361,8 +358,11 @@ class AdminViewModel : ViewModel() {
                     header(HttpHeaders.Authorization, "Bearer $token")
                     query?.let { q ->
                         q.orderId?.takeIf { it.isNotEmpty() }?.let { parameter("orderId", it.joinToString(",")) }
-                        q.status?.takeIf { it.isNotEmpty() }?.let { parameter("status", it.joinToString(",")) }
-                        q.operator?.takeIf { it.isNotEmpty() }?.let { parameter("operator", it.joinToString(",")) }
+                        q.action?.takeIf { it.isNotEmpty() }?.let { parameter("action", it.joinToString(",")) }
+                        q.result?.takeIf { it.isNotEmpty() }?.let { parameter("result", it.joinToString(",")) }
+                        q.operator?.takeIf { it.isNotEmpty() }?.let { parameter("workerId", it.joinToString(",")) }
+                        q.uidHex?.takeIf { it.isNotBlank() }?.let { parameter("uidHex", it) }
+                        q.orderType?.takeIf { it.isNotEmpty() }?.let { parameter("orderType", it.joinToString(",")) }
                         q.startTime?.takeIf { it.isNotBlank() }?.let { parameter("startTime", it) }
                         q.endTime?.takeIf { it.isNotBlank() }?.let { parameter("endTime", it) }
                     }
@@ -389,9 +389,12 @@ class AdminViewModel : ViewModel() {
                         AppLogger.error(context, e, "Logs fetch failed, falling back to local filter", "AdminViewModel")
                         val filtered = currentAllLogs.filter { log ->
                             var match = true
-                            query.orderId?.takeIf { it.isNotEmpty() }?.let { if (log.order_id?.toString() !in it) match = false }
-                            query.status?.takeIf { it.isNotEmpty() }?.let { if (log.action !in it) match = false }
+                            query.orderId?.takeIf { it.isNotEmpty() }?.let { if (log.order_id?.toString() !in it && log.orderId?.toString() !in it) match = false }
+                            query.action?.takeIf { it.isNotEmpty() }?.let { if (log.action !in it) match = false }
+                            query.result?.takeIf { it.isNotEmpty() }?.let { if (log.result !in it) match = false }
                             query.operator?.takeIf { it.isNotEmpty() }?.let { if (log.operator_id?.toString() !in it) match = false }
+                            query.uidHex?.takeIf { it.isNotBlank() }?.let { if (log.scanUidHex?.contains(it, true) != true && log.expectedUidHex?.contains(it, true) != true) match = false }
+                            query.orderType?.takeIf { it.isNotEmpty() }?.let { if (log.orderType !in it) match = false }
                             query.startTime?.takeIf { it.isNotBlank() }?.let { start ->
                                 if (log.timestamp == null || log.timestamp < start) match = false
                             }
