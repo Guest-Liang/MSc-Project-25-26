@@ -40,7 +40,7 @@ Manually create database tables (Cloudflare Dashboard → D1 SQL Database → Co
 ```sql
 CREATE TABLE users (
   id INTEGER PRIMARY KEY,
-  username TEXT,
+  username TEXT NOT NULL UNIQUE,
   password_hash TEXT,
   role TEXT,
   created_at TEXT,
@@ -56,7 +56,29 @@ CREATE TABLE orders (
   status TEXT,
   assigned_to INTEGER,
   created_at TEXT,
-  updated_at TEXT
+  updated_at TEXT,
+  order_type TEXT NOT NULL DEFAULT 'standard',
+  target_uid_hex TEXT,
+  location_code TEXT,
+  display_name TEXT,
+  assigned_at TEXT,
+  completed_at TEXT,
+  sequence_total_steps INTEGER NOT NULL DEFAULT 0,
+  sequence_completed_steps INTEGER NOT NULL DEFAULT 0,
+  FOREIGN KEY (assigned_to) REFERENCES users(id) ON DELETE SET NULL ON UPDATE CASCADE
+);
+
+CREATE TABLE order_steps (
+  id INTEGER PRIMARY KEY,
+  order_id INTEGER NOT NULL,
+  step_index INTEGER NOT NULL,
+  target_uid_hex TEXT NOT NULL,
+  location_code TEXT,
+  display_name TEXT,
+  created_at TEXT NOT NULL,
+  updated_at TEXT NOT NULL,
+  UNIQUE(order_id, step_index),
+  FOREIGN KEY (order_id) REFERENCES orders(id) ON DELETE CASCADE ON UPDATE CASCADE
 );
 
 CREATE TABLE order_logs (
@@ -64,7 +86,16 @@ CREATE TABLE order_logs (
   order_id INTEGER,
   action TEXT,
   operator_id INTEGER,
-  timestamp TEXT
+  timestamp TEXT,
+  result TEXT,
+  step_index INTEGER,
+  scan_uid_hex TEXT,
+  expected_uid_hex TEXT,
+  location_code TEXT,
+  display_name TEXT,
+  details_json TEXT,
+  FOREIGN KEY (order_id) REFERENCES orders(id) ON DELETE SET NULL ON UPDATE CASCADE,
+  FOREIGN KEY (operator_id) REFERENCES users(id) ON DELETE SET NULL ON UPDATE CASCADE
 );
 
 CREATE TABLE api_logs (
@@ -83,46 +114,62 @@ CREATE TABLE api_logs (
   created_at TEXT NOT NULL
 );
 
+CREATE INDEX idx_orders_order_type ON orders(order_type);
+CREATE INDEX idx_orders_target_uid_hex ON orders(target_uid_hex);
+CREATE INDEX idx_orders_assigned_to_status ON orders(assigned_to, status);
+CREATE INDEX idx_orders_completed_at ON orders(completed_at DESC);
+
+CREATE INDEX idx_order_steps_order_id_step_index ON order_steps(order_id, step_index);
+CREATE INDEX idx_order_steps_target_uid_hex ON order_steps(target_uid_hex);
+
+CREATE INDEX idx_order_logs_order_id_timestamp ON order_logs(order_id, timestamp DESC);
+CREATE INDEX idx_order_logs_operator_id_timestamp ON order_logs(operator_id, timestamp DESC);
+CREATE INDEX idx_order_logs_action_result ON order_logs(action, result);
+CREATE INDEX idx_order_logs_scan_uid_hex ON order_logs(scan_uid_hex);
+CREATE INDEX idx_order_logs_expected_uid_hex ON order_logs(expected_uid_hex);
+
 CREATE INDEX idx_api_logs_created_at ON api_logs(created_at DESC);
 CREATE INDEX idx_api_logs_user_id ON api_logs(user_id);
 CREATE INDEX idx_api_logs_path ON api_logs(path);
 ```
+
 > [!WARNING]
-> **首次初始化时，需要先在 Cloudflare Dashboard 的 D1 SQL 控制台手动插入一个初始管理员账号！**
-> 
-> **During first-time setup, you must manually insert an initial administrator account in the Cloudflare Dashboard D1 SQL console!**
+> 首次初始化时，需要先在 Cloudflare Dashboard 的 D1 SQL 控制台手动插入一个初始管理员账号，然后通过 `/auth/login` 获取 token。  
+>
+> During first-time setup, manually insert an initial administrator account in the Cloudflare D1 SQL console, then log in via `/auth/login` to obtain a token.
 
-`api_logs.action` 会按请求类别写入前缀，例如 `business:GET /auth/login`、`system:GET /healthz`、`unknown:GET /administrator/`，这样在不修改表结构的情况下也能区分业务流量、系统探针与未知扫描流量
+## API 文档 / API Documentation
 
-`api_logs.action` is prefixed by request category, for example `business:GET /auth/login`, `system:GET /healthz`, or `unknown:GET /administrator/`. This keeps business traffic, system probes, and unknown scanning traffic distinguishable without changing the table schema.
+详细接口说明、canonical payload 与返回示例见 [cloudflare/API-Description.md](./cloudflare/API-Description.md)。
 
-### 部署到 / Deploy to <img src="https://cf-assets.www.cloudflare.com/dzlvafdwdttg/69wNwfiY5mFmgpd9eQFW6j/d5131c08085a977aa70f19e7aada3fa9/1pixel-down__1_.svg" width="120" alt="Cloudflare 彩色标识">
+See [cloudflare/API-Description.md](./cloudflare/API-Description.md) for detailed API descriptions, canonical payloads, and response examples.
 
-GitHub → Cloudflare 绑定后，构建配置如下：
+## <img src="https://cf-assets.www.cloudflare.com/dzlvafdwdttg/69wNwfiY5mFmgpd9eQFW6j/d5131c08085a977aa70f19e7aada3fa9/1pixel-down__1_.svg" width="150" alt="Cloudflare 彩色标识"> 部署 / Deployment
 
-After binding with GitHub → Cloudflare, the build configuration is as follows:
+GitHub 与 Cloudflare 绑定后，Cloudflare Pages / Workers 构建配置如下。  
 
-#### 构建命令 / Build command
+After binding GitHub to Cloudflare, use the following build configuration.
 
-```
+### 构建命令 / Build command
+
+```bash
 pnpm install
 ```
 
-#### 部署命令 / Deployment command
+### 部署命令 / Deployment command
 
-```
+```bash
 npx wrangler deploy
 ```
 
-#### 根目录 / Root directory
+### 根目录 / Root directory
 
-```
+```text
 /cloudflare
 ```
 
-### <img src="https://support.crowdin.com/assets/logos/core-logo/svg/crowdin-core-logo-cDark.svg" width="120" alt="Crowdin 标识"> 翻译 / Translation 
+## <img src="https://support.crowdin.com/assets/logos/core-logo/svg/crowdin-core-logo-cDark.svg" width="120" alt="Crowdin 标识"> 翻译流程 / Translation Workflow
 
+前往 [Crowdin 项目页面](https://zh.crowdin.com/project/nfcworkflow/integrations/system/github) 检查同步时间，在主页选择英文进行翻译。翻译完成后等待 Crowdin 同步到 `L10n-dev` 分支，再合并到 `dev`。
 
-前往[Crowdin项目页面](https://zh.crowdin.com/project/nfcworkflow/integrations/system/github)检查同步时间，随后在主页选择英文进行翻译，翻译后等待Crowdin同步到L10n-dev分支，接着合并到dev
-
-Go to the [Crowdin Project Page](https://zh.crowdin.com/project/nfcworkflow/integrations/system/github) to check the synchronization time. Then, select English on the homepage to translate. After translation, wait for Crowdin to synchronize to the L10n-dev branch, and then merge it into dev.
+Visit the [Crowdin project page](https://zh.crowdin.com/project/nfcworkflow/integrations/system/github) to check sync status, then select English on the homepage for translation. After translation, wait for Crowdin to sync to the `L10n-dev` branch, and then merge into `dev`.

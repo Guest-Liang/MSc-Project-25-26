@@ -2,12 +2,12 @@ export function jsonResponse(input = null, error = null) {
   const hasError = !!error
 
   if (hasError) {
-    const { code, message } = error
+    const { code, message, data = null } = error
     return new Response(JSON.stringify({
       success: false,
       code,
       message,
-      data: null
+      data
     }), {
       status: 200,
       headers: { "Content-Type": "application/json" }
