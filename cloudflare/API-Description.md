@@ -36,6 +36,8 @@ User login, returned JWT.
   If the user already has a valid token, the existing token is returned.
 - 若没有有效 token，则签发新 token  
   If no valid token exists, a new token is generated.
+- 若请求体不合法（缺字段、非字符串、空字符串或纯空白字符串），返回 `1008 Username and password must be non-empty strings`。  
+  If the request body is invalid (missing fields, non-string values, empty strings, or whitespace-only strings), it returns `1008 Username and password must be non-empty strings`.
 ### Response Example
 ```json
 {
@@ -76,6 +78,10 @@ Authorization: Bearer <token>
   When `/auth/login` returns `1002 Wrong password`, the frontend should guide the user to a password reset API.
 - 从当前版本开始，注册接口与重置密码接口完全拆分：`register-*` 只负责创建账号，`reset-*-password` 只负责修改已存在账号的密码。  
   In the current version, registration and password reset are fully separated: `register-*` only creates accounts, and `reset-*-password` only updates passwords for existing accounts.
+- 所有带 `username` / `password` 的认证接口都会做统一请求体验证：两个字段都必须是 string，`username.trim()` 不能为空，`password.trim()` 不能为空；否则返回 `1008 Username and password must be non-empty strings`。  
+  All auth endpoints that accept `username` / `password` apply the same payload validation: both fields must be strings, `username.trim()` must not be empty, and `password.trim()` must not be empty; otherwise the API returns `1008 Username and password must be non-empty strings`.
+- 服务端会在查询和写库前使用去掉首尾空白后的 `username`；`password` 仅做非空校验，不会自动裁剪后再存储。  
+  Before querying or writing to the database, the server uses the trimmed `username`; `password` is only validated for non-emptiness and is not auto-trimmed before storage.
 
 ## **POST /auth/register-admin**
 注册管理员账号   
@@ -93,6 +99,8 @@ Authorization: Bearer <admin-token>
   On first deployment, manually insert an initial administrator account in the Cloudflare D1 console, then log in to obtain a token.
 - 若用户名已存在（无论现有账号角色为何），返回 `1005 User already exists`。  
   If the username already exists, regardless of the existing account role, it returns `1005 User already exists`.
+- 若请求体不合法（缺字段、非字符串、空字符串或纯空白字符串），返回 `1008 Username and password must be non-empty strings`。  
+  If the request body is invalid (missing fields, non-string values, empty strings, or whitespace-only strings), it returns `1008 Username and password must be non-empty strings`.
 ### Response Example
 ```json
 {
@@ -117,6 +125,8 @@ Authorization: Bearer <admin-token>
 ### Notes / 说明
 - 若用户名已存在（无论现有账号角色为何），返回 `1005 User already exists`。  
   If the username already exists, regardless of the existing account role, it returns `1005 User already exists`.
+- 若请求体不合法（缺字段、非字符串、空字符串或纯空白字符串），返回 `1008 Username and password must be non-empty strings`。  
+  If the request body is invalid (missing fields, non-string values, empty strings, or whitespace-only strings), it returns `1008 Username and password must be non-empty strings`.
 ### Response Example
 ```json
 {
@@ -145,6 +155,8 @@ Authorization: Bearer <admin-token>
   If the username exists but the account role is not `admin`, it returns `1007 The specified user is not an admin`.
 - 成功后会更新密码哈希，并将该账号当前保存的 token 清空；该用户需要重新登录获取新 token。  
   On success, the password hash is updated and the account's stored token is cleared; the user must log in again to obtain a new token.
+- 若请求体不合法（缺字段、非字符串、空字符串或纯空白字符串），返回 `1008 Username and password must be non-empty strings`。  
+  If the request body is invalid (missing fields, non-string values, empty strings, or whitespace-only strings), it returns `1008 Username and password must be non-empty strings`.
 ### Response Example
 ```json
 {
@@ -173,6 +185,8 @@ Authorization: Bearer <admin-token>
   If the username exists but the account role is not `worker`, it returns `3002 The specified user is not a worker`.
 - 成功后会更新密码哈希，并将该账号当前保存的 token 清空；该用户需要重新登录获取新 token。  
   On success, the password hash is updated and the account's stored token is cleared; the user must log in again to obtain a new token.
+- 若请求体不合法（缺字段、非字符串、空字符串或纯空白字符串），返回 `1008 Username and password must be non-empty strings`。  
+  If the request body is invalid (missing fields, non-string values, empty strings, or whitespace-only strings), it returns `1008 Username and password must be non-empty strings`.
 ### Response Example
 ```json
 {

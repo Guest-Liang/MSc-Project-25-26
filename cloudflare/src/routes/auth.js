@@ -7,8 +7,28 @@ import { jsonResponse } from "../utils/response.js"
 
 export const authRoutes = new Hono()
 
+async function readCredentialPayload(c) {
+  let body
+
+  try {
+    body = await c.req.json()
+  } catch {
+    return null
+  }
+
+  const username = typeof body?.username === "string" ? body.username.trim() : ""
+  const password = typeof body?.password === "string" ? body.password : null
+
+  if (!username || password === null || password.trim().length === 0) return null
+
+  return { username, password }
+}
+
 async function registerUser(c, role) {
-  const { username, password } = await c.req.json()
+  const credentials = await readCredentialPayload(c)
+  if (!credentials) return jsonResponse(null, ERR.INVALID_INPUT)
+
+  const { username, password } = credentials
 
   const existing = await c.env.MScPJ_DB.prepare(
     "SELECT id FROM users WHERE username = ?"
@@ -28,7 +48,10 @@ async function registerUser(c, role) {
 }
 
 async function resetUserPassword(c, role) {
-  const { username, password } = await c.req.json()
+  const credentials = await readCredentialPayload(c)
+  if (!credentials) return jsonResponse(null, ERR.INVALID_INPUT)
+
+  const { username, password } = credentials
 
   const existing = await c.env.MScPJ_DB.prepare(
     "SELECT id, role FROM users WHERE username = ?"
@@ -51,7 +74,10 @@ async function resetUserPassword(c, role) {
 
 // 登录 Login
 authRoutes.post("/login", async (c) => {
-  const { username, password } = await c.req.json()
+  const credentials = await readCredentialPayload(c)
+  if (!credentials) return jsonResponse(null, ERR.INVALID_INPUT)
+
+  const { username, password } = credentials
 
   const user = await c.env.MScPJ_DB.prepare(
     "SELECT * FROM users WHERE username = ?"
