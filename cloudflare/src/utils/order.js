@@ -87,6 +87,13 @@ function serializeDetails(details) {
   return Object.keys(compact).length > 0 ? JSON.stringify(compact) : null
 }
 
+function toNullableInteger(value) {
+  if (value === null || value === undefined) return null
+
+  const parsed = Number(value)
+  return Number.isFinite(parsed) ? parsed : null
+}
+
 export async function getOrderById(db, orderId) {
   return db.prepare("SELECT * FROM orders WHERE id = ?").bind(orderId).first()
 }
@@ -148,8 +155,9 @@ export async function writeOrderLog(db, log) {
 
 export function formatOrderStep(step) {
   return {
-    ...step,
-    stepIndex: Number(step.step_index ?? 0),
+    id: toNullableInteger(step.id),
+    orderId: toNullableInteger(step.order_id),
+    stepIndex: toNullableInteger(step.step_index),
     targetUidHex: step.target_uid_hex ?? null,
     locationCode: step.location_code ?? null,
     displayName: step.display_name ?? null,
@@ -162,18 +170,20 @@ export function formatOrderLog(log) {
   const parsedDetails = parseJsonDetails(log.details_json)
 
   return {
-    ...log,
-    orderType: log.order_type ?? null,
-    orderTitle: log.order_title ?? null,
-    stepIndex: log.step_index ?? null,
-    operatorId: log.operator_id ?? null,
-    orderId: log.order_id ?? null,
+    id: toNullableInteger(log.id),
+    orderId: toNullableInteger(log.order_id),
+    action: log.action ?? null,
+    operatorId: toNullableInteger(log.operator_id),
+    timestamp: log.timestamp ?? null,
+    result: log.result ?? null,
+    stepIndex: toNullableInteger(log.step_index),
     scanUidHex: log.scan_uid_hex ?? null,
     expectedUidHex: log.expected_uid_hex ?? null,
     locationCode: log.location_code ?? null,
     displayName: log.display_name ?? null,
-    details: parsedDetails,
-    detailsJson: parsedDetails
+    orderType: log.order_type ?? null,
+    orderTitle: log.order_title ?? null,
+    details: parsedDetails
   }
 }
 
@@ -198,21 +208,13 @@ export function formatOrderRecord(order, nextStep = null) {
   const progressStatus = buildProgressStatus(order)
 
   return {
-    ...order,
-    nfc_tag: order.nfc_tag ?? targetUidHex,
-    order_type: orderType,
-    target_uid_hex: targetUidHex,
-    location_code: locationCode,
-    display_name: displayName,
-    assigned_at: order.assigned_at ?? null,
-    completed_at: order.completed_at ?? null,
-    sequence_total_steps: sequenceTotalSteps,
-    sequence_completed_steps: sequenceCompletedSteps,
-    progress_status: progressStatus,
-    next_step_index: nextStep?.step_index ?? null,
-    next_expected_uid_hex: nextStep?.target_uid_hex ?? null,
-    next_location_code: nextStep?.location_code ?? null,
-    next_display_name: nextStep?.display_name ?? null,
+    id: toNullableInteger(order.id),
+    title: order.title ?? null,
+    description: order.description ?? null,
+    status: order.status ?? null,
+    assignedTo: toNullableInteger(order.assigned_to),
+    createdAt: order.created_at ?? null,
+    updatedAt: order.updated_at ?? null,
     orderType,
     targetUidHex,
     locationCode,
@@ -222,7 +224,7 @@ export function formatOrderRecord(order, nextStep = null) {
     sequenceTotalSteps,
     sequenceCompletedSteps,
     progressStatus,
-    nextStepIndex: nextStep?.step_index ?? null,
+    nextStepIndex: toNullableInteger(nextStep?.step_index),
     nextExpectedUidHex: nextStep?.target_uid_hex ?? null,
     nextLocationCode: nextStep?.location_code ?? null,
     nextDisplayName: nextStep?.display_name ?? null

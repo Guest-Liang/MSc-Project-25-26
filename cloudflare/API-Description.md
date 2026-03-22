@@ -618,23 +618,18 @@ Authorization: Bearer <worker-token>
   "data": [
     {
       "id": 88,
-      "order_id": 101,
+      "orderId": 101,
       "action": "scan",
-      "operator_id": 2,
+      "operatorId": 2,
       "timestamp": "2026-03-22 11:20:30",
       "result": "sequence_step_completed",
-      "step_index": 1,
-      "scan_uid_hex": "04AABBCCDD1122",
-      "expected_uid_hex": "04AABBCCDD1122",
-      "location_code": "room301",
-      "display_name": "Room 301",
-      "orderType": "sequence",
-      "orderTitle": "Floor 3 Sequence Patrol",
       "stepIndex": 1,
       "scanUidHex": "04AABBCCDD1122",
       "expectedUidHex": "04AABBCCDD1122",
       "locationCode": "room301",
       "displayName": "Room 301",
+      "orderType": "sequence",
+      "orderTitle": "Floor 3 Sequence Patrol",
       "details": {
         "orderType": "sequence",
         "rawText": "ID: 04AABBCCDD1122"
@@ -709,15 +704,13 @@ View the step definition of a sequence order.
     "steps": [
       {
         "id": 1,
-        "order_id": 101,
-        "step_index": 1,
-        "target_uid_hex": "04AABBCCDD1122",
-        "location_code": "room301",
-        "display_name": "Room 301",
+        "orderId": 101,
         "stepIndex": 1,
         "targetUidHex": "04AABBCCDD1122",
         "locationCode": "room301",
-        "displayName": "Room 301"
+        "displayName": "Room 301",
+        "createdAt": "2026-03-22 04:09:11",
+        "updatedAt": "2026-03-22 04:09:11"
       }
     ]
   }
