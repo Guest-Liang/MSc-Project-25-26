@@ -95,14 +95,20 @@ class RegisterViewModel : ViewModel() {
         }
     }
 
-    fun registerAdmin(newAdminUser: String, newAdminPass: String, adminUser: String, adminPass: String, isResetPassword: Boolean = false) {
-        val endpoint = if (isResetPassword) "auth/reset-admin-password" else "auth/register-admin"
-        submitAccountAction(newAdminUser, newAdminPass, adminUser, adminPass, endpoint)
+    fun registerAdmin(newAdminUser: String, newAdminPass: String, adminUser: String, adminPass: String) {
+        submitAccountAction(newAdminUser, newAdminPass, adminUser, adminPass, "auth/register-admin")
     }
 
-    fun registerWorker(workerUser: String, workerPass: String, adminUser: String, adminPass: String, isResetPassword: Boolean = false) {
-        val endpoint = if (isResetPassword) "auth/reset-worker-password" else "auth/register-worker"
-        submitAccountAction(workerUser, workerPass, adminUser, adminPass, endpoint)
+    fun resetAdminPassword(adminUserToReset: String, newAdminPass: String, adminUser: String, adminPass: String) {
+        submitAccountAction(adminUserToReset, newAdminPass, adminUser, adminPass, "auth/reset-admin-password")
+    }
+
+    fun registerWorker(workerUser: String, workerPass: String, adminUser: String, adminPass: String) {
+        submitAccountAction(workerUser, workerPass, adminUser, adminPass, "auth/register-worker")
+    }
+
+    fun resetWorkerPassword(workerUserToReset: String, newWorkerPass: String, adminUser: String, adminPass: String) {
+        submitAccountAction(workerUserToReset, newWorkerPass, adminUser, adminPass, "auth/reset-worker-password")
     }
 
     fun resetState() {
