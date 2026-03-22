@@ -303,14 +303,19 @@ private fun CreateOrderFormFields(
             item {
                 Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                     Row(
-                        modifier = Modifier.clickable { onOrderTypeChange("standard") }.padding(end = Dimensions.SpaceL),
+                        modifier = Modifier
+                            .weight(1f)
+                            .clickable { onOrderTypeChange("standard") }
+                            .padding(end = Dimensions.SpaceS),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         RadioButton(selected = orderType == "standard", onClick = { onOrderTypeChange("standard") })
                         Text(stringResource(R.string.worker_order_type_standard))
                     }
                     Row(
-                        modifier = Modifier.clickable { onOrderTypeChange("sequence") },
+                        modifier = Modifier
+                            .weight(1f)
+                            .clickable { onOrderTypeChange("sequence") },
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         RadioButton(selected = orderType == "sequence", onClick = { onOrderTypeChange("sequence") })
