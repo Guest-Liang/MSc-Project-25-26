@@ -446,35 +446,3 @@ workerRoutes.post("/orders/scan", async (c) => {
     }
   })
 })
-
-workerRoutes.post("/orders/complete", async (c) => {
-  const user = c.get("user")
-  let orderId = null
-  let rawOrderId = null
-
-  try {
-    const body = await c.req.json()
-    rawOrderId = body?.orderId ?? null
-    orderId = parsePositiveInteger(body?.orderId)
-  } catch {
-    rawOrderId = null
-  }
-
-  await writeOrderLog(c.env.MScPJ_DB, {
-    orderId,
-    action: "complete",
-    operatorId: user.id,
-    result: "deprecated_complete_api",
-    details: {
-      requestedOrderId: rawOrderId
-    }
-  })
-
-  return jsonResponse(null, {
-    ...ERR.DEPRECATED_COMPLETE_API,
-    data: {
-      orderId,
-      recommendedEndpoint: "/worker/orders/scan"
-    }
-  })
-})

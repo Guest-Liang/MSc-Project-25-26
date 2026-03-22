@@ -38,18 +38,10 @@ See `cloudflare/src/utils/status.js` for the status-code definitions.
 
 ---
 
-## 已废弃接口 / Deprecated API
+## 有关 NFC 的事 / Something about NFC
 
-**中文**  
-当前文档以下方的 canonical API 为准。旧接口中，`POST /worker/orders/complete` 已废弃，仅保留废弃说明，推荐统一使用 `POST /worker/orders/scan`。
-
-**English**  
-This document is centered on the canonical API only. Among the older endpoints, `POST /worker/orders/complete` is deprecated and is kept here only with a deprecation note. Use `POST /worker/orders/scan` instead.
-
-**中文补充**  
 当前后端只接受规范化后长度为 `14 / 16 / 20` 个十六进制字符的 UID Hex，也就是 `7 / 8 / 10 bytes` 的 NFC UID。
-
-**English note**  
+ 
 The backend currently accepts UID Hex values whose normalized length is `14 / 16 / 20` hexadecimal characters only, i.e. `7 / 8 / 10 bytes` NFC UIDs.
 
 ## 工单模型 / Order Model
@@ -382,8 +374,8 @@ Authorization: Bearer <admin-token>
 
 ### Notes / 说明
 
-- 派单即代表工单开始；后端不会再设计单独的 `start` 接口。  
-  Assignment already counts as the start of work; the backend does not introduce a separate `start` endpoint.
+- 派单即代表工单开始。  
+  Assignment already counts as the start of work.
 - `sequence` 工单必须先保存至少 1 个步骤，才能派单。  
   A `sequence` order must already have at least one saved step before assignment.
 - 若顺序工单已经产生有效进度，则不允许取消分配回 `created`。  
@@ -559,32 +551,6 @@ Authorization: Bearer <worker-token>
 | `4013` | `Scanned UID Hex is out of the required order` | 顺序工单越步扫描 | The scan skipped ahead in a sequence order |
 | `4014` | `This sequence step has already been completed` | 重复扫描已完成步骤 | A completed sequence step was scanned again |
 | `4024` | `Scan payload must include a valid orderId and uidHex` | 扫描请求体不合法 | The scan payload is invalid |
-
-## POST `/worker/orders/complete`
-
-已废弃。  
-Deprecated.
-
-### Behavior / 行为
-
-- 始终返回错误 `4016 Manual completion API is deprecated; use /worker/orders/scan`。  
-  Always returns error `4016 Manual completion API is deprecated; use /worker/orders/scan`.
-- 服务端会额外写入一条 `deprecated_complete_api` 日志，便于观察旧客户端是否仍在调用。  
-  The server also writes a `deprecated_complete_api` log entry so you can observe whether old clients are still calling it.
-
-### Response Example
-
-```json
-{
-  "success": false,
-  "code": 4016,
-  "message": "Manual completion API is deprecated; use /worker/orders/scan",
-  "data": {
-    "orderId": 101,
-    "recommendedEndpoint": "/worker/orders/scan"
-  }
-}
-```
 
 ## GET `/worker/history`
 
@@ -823,21 +789,3 @@ Admins view the basic tracking / analytics summary.
   }
 }
 ```
-
----
-
-# Android 接入建议 / Android Integration Notes
-
-**中文**
-- Android 客户端扫描后，请优先提交 `uidHex`。
-- 不要把 NDEF 文本、自定义字符串或展示名称当作后端匹配值。
-- 创建普通工单时，请录入目标标签的 UID Hex。
-- 创建顺序工单时，建议先创建主单，再调用 `/admin/orders/steps/save` 一次提交完整步骤链。
-- 工人侧执行时，建议直接将当前工单 `orderId + uidHex` 提交到 `/worker/orders/scan`。
-
-**English**
-- After scanning, the Android client should primarily submit `uidHex`.
-- Do not treat NDEF text, custom strings, or display names as the backend matching key.
-- When creating standard orders, enter the target tag’s UID Hex.
-- When creating sequence orders, create the main order first, then call `/admin/orders/steps/save` once with the full ordered step chain.
-- During worker execution, submit the current `orderId + uidHex` directly to `/worker/orders/scan`.
