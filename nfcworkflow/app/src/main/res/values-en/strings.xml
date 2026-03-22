@@ -12,6 +12,8 @@
     <string name="tab_nfc">NFC</string>
     <string name="tab_settings">Settings</string>
     <string name="tab_logs">Logs</string>
+    <string name="tab_orders">Work order</string>
+    <string name="tab_history">History</string>
     <!-- settings -->
     <string name="appearance_title">Appearance Setting</string>
     <string name="theme_title">Theme Mode</string>
@@ -38,15 +40,46 @@
     <string name="admin_search_orders">Search Order</string>
     <string name="admin_query_logs">Query order logs</string>
     <string name="worker_api_title">Worker Function List</string>
-    <string name="worker_view_orders">View My Order</string>
+    <string name="worker_view_orders">My work order</string>
+    <string name="worker_view_history">History records</string>
     <string name="worker_no_orders">There are currently no work orders to process</string>
-    <string name="worker_complete_order">Complete Order</string>
+    <string name="worker_complete_order">Completed work order (now obsolete)</string>
     <string name="worker_complete_order_desc">Enter the work order ID to mark it as completed</string>
     <string name="worker_order_id">Order ID</string>
     <string name="worker_order_complete_success">Order completed successfully!</string>
     <string name="worker_order_complete_error">Error: %1$s</string>
     <string name="worker_invalid_order_id">Please enter a valid work order ID</string>
     <string name="worker_complete_result_title">Completed results</string>
+    <!-- New Worker Order Strings -->
+    <string name="worker_order_type_standard">Standard work order</string>
+    <string name="worker_order_type_sequence">Sequential work order</string>
+    <string name="worker_order_target_uid">Target UID: %1$s</string>
+    <string name="worker_order_location">Location: %1$s</string>
+    <string name="worker_order_step_progress">Progress: Step %1$d / Total %2$d steps</string>
+    <string name="worker_order_next_step">Next step: %1$s</string>
+    <string name="worker_scan_to_execute">Scan execution</string>
+    <string name="worker_scan_success_matched">Scan match successful!</string>
+    <string name="worker_scan_success_completed">All work orders have been completed!</string>
+    <string name="worker_scan_success_sequence">Step %1$d has been completed</string>
+    <string name="worker_scan_error_title">Scan failed</string>
+    <string name="worker_scan_error_mismatch">The scanned label does not match the current step or requirement.</string>
+    <string name="worker_scan_error_out_of_order">Tag scanning order is incorrect. Expected step: %1$d (%2$s), actually scanned: %3$d.</string>
+    <!-- Worker History Strings -->
+    <string name="worker_history_summary_title">Data Summary</string>
+    <string name="worker_history_total_scans">Total number of scans: %1$d</string>
+    <string name="worker_history_successful_scans">Successfully matched: %1$d</string>
+    <string name="worker_history_mismatch_count">Not matched: %1$d</string>
+    <string name="worker_history_out_of_order_count">Order error: %1$d</string>
+    <string name="worker_history_completed_orders">Number of completed work orders: %1$d</string>
+    <string name="worker_history_last_scan">Last scan: %1$s</string>
+    <string name="worker_history_no_last_scan">Last scan: None</string>
+    <string name="worker_history_filter_result_title">Filtering Execution Results (multi-select)</string>
+    <string name="worker_history_filter_action_title">Action type filtering (multi-select)</string>
+    <string name="worker_history_result_matched">Match successful (standard)</string>
+    <string name="worker_history_result_step_completed">Complete the steps (sequence)</string>
+    <string name="worker_history_result_mismatch">UID mismatch</string>
+    <string name="worker_history_result_out_of_order">Scan order error</string>
+    <string name="worker_history_result_duplicate">Repeat scan</string>
     <string name="nfc_read_title">NFC reading</string>
     <string name="nfc_read_desc">Turn on the switch to read NFC tags</string>
     <string name="nfc_dialog_title">Read NFC</string>
@@ -114,8 +147,18 @@
     <!-- Admin New UI Strings -->
     <string name="admin_order_title_hint">Order title</string>
     <string name="admin_order_desc_hint">Work order description</string>
-    <string name="admin_order_nfc_hint">NFC tags (Optional)</string>
+    <!-- Changed: Create Order uses required, Search uses optional -->
+    <string name="admin_order_nfc_hint_required">NFC tag UID (required)</string>
+    <string name="admin_order_nfc_hint_optional">NFC tag UID (optional)</string>
     <string name="admin_order_create_btn">Create Order</string>
+    <string name="admin_order_type_selector_title">Select work order type</string>
+    <string name="admin_order_add_step_btn">Add steps</string>
+    <string name="admin_order_remove_step_btn">Remove</string>
+    <string name="admin_order_step_nfc_hint">Step UID</string>
+    <string name="admin_order_step_location_code_hint">Step Location Code (Location Code)</string>
+    <string name="admin_order_step_display_name_hint">Step Location Name (Display Name)</string>
+    <string name="admin_order_scan_nfc_btn">Scan NFC</string>
+    <string name="admin_order_step_header">Step %1$d</string>
     <string name="admin_no_pending_orders">There are currently no work orders to be assigned.</string>
     <string name="admin_all_orders_assigned">All work orders have been assigned or completed.</string>
     <string name="admin_select_worker">Select worker</string>
@@ -128,7 +171,12 @@
     <string name="admin_advanced_search">Click to expand advanced search</string>
     <string name="admin_search_btn">Search</string>
     <string name="admin_search_clear_btn">Reset query</string>
+    <string name="admin_search_order_type_title">Work order type (multi-select)</string>
     <string name="admin_search_status_title">Status filtering (multi-select)</string>
+    <string name="admin_search_progress_title">Progress filtering (multi-select)</string>
+    <string name="admin_search_progress_not_started">Not started</string>
+    <string name="admin_search_progress_in_progress">In progress</string>
+    <string name="admin_search_progress_completed">Completed</string>
     <string name="admin_search_worker_title">Assign targets (multi-select)</string>
     <string name="admin_search_unassigned">Unassigned (NULL)</string>
     <string name="admin_search_created_start">Creation time (from)</string>
@@ -146,6 +194,11 @@
     <string name="admin_log_user">User ID: %1$d</string>
     <string name="admin_log_time">Time: %1$s</string>
     <string name="admin_workers_selected">Number of workers selected: %1$d</string>
+    <string name="admin_analysis_summary_title">Global Analysis Summary</string>
+    <string name="admin_analysis_total_orders">Total number of work orders: %1$d (Standard: %2$d, Sequence: %3$d)</string>
+    <string name="admin_analysis_completed_orders">Total completed: %1$d</string>
+    <string name="admin_analysis_total_scans">Total number of scan events: %1$d</string>
+    <string name="admin_analysis_success_scans">Valid scan: %1$d (Standard: %2$d, Step: %3$d)</string>
     <string name="dialog_empty_state_title">Info</string>
     <string name="error_network_title">Network error</string>
     <string name="error_network_desc">Unable to connect to the server. Please check your network settings or try again later.</string>
@@ -159,8 +212,11 @@
     <string name="admin_order_not_assigned">Unassigned</string>
     <!-- Log Search -->
     <string name="admin_log_search_order_id">Order ID (comma-separated)</string>
-    <string name="admin_log_search_operator">Operator ID (comma-separated)</string>
+    <string name="admin_log_search_worker_id">Worker ID (comma-separated)</string>
+    <string name="admin_log_search_uid_hex">NFC tag UID</string>
+    <string name="admin_log_search_order_type_title">Work order type filtering (multi-select)</string>
     <string name="admin_log_search_action_title">Action type filtering (multi-select)</string>
+    <string name="admin_log_search_result_title">Filtering Execution Results (multi-select)</string>
     <string name="admin_log_search_start_time">Start time</string>
     <string name="admin_log_search_end_time">End time</string>
     <!-- Time Picker Strings -->
