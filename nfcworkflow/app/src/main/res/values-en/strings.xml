@@ -51,8 +51,8 @@
     <string name="worker_invalid_order_id">Please enter a valid work order ID</string>
     <string name="worker_complete_result_title">Completed results</string>
     <!-- New Worker Order Strings -->
-    <string name="worker_order_type_standard">Standard work order</string>
-    <string name="worker_order_type_sequence">Sequential work order</string>
+    <string name="worker_order_type_standard">Standard</string>
+    <string name="worker_order_type_sequence">Sequence</string>
     <string name="worker_order_target_uid">Target UID: %1$s</string>
     <string name="worker_order_location">Location: %1$s</string>
     <string name="worker_order_step_progress">Progress: Step %1$d / Total %2$d steps</string>

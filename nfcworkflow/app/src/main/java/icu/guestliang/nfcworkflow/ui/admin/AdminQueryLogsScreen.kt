@@ -245,9 +245,9 @@ fun AdminQueryLogsScreen(
                                 actionOptions.forEach { action ->
                                     val isSelected = selectedActions.contains(action)
                                     val localizedAct = when(action) {
-                                        "scan" -> "扫描 (Scan)"
-                                        "complete" -> "手动完成 (废弃)"
-                                        "steps_saved" -> "保存步骤"
+                                        "scan" -> stringResource(R.string.admin_log_action_scan)
+                                        "complete" -> stringResource(R.string.admin_log_action_complete_deprecated)
+                                        "steps_saved" -> stringResource(R.string.admin_log_action_steps_saved)
                                         else -> getLocalizedStatus(action)
                                     }
                                     FilterChip(
@@ -272,10 +272,10 @@ fun AdminQueryLogsScreen(
                                         "mismatch" -> stringResource(R.string.worker_history_result_mismatch)
                                         "out_of_order" -> stringResource(R.string.worker_history_result_out_of_order)
                                         "duplicate" -> stringResource(R.string.worker_history_result_duplicate)
-                                        "sequence_steps_saved" -> "顺序单步骤已保存"
-                                        "standard_completed" -> "标准单已完成"
-                                        "sequence_completed" -> "顺序单已全部完成"
-                                        "deprecated_complete_api" -> "已废弃的手动完成"
+                                        "sequence_steps_saved" -> stringResource(R.string.admin_log_result_steps_saved)
+                                        "standard_completed" -> stringResource(R.string.admin_log_result_standard_completed)
+                                        "sequence_completed" -> stringResource(R.string.admin_log_result_sequence_completed)
+                                        "deprecated_complete_api" -> stringResource(R.string.admin_log_result_deprecated)
                                         else -> res
                                     }
                                     FilterChip(
@@ -455,9 +455,9 @@ fun AdminQueryLogsScreen(
                                     actionOptions.forEach { action ->
                                         val isSelected = selectedActions.contains(action)
                                         val localizedAct = when(action) {
-                                            "scan" -> "扫描 (Scan)"
-                                            "complete" -> "手动完成 (废弃)"
-                                            "steps_saved" -> "保存步骤"
+                                            "scan" -> stringResource(R.string.admin_log_action_scan)
+                                            "complete" -> stringResource(R.string.admin_log_action_complete_deprecated)
+                                            "steps_saved" -> stringResource(R.string.admin_log_action_steps_saved)
                                             else -> getLocalizedStatus(action)
                                         }
                                         FilterChip(
@@ -482,10 +482,10 @@ fun AdminQueryLogsScreen(
                                             "mismatch" -> stringResource(R.string.worker_history_result_mismatch)
                                             "out_of_order" -> stringResource(R.string.worker_history_result_out_of_order)
                                             "duplicate" -> stringResource(R.string.worker_history_result_duplicate)
-                                            "sequence_steps_saved" -> "顺序单步骤已保存"
-                                            "standard_completed" -> "标准单已完成"
-                                            "sequence_completed" -> "顺序单已全部完成"
-                                            "deprecated_complete_api" -> "已废弃的手动完成"
+                                            "sequence_steps_saved" -> stringResource(R.string.admin_log_result_steps_saved)
+                                            "standard_completed" -> stringResource(R.string.admin_log_result_standard_completed)
+                                            "sequence_completed" -> stringResource(R.string.admin_log_result_sequence_completed)
+                                            "deprecated_complete_api" -> stringResource(R.string.admin_log_result_deprecated)
                                             else -> res
                                         }
                                         FilterChip(
@@ -786,7 +786,12 @@ fun LogResultsList(
                                     text = stringResource(R.string.admin_log_item_title, log.id),
                                     style = MaterialTheme.typography.titleSmall
                                 )
-                                val actStr = if (log.action == "scan") "扫描 (Scan)" else if(log.action == "complete") "手动完成 (废弃)" else if (log.action == "steps_saved") "保存步骤" else getLocalizedStatus(log.action)
+                                val actStr = when(log.action) {
+                                    "scan" -> stringResource(R.string.admin_log_action_scan)
+                                    "complete" -> stringResource(R.string.admin_log_action_complete_deprecated)
+                                    "steps_saved" -> stringResource(R.string.admin_log_action_steps_saved)
+                                    else -> getLocalizedStatus(log.action)
+                                }
                                 Text(text = stringResource(R.string.admin_log_action, actStr))
                                 
                                 val orderId = log.orderId ?: log.order_id
@@ -805,21 +810,22 @@ fun LogResultsList(
                                         "mismatch" -> stringResource(R.string.worker_history_result_mismatch)
                                         "out_of_order" -> stringResource(R.string.worker_history_result_out_of_order)
                                         "duplicate" -> stringResource(R.string.worker_history_result_duplicate)
-                                        "sequence_steps_saved" -> "顺序单步骤已保存"
-                                        "standard_completed" -> "标准单已完成"
-                                        "sequence_completed" -> "顺序单已全部完成"
-                                        "deprecated_complete_api" -> "已废弃的手动完成"
+                                        "sequence_steps_saved" -> stringResource(R.string.admin_log_result_steps_saved)
+                                        "standard_completed" -> stringResource(R.string.admin_log_result_standard_completed)
+                                        "sequence_completed" -> stringResource(R.string.admin_log_result_sequence_completed)
+                                        "deprecated_complete_api" -> stringResource(R.string.admin_log_result_deprecated)
                                         else -> log.result
                                     }
-                                    Text(text = "结果: $localizedRes")
+                                    Text(text = stringResource(R.string.admin_log_result, localizedRes))
                                 }
                                 
                                 if (log.scanUidHex != null) {
-                                    Text(text = "扫描 UID: ${log.scanUidHex}", style = MaterialTheme.typography.bodySmall)
+                                    Text(text = stringResource(R.string.admin_log_scan_uid, log.scanUidHex), style = MaterialTheme.typography.bodySmall)
                                 }
 
                                 if (log.locationCode != null) {
-                                    Text(text = "地点: ${log.displayName ?: log.locationCode}", style = MaterialTheme.typography.bodySmall)
+                                    val locName = log.displayName ?: log.locationCode
+                                    Text(text = stringResource(R.string.admin_log_location, locName), style = MaterialTheme.typography.bodySmall)
                                 }
 
                                 Text(text = stringResource(R.string.admin_log_time, log.timestamp ?: "N/A"), style = MaterialTheme.typography.bodySmall)
@@ -905,15 +911,15 @@ private fun SearchNfcScannerDialog(
             
             val readerCallback = NfcAdapter.ReaderCallback { tag ->
                 val parsedData = parseNfcTagData(tag, context)
-                activity.runOnUiThread {
+                activity?.runOnUiThread {
                     onScanned(parsedData.uidHex)
                 }
             }
-            nfcAdapter.enableReaderMode(activity, readerCallback, flags, null)
+            nfcAdapter.enableReaderMode(activity!!, readerCallback, flags, null)
         }
 
         onDispose {
-            nfcAdapter?.disableReaderMode(activity)
+            nfcAdapter?.disableReaderMode(activity!!)
         }
     }
 

@@ -868,7 +868,7 @@ fun OrderDetailDialog(order: Order, workers: List<icu.guestliang.nfcworkflow.net
                 Text(text = stringResource(R.string.admin_order_item_title, order.id ?: 0, order.title), style = MaterialTheme.typography.titleMedium)
                 HorizontalDivider(modifier = Modifier.padding(vertical = Dimensions.SpaceXS))
                 
-                Text(text = "类型: $orderTypeStr", style = MaterialTheme.typography.bodyMedium)
+                Text(text = stringResource(R.string.admin_order_type, orderTypeStr), style = MaterialTheme.typography.bodyMedium)
                 Text(text = stringResource(R.string.admin_order_status, getLocalizedStatus(order.status)), style = MaterialTheme.typography.bodyMedium)
                 Text(text = stringResource(R.string.admin_order_description, order.description), style = MaterialTheme.typography.bodyMedium)
                 

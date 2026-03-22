@@ -162,7 +162,6 @@
     <string name="admin_order_title_hint">工单标题</string>
     <string name="admin_order_desc_hint">工单描述</string>
 
-    <!-- Changed: Create Order uses required, Search uses optional -->
     <string name="admin_order_nfc_hint_required">NFC 标签 UID (必填)</string>
     <string name="admin_order_nfc_hint_optional">NFC 标签 UID (可选)</string>
 
@@ -227,6 +226,7 @@
 
     <!-- Order Detail Dialog -->
     <string name="admin_order_details_title">工单详情</string>
+    <string name="admin_order_type">类型: %1$s</string>
     <string name="admin_order_nfc_tag">NFC 标签: %1$s</string>
     <string name="admin_order_assigned_to">指派给: %1$s (ID: %2$d)</string>
     <string name="admin_order_created_at">创建时间: %1$s</string>
@@ -242,6 +242,18 @@
     <string name="admin_log_search_result_title">执行结果筛选 (多选)</string>
     <string name="admin_log_search_start_time">起始时间</string>
     <string name="admin_log_search_end_time">截止时间</string>
+
+    <!-- Log Item Detail Extra -->
+    <string name="admin_log_result">执行结果: %1$s</string>
+    <string name="admin_log_scan_uid">扫描 UID: %1$s</string>
+    <string name="admin_log_location">地点: %1$s</string>
+    <string name="admin_log_action_scan">扫描 (Scan)</string>
+    <string name="admin_log_action_complete_deprecated">手动完成 (废弃)</string>
+    <string name="admin_log_action_steps_saved">保存步骤</string>
+    <string name="admin_log_result_steps_saved">顺序单步骤已保存</string>
+    <string name="admin_log_result_standard_completed">标准单已完成</string>
+    <string name="admin_log_result_sequence_completed">顺序单已全部完成</string>
+    <string name="admin_log_result_deprecated">已废弃的手动完成</string>
 
     <!-- Time Picker Strings -->
     <string name="time_picker_title">选择时间</string>

@@ -7,6 +7,7 @@ import icu.guestliang.nfcworkflow.ui.components.CustomDateTimePickerDialog
 import icu.guestliang.nfcworkflow.ui.components.SplicedColumnGroup
 import icu.guestliang.nfcworkflow.ui.theme.Dimensions
 import icu.guestliang.nfcworkflow.utils.findActivity
+import icu.guestliang.nfcworkflow.utils.getLocalizedStatus
 import kotlinx.coroutines.delay
 import android.content.Intent
 import android.content.res.Configuration
@@ -194,13 +195,14 @@ fun WorkerHistoryScreen(
                             FlowRow(horizontalArrangement = Arrangement.spacedBy(Dimensions.SpaceS)) {
                                 actionOptions.forEach { action ->
                                     val isSelected = selectedActions.contains(action)
+                                    val localizedAct = if (action == "scan") stringResource(R.string.admin_log_action_scan) else getLocalizedStatus(action)
                                     FilterChip(
                                         selected = isSelected,
                                         onClick = dropUnlessResumed {
                                             if (isSelected) selectedActions.remove(action)
                                             else selectedActions.add(action)
                                         },
-                                        label = { Text(action) }
+                                        label = { Text(localizedAct) }
                                     )
                                 }
                             }
@@ -349,13 +351,14 @@ fun WorkerHistoryScreen(
                                 FlowRow(horizontalArrangement = Arrangement.spacedBy(Dimensions.SpaceS)) {
                                     actionOptions.forEach { action ->
                                         val isSelected = selectedActions.contains(action)
+                                        val localizedAct = if (action == "scan") stringResource(R.string.admin_log_action_scan) else getLocalizedStatus(action)
                                         FilterChip(
                                             selected = isSelected,
                                             onClick = dropUnlessResumed {
                                                 if (isSelected) selectedActions.remove(action)
                                                 else selectedActions.add(action)
                                             },
-                                            label = { Text(action) }
+                                            label = { Text(localizedAct) }
                                         )
                                     }
                                 }
@@ -537,7 +540,8 @@ fun HistoryResultsList(uiState: WorkerUiState) {
                                 modifier = Modifier.padding(Dimensions.SpaceL),
                                 verticalArrangement = Arrangement.spacedBy(Dimensions.SpaceS)
                               ) {
-                                Text(text = stringResource(R.string.admin_log_action, log.action))
+                                val actStr = if (log.action == "scan") stringResource(R.string.admin_log_action_scan) else getLocalizedStatus(log.action)
+                                Text(text = stringResource(R.string.admin_log_action, actStr))
                                 
                                 val orderId = log.orderId ?: log.order_id
                                 if (orderId != null) {
@@ -554,15 +558,16 @@ fun HistoryResultsList(uiState: WorkerUiState) {
                                         "duplicate" -> stringResource(R.string.worker_history_result_duplicate)
                                         else -> log.result
                                     }
-                                    Text(text = "结果: $localizedRes")
+                                    Text(text = stringResource(R.string.admin_log_result, localizedRes))
                                 }
                                 
                                 if (log.scanUidHex != null) {
-                                    Text(text = "扫描 UID: ${log.scanUidHex}", style = MaterialTheme.typography.bodySmall)
+                                    Text(text = stringResource(R.string.admin_log_scan_uid, log.scanUidHex), style = MaterialTheme.typography.bodySmall)
                                 }
 
                                 if (log.locationCode != null) {
-                                    Text(text = "地点: ${log.displayName ?: log.locationCode}", style = MaterialTheme.typography.bodySmall)
+                                    val locName = log.displayName ?: log.locationCode
+                                    Text(text = stringResource(R.string.admin_log_location, locName), style = MaterialTheme.typography.bodySmall)
                                 }
                                 
                                 log.timestamp?.let {
