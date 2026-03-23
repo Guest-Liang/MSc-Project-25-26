@@ -138,6 +138,10 @@
     <string name="nfc_write_result_unsupported">写入失败: 不支持NDEF</string>
     <string name="nfc_write_result_error">写入失败: %1$s</string>
 
+    <!-- read screen -->
+    <string name="nfc_read_group_switch">NFC 读取控制</string>
+    <string name="nfc_read_group_history">历史记录</string>
+
     <!-- nfc parse -->
     <string name="nfc_tech_supported">支持技术： %1$s</string>
     <string name="nfc_card_type_mifare_classic">卡片类型：Mifare Classic</string>

@@ -21,8 +21,13 @@ import android.nfc.NfcAdapter
 import android.provider.Settings
 import android.widget.Toast
 import androidx.activity.compose.BackHandler
+import androidx.compose.animation.AnimatedContentTransitionScope
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.tween
 import androidx.compose.animation.expandVertically
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.scaleOut
 import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.combinedClickable
@@ -74,12 +79,49 @@ import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.navigation.NavController
+import androidx.navigation.compose.NavHost
+import androidx.navigation.compose.composable
+import androidx.navigation.compose.rememberNavController
 
 @Composable
 fun NfcReadScreen(navController: NavController) {
+    // Use an internal NavController for smooth page transitions between the main menu and history
+    val internalNavController = rememberNavController()
+
+    NavHost(
+        navController = internalNavController,
+        startDestination = "read_menu",
+        enterTransition = {
+            slideIntoContainer(AnimatedContentTransitionScope.SlideDirection.Left, animationSpec = tween(300)) + fadeIn(tween(300))
+        },
+        exitTransition = {
+            fadeOut(tween(300))
+        },
+        popEnterTransition = {
+            slideIntoContainer(AnimatedContentTransitionScope.SlideDirection.Right, animationSpec = tween(300)) + fadeIn(tween(300))
+        },
+        popExitTransition = {
+            scaleOut(targetScale = 0.85f, animationSpec = tween(300)) + fadeOut(tween(300))
+        }
+    ) {
+        composable("read_menu") {
+            NfcReadMenuScreen(
+                onNavigateToHistory = { internalNavController.navigate("read_history") }
+            )
+        }
+        composable("read_history") {
+            NfcReadHistoryPage(
+                onBack = { internalNavController.popBackStack() }
+            )
+        }
+    }
+}
+
+@Composable
+fun NfcReadMenuScreen(onNavigateToHistory: () -> Unit) {
     val context = LocalContext.current
     val coroutineScope = rememberCoroutineScope()
-    AppLogger.debug(context, "NfcReadScreen recomposed", "UI")
+    AppLogger.debug(context, "NfcReadMenuScreen recomposed", "UI")
 
     LaunchedEffect(Unit) {
         NfcHistoryManager.loadHistory(context)
@@ -88,23 +130,9 @@ fun NfcReadScreen(navController: NavController) {
     val historyList by NfcHistoryManager.historyFlow.collectAsState()
     var showNfcDialog by remember { mutableStateOf(false) }
     var nfcResult by remember { mutableStateOf<String?>(null) }
-    var showHistoryPage by remember { mutableStateOf(false) }
-    
+
     val nfcNotSupportedStr = stringResource(id = R.string.nfc_not_supported)
     val nfcDisabledStr = stringResource(id = R.string.nfc_disabled_prompt)
-
-    if (showHistoryPage) {
-        NfcReadHistoryScreen(
-            historyList = historyList,
-            onBack = { showHistoryPage = false },
-            onDeleteRecords = { ids ->
-                coroutineScope.launch {
-                    NfcHistoryManager.deleteRecords(context, ids)
-                }
-            }
-        )
-        return
-    }
 
     Scaffold(
         modifier = Modifier.fillMaxSize(),
@@ -122,7 +150,7 @@ fun NfcReadScreen(navController: NavController) {
             verticalArrangement = Arrangement.spacedBy(Dimensions.SpaceS)
         ) {
             item {
-                SplicedColumnGroup(title = "") {
+                SplicedColumnGroup(title = stringResource(id = R.string.nfc_read_group_switch)) {
                     item {
                         SplicedSwitchWidget(
                             icon = Icons.Default.Nfc,
@@ -149,15 +177,15 @@ fun NfcReadScreen(navController: NavController) {
                     }
                 }
             }
-            
+
             item {
-                SplicedColumnGroup(title = "") {
+                SplicedColumnGroup(title = stringResource(id = R.string.nfc_read_group_history)) {
                     item {
                         SplicedJumpPageWidget(
                             icon = Icons.Default.History,
                             title = stringResource(id = R.string.nfc_read_history_title, historyList.size),
                             description = stringResource(id = R.string.nfc_read_history_desc),
-                            onClick = { showHistoryPage = true }
+                            onClick = onNavigateToHistory
                         )
                     }
                 }
@@ -175,7 +203,6 @@ fun NfcReadScreen(navController: NavController) {
             onNfcRead = { result ->
                 nfcResult = result
                 
-                // Extract simple ID if possible
                 val idMatch = Regex("ID: ([\\w:]+)").find(result)
                 val simpleUid = idMatch?.groupValues?.get(1) ?: "Unknown UID"
 
@@ -191,6 +218,24 @@ fun NfcReadScreen(navController: NavController) {
             }
         )
     }
+}
+
+@Composable
+fun NfcReadHistoryPage(onBack: () -> Unit) {
+    val context = LocalContext.current
+    val coroutineScope = rememberCoroutineScope()
+    
+    val historyList by NfcHistoryManager.historyFlow.collectAsState()
+
+    NfcReadHistoryScreen(
+        historyList = historyList,
+        onBack = onBack,
+        onDeleteRecords = { ids ->
+            coroutineScope.launch {
+                NfcHistoryManager.deleteRecords(context, ids)
+            }
+        }
+    )
 }
 
 @OptIn(ExperimentalFoundationApi::class, ExperimentalMaterial3Api::class)
@@ -244,10 +289,15 @@ fun NfcReadHistoryScreen(
         if (isLandscape) {
             LazyVerticalGrid(
                 columns = GridCells.Fixed(2),
-                contentPadding = PaddingValues(Dimensions.SpaceM),
+                contentPadding = PaddingValues(
+                    start = Dimensions.SpaceM,
+                    end = Dimensions.SpaceM,
+                    top = innerPadding.calculateTopPadding() + Dimensions.SpaceM,
+                    bottom = innerPadding.calculateBottomPadding() + Dimensions.SpaceM
+                ),
                 horizontalArrangement = Arrangement.spacedBy(Dimensions.SpaceM),
                 verticalArrangement = Arrangement.spacedBy(Dimensions.SpaceM),
-                modifier = Modifier.padding(innerPadding)
+                modifier = Modifier.fillMaxSize()
             ) {
                 items(historyList) { record ->
                     HistoryCard(
@@ -271,9 +321,14 @@ fun NfcReadHistoryScreen(
             }
         } else {
             LazyColumn(
-                contentPadding = PaddingValues(Dimensions.SpaceM),
+                contentPadding = PaddingValues(
+                    start = Dimensions.SpaceM,
+                    end = Dimensions.SpaceM,
+                    top = innerPadding.calculateTopPadding() + Dimensions.SpaceM,
+                    bottom = innerPadding.calculateBottomPadding() + Dimensions.SpaceL
+                ),
                 verticalArrangement = Arrangement.spacedBy(Dimensions.SpaceM),
-                modifier = Modifier.padding(innerPadding)
+                modifier = Modifier.fillMaxSize()
             ) {
                 items(historyList) { record ->
                     HistoryCard(

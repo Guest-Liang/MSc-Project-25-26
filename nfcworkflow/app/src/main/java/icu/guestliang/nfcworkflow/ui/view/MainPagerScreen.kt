@@ -35,6 +35,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.res.stringResource
 import androidx.navigation.NavController
+import androidx.navigation.compose.rememberNavController
 
 @Composable
 fun MainPagerScreen(navController: NavController, onLogout: () -> Unit) {
@@ -42,9 +43,12 @@ fun MainPagerScreen(navController: NavController, onLogout: () -> Unit) {
     val coroutineScope = rememberCoroutineScope()
     val configuration = LocalConfiguration.current
     val isLandscape = configuration.orientation == Configuration.ORIENTATION_LANDSCAPE
+    
+    // We use a nested NavController to handle transitions like pushing "History" on top of "NFC Read"
+    val nestedNavController = rememberNavController()
 
     // 如果当前不在第 0 页，拦截返回键，使其平滑滚动回第 0 页
-    BackHandler(enabled = pagerState.currentPage != 0) {
+    BackHandler(enabled = pagerState.currentPage != 0 && nestedNavController.previousBackStackEntry == null) {
         coroutineScope.launch {
             pagerState.animateScrollToPage(0)
         }
@@ -81,7 +85,8 @@ fun MainPagerScreen(navController: NavController, onLogout: () -> Unit) {
                 HorizontalPager(
                     state = pagerState,
                     modifier = Modifier.fillMaxSize(),
-                    beyondViewportPageCount = 2
+                    beyondViewportPageCount = 2,
+                    userScrollEnabled = false // Prevent swiping if a sub-screen is active
                 ) { page ->
                     when (page) {
                         0 -> HomeScreen(navController = navController)
