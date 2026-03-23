@@ -21,6 +21,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Nfc
 import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material.icons.filled.Edit
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.navigation.NavHostController
@@ -49,7 +50,8 @@ class BottomNavItem(val route: String, val resourceId: Int, val icon: ImageVecto
 
 val items = listOf(
     BottomNavItem("home", R.string.tab_home, Icons.Default.Home),
-    BottomNavItem("nfc", R.string.tab_nfc, Icons.Default.Nfc),
+    BottomNavItem("nfc_read", R.string.tab_nfc_read, Icons.Default.Nfc),
+    BottomNavItem("nfc_write", R.string.tab_nfc_write, Icons.Default.Edit),
     BottomNavItem("settings", R.string.tab_settings, Icons.Default.Settings),
 )
 

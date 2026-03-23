@@ -58,7 +58,7 @@ fun NfcScannerDialog(
     DisposableEffect(activity) {
         val nfcAdapter = activity?.let { NfcAdapter.getDefaultAdapter(it) }
         
-        if (nfcAdapter != null && nfcAdapter.isEnabled && activity != null) {
+        if (nfcAdapter != null && nfcAdapter.isEnabled) {
             val flags = NfcAdapter.FLAG_READER_NFC_A or 
                         NfcAdapter.FLAG_READER_NFC_B or
                         NfcAdapter.FLAG_READER_NFC_F or 

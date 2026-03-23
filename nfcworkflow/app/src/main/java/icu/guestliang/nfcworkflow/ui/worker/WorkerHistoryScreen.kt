@@ -475,7 +475,7 @@ fun HistoryResultsList(uiState: WorkerUiState) {
         }
     } else if (uiState.error != null) {
         Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-            Text(text = uiState.error!!, color = MaterialTheme.colorScheme.error)
+            Text(text = uiState.error, color = MaterialTheme.colorScheme.error)
         }
     } else {
         LazyColumn(

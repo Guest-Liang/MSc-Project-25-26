@@ -2,7 +2,8 @@ package icu.guestliang.nfcworkflow.ui.view
 
 import icu.guestliang.nfcworkflow.navigation.items
 import icu.guestliang.nfcworkflow.ui.HomeScreen
-import icu.guestliang.nfcworkflow.ui.NfcScreen
+import icu.guestliang.nfcworkflow.ui.NfcReadScreen
+import icu.guestliang.nfcworkflow.ui.NfcWriteScreen
 import icu.guestliang.nfcworkflow.ui.SettingsScreen
 import kotlinx.coroutines.launch
 import android.content.res.Configuration
@@ -84,8 +85,9 @@ fun MainPagerScreen(navController: NavController, onLogout: () -> Unit) {
                 ) { page ->
                     when (page) {
                         0 -> HomeScreen(navController = navController)
-                        1 -> NfcScreen(navController = navController)
-                        2 -> SettingsScreen(onLogout = onLogout)
+                        1 -> NfcReadScreen(navController = navController)
+                        2 -> NfcWriteScreen(navController = navController)
+                        3 -> SettingsScreen(onLogout = onLogout)
                     }
                 }
             }
@@ -122,8 +124,9 @@ fun MainPagerScreen(navController: NavController, onLogout: () -> Unit) {
                 ) { page ->
                     when (page) {
                         0 -> HomeScreen(navController = navController)
-                        1 -> NfcScreen(navController = navController)
-                        2 -> SettingsScreen(onLogout = onLogout)
+                        1 -> NfcReadScreen(navController = navController)
+                        2 -> NfcWriteScreen(navController = navController)
+                        3 -> SettingsScreen(onLogout = onLogout)
                     }
                 }
             }

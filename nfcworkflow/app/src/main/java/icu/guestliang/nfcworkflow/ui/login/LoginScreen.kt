@@ -170,55 +170,59 @@ fun LoginScreen(
             stringResource(id = R.string.login_error_failed, errorState.errorMessage ?: "")
         }
 
-        if (errorState.code == 1001) {
-            AlertDialog(
-                onDismissRequest = { viewModel.resetLoginState() },
-                title = { Text(stringResource(id = R.string.login_error_title)) },
-                text = { Text(stringResource(id = R.string.login_user_not_exist_prompt)) },
-                confirmButton = {
-                    TextButton(onClick = {
-                        viewModel.resetLoginState()
-                        onRegister()
-                    }) {
-                        Text(stringResource(id = R.string.login_register_button))
+        when (errorState.code) {
+            1001 -> {
+                AlertDialog(
+                    onDismissRequest = { viewModel.resetLoginState() },
+                    title = { Text(stringResource(id = R.string.login_error_title)) },
+                    text = { Text(stringResource(id = R.string.login_user_not_exist_prompt)) },
+                    confirmButton = {
+                        TextButton(onClick = {
+                            viewModel.resetLoginState()
+                            onRegister()
+                        }) {
+                            Text(stringResource(id = R.string.login_register_button))
+                        }
+                    },
+                    dismissButton = {
+                        TextButton(onClick = { viewModel.resetLoginState() }) {
+                            Text(stringResource(id = android.R.string.cancel))
+                        }
                     }
-                },
-                dismissButton = {
-                    TextButton(onClick = { viewModel.resetLoginState() }) {
-                        Text(stringResource(id = android.R.string.cancel))
+                )
+            }
+            1002 -> {
+                AlertDialog(
+                    onDismissRequest = { viewModel.resetLoginState() },
+                    title = { Text(stringResource(id = R.string.login_error_title)) },
+                    text = { Text(stringResource(id = R.string.login_wrong_password_prompt)) },
+                    confirmButton = {
+                        TextButton(onClick = {
+                            viewModel.resetLoginState()
+                            onResetPassword()
+                        }) {
+                            Text(stringResource(id = R.string.login_reset_password_button))
+                        }
+                    },
+                    dismissButton = {
+                        TextButton(onClick = { viewModel.resetLoginState() }) {
+                            Text(stringResource(id = android.R.string.cancel))
+                        }
                     }
-                }
-            )
-        } else if (errorState.code == 1002) {
-            AlertDialog(
-                onDismissRequest = { viewModel.resetLoginState() },
-                title = { Text(stringResource(id = R.string.login_error_title)) },
-                text = { Text(stringResource(id = R.string.login_wrong_password_prompt)) },
-                confirmButton = {
-                    TextButton(onClick = {
-                        viewModel.resetLoginState()
-                        onResetPassword()
-                    }) {
-                        Text(stringResource(id = R.string.login_reset_password_button))
+                )
+            }
+            else -> {
+                AlertDialog(
+                    onDismissRequest = { viewModel.resetLoginState() },
+                    title = { Text(stringResource(id = R.string.login_error_title)) },
+                    text = { Text(errorText) },
+                    confirmButton = {
+                        TextButton(onClick = { viewModel.resetLoginState() }) {
+                            Text(stringResource(id = android.R.string.ok))
+                        }
                     }
-                },
-                dismissButton = {
-                    TextButton(onClick = { viewModel.resetLoginState() }) {
-                        Text(stringResource(id = android.R.string.cancel))
-                    }
-                }
-            )
-        } else {
-            AlertDialog(
-                onDismissRequest = { viewModel.resetLoginState() },
-                title = { Text(stringResource(id = R.string.login_error_title)) },
-                text = { Text(errorText) },
-                confirmButton = {
-                    TextButton(onClick = { viewModel.resetLoginState() }) {
-                        Text(stringResource(id = android.R.string.ok))
-                    }
-                }
-            )
+                )
+            }
         }
     }
 }

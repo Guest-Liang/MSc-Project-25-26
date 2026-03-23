@@ -352,7 +352,7 @@ fun AdminSearchOrdersScreen(
                             }
                             Spacer(modifier = Modifier.width(Dimensions.SpaceS))
                             Button(onClick = dropUnlessResumed {
-                                val query = icu.guestliang.nfcworkflow.ui.admin.OrderSearchQuery(
+                                val query = OrderSearchQuery(
                                     title = titleQuery,
                                     description = descQuery,
                                     nfcTag = targetUidHexQuery,
@@ -592,7 +592,7 @@ fun AdminSearchOrdersScreen(
                                     Spacer(modifier = Modifier.width(Dimensions.SpaceS))
                                     Button(onClick = dropUnlessResumed {
                                         isFilterExpanded = false
-                                        val query = icu.guestliang.nfcworkflow.ui.admin.OrderSearchQuery(
+                                        val query = OrderSearchQuery(
                                             title = titleQuery,
                                             description = descQuery,
                                             nfcTag = targetUidHexQuery,
