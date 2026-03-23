@@ -1,6 +1,7 @@
 package icu.guestliang.nfcworkflow.ui.view
 
 import icu.guestliang.nfcworkflow.navigation.items
+import icu.guestliang.nfcworkflow.navigation.LocalNfcViewModel
 import icu.guestliang.nfcworkflow.ui.HomeScreen
 import icu.guestliang.nfcworkflow.ui.NfcReadScreen
 import icu.guestliang.nfcworkflow.ui.NfcWriteScreen
@@ -35,7 +36,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.res.stringResource
 import androidx.navigation.NavController
-import androidx.navigation.compose.rememberNavController
 
 @Composable
 fun MainPagerScreen(navController: NavController, onLogout: () -> Unit) {
@@ -44,11 +44,10 @@ fun MainPagerScreen(navController: NavController, onLogout: () -> Unit) {
     val configuration = LocalConfiguration.current
     val isLandscape = configuration.orientation == Configuration.ORIENTATION_LANDSCAPE
     
-    // We use a nested NavController to handle transitions like pushing "History" on top of "NFC Read"
-    val nestedNavController = rememberNavController()
+    val nfcViewModel = LocalNfcViewModel.current
 
     // 如果当前不在第 0 页，拦截返回键，使其平滑滚动回第 0 页
-    BackHandler(enabled = pagerState.currentPage != 0 && nestedNavController.previousBackStackEntry == null) {
+    BackHandler(enabled = pagerState.currentPage != 0) {
         coroutineScope.launch {
             pagerState.animateScrollToPage(0)
         }
@@ -85,13 +84,12 @@ fun MainPagerScreen(navController: NavController, onLogout: () -> Unit) {
                 HorizontalPager(
                     state = pagerState,
                     modifier = Modifier.fillMaxSize(),
-                    beyondViewportPageCount = 2,
-                    userScrollEnabled = false // Prevent swiping if a sub-screen is active
+                    beyondViewportPageCount = 2
                 ) { page ->
                     when (page) {
                         0 -> HomeScreen(navController = navController)
-                        1 -> NfcReadScreen(navController = navController)
-                        2 -> NfcWriteScreen(navController = navController)
+                        1 -> NfcReadScreen(navController = navController, viewModel = nfcViewModel)
+                        2 -> NfcWriteScreen(navController = navController, viewModel = nfcViewModel)
                         3 -> SettingsScreen(onLogout = onLogout)
                     }
                 }
@@ -129,8 +127,8 @@ fun MainPagerScreen(navController: NavController, onLogout: () -> Unit) {
                 ) { page ->
                     when (page) {
                         0 -> HomeScreen(navController = navController)
-                        1 -> NfcReadScreen(navController = navController)
-                        2 -> NfcWriteScreen(navController = navController)
+                        1 -> NfcReadScreen(navController = navController, viewModel = nfcViewModel)
+                        2 -> NfcWriteScreen(navController = navController, viewModel = nfcViewModel)
                         3 -> SettingsScreen(onLogout = onLogout)
                     }
                 }

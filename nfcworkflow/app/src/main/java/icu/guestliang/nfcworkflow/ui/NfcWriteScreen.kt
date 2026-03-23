@@ -49,39 +49,23 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateListOf
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.core.net.toUri
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 
-sealed class WriteData(val typeName: String) {
-    data class Text(val text: String) : WriteData("Text")
-    data class UriRecord(val uri: String, val display: String) : WriteData("URI")
-}
-
 @Composable
-fun NfcWriteScreen(navController: NavController) {
+fun NfcWriteScreen(navController: NavController, viewModel: NfcViewModel = viewModel()) {
     val context = LocalContext.current
+    val uiState by viewModel.uiState.collectAsState()
+    
     AppLogger.debug(context, "NfcWriteScreen recomposed", "UI")
 
-    var isSwitchChecked by remember { mutableStateOf(false) }
-    var showConfirmDialog by remember { mutableStateOf(false) }
-    var showWriteDialog by remember { mutableStateOf(false) }
-    var writeResult by remember { mutableStateOf<String?>(null) }
-    
-    val writeBuffer = remember { mutableStateListOf<WriteData>() }
-    
-    var showInputDialog by remember { mutableStateOf(false) }
-    var inputDialogType by remember { mutableStateOf("") }
-    var inputText1 by remember { mutableStateOf("") }
-    
     val nfcNotSupportedStr = stringResource(id = R.string.nfc_not_supported)
     val nfcDisabledStr = stringResource(id = R.string.nfc_disabled_prompt)
     val toastEmptyStr = stringResource(id = R.string.nfc_write_buffer_toast_empty)
@@ -107,11 +91,11 @@ fun NfcWriteScreen(navController: NavController) {
                         SplicedSwitchWidget(
                             icon = Icons.Default.Edit,
                             title = stringResource(id = R.string.nfc_write_title),
-                            description = if (writeBuffer.isEmpty()) stringResource(R.string.nfc_write_empty_buffer_desc) else stringResource(R.string.nfc_write_filled_buffer_desc, writeBuffer.size),
-                            checked = isSwitchChecked,
+                            description = if (uiState.writeBuffer.isEmpty()) stringResource(R.string.nfc_write_empty_buffer_desc) else stringResource(R.string.nfc_write_filled_buffer_desc, uiState.writeBuffer.size),
+                            checked = uiState.isWriteSwitchChecked,
                             onCheckedChange = { isChecked ->
                                 if (isChecked) {
-                                    if (writeBuffer.isEmpty()) {
+                                    if (uiState.writeBuffer.isEmpty()) {
                                         Toast.makeText(context, toastEmptyStr, Toast.LENGTH_LONG).show()
                                         return@SplicedSwitchWidget
                                     }
@@ -122,13 +106,12 @@ fun NfcWriteScreen(navController: NavController) {
                                         Toast.makeText(context, nfcDisabledStr, Toast.LENGTH_SHORT).show()
                                         context.startActivity(Intent(Settings.ACTION_NFC_SETTINGS))
                                     } else {
-                                        isSwitchChecked = true
-                                        showConfirmDialog = true
+                                        viewModel.updateState { it.copy(isWriteSwitchChecked = true, showWriteConfirmDialog = true) }
                                     }
                                 } else {
-                                    isSwitchChecked = false
-                                    showWriteDialog = false
-                                    writeResult = null
+                                    viewModel.updateState { 
+                                        it.copy(isWriteSwitchChecked = false, showWriteDialog = false, writeResult = null) 
+                                    }
                                 }
                             }
                         )
@@ -143,9 +126,9 @@ fun NfcWriteScreen(navController: NavController) {
                             icon = Icons.Default.TextFields,
                             title = stringResource(id = R.string.nfc_write_type_text),
                             onClick = {
-                                inputDialogType = "text"
-                                inputText1 = ""
-                                showInputDialog = true
+                                viewModel.updateState { 
+                                    it.copy(showWriteInputDialog = true, writeInputDialogType = "text", writeInputText1 = "") 
+                                }
                             }
                         )
                     }
@@ -154,9 +137,9 @@ fun NfcWriteScreen(navController: NavController) {
                             icon = Icons.Default.Email,
                             title = stringResource(id = R.string.nfc_write_type_email),
                             onClick = {
-                                inputDialogType = "email"
-                                inputText1 = ""
-                                showInputDialog = true
+                                viewModel.updateState { 
+                                    it.copy(showWriteInputDialog = true, writeInputDialogType = "email", writeInputText1 = "") 
+                                }
                             }
                         )
                     }
@@ -165,19 +148,19 @@ fun NfcWriteScreen(navController: NavController) {
                             icon = Icons.Default.Call,
                             title = stringResource(id = R.string.nfc_write_type_phone),
                             onClick = {
-                                inputDialogType = "phone"
-                                inputText1 = ""
-                                showInputDialog = true
+                                viewModel.updateState { 
+                                    it.copy(showWriteInputDialog = true, writeInputDialogType = "phone", writeInputText1 = "") 
+                                }
                             }
                         )
                     }
                 }
             }
 
-            if (writeBuffer.isNotEmpty()) {
+            if (uiState.writeBuffer.isNotEmpty()) {
                 item {
                     SplicedColumnGroup(title = stringResource(id = R.string.nfc_write_current_content_title)) {
-                        writeBuffer.forEachIndexed { index, data ->
+                        uiState.writeBuffer.forEachIndexed { index, data ->
                             item {
                                 val display = when (data) {
                                     is WriteData.Text -> data.text
@@ -187,10 +170,12 @@ fun NfcWriteScreen(navController: NavController) {
                                     icon = Icons.Default.Nfc,
                                     title = "${data.typeName}: $display",
                                     onClick = {
-                                        writeBuffer.removeAt(index)
-                                        if (writeBuffer.isEmpty()) {
-                                            isSwitchChecked = false
-                                            showWriteDialog = false
+                                        viewModel.removeWriteData(index)
+                                        // If empty after removal, ensure we reset switch status
+                                        if (uiState.writeBuffer.size == 1) { // 1 before removal means 0 after
+                                            viewModel.updateState { 
+                                                it.copy(isWriteSwitchChecked = false, showWriteDialog = false) 
+                                            }
                                         }
                                     }
                                 )
@@ -202,52 +187,57 @@ fun NfcWriteScreen(navController: NavController) {
         }
     }
 
-    if (showInputDialog) {
+    if (uiState.showWriteInputDialog) {
         AlertDialog(
-            onDismissRequest = { showInputDialog = false },
+            onDismissRequest = { viewModel.updateState { it.copy(showWriteInputDialog = false) } },
             title = { Text(stringResource(id = R.string.nfc_write_input_dialog_title)) },
             text = {
                 OutlinedTextField(
-                    value = inputText1,
-                    onValueChange = { inputText1 = it },
-                    label = { Text(inputDialogType.uppercase(Locale.getDefault())) },
-                    keyboardOptions = if (inputDialogType == "phone") KeyboardOptions(keyboardType = KeyboardType.Phone) else KeyboardOptions.Default
+                    value = uiState.writeInputText1,
+                    onValueChange = { newText -> viewModel.updateState { it.copy(writeInputText1 = newText) } },
+                    label = { Text(uiState.writeInputDialogType.uppercase(Locale.getDefault())) },
+                    keyboardOptions = if (uiState.writeInputDialogType == "phone") KeyboardOptions(keyboardType = KeyboardType.Phone) else KeyboardOptions.Default
                 )
             },
             confirmButton = {
                 TextButton(onClick = {
-                    if (inputText1.isNotBlank()) {
-                        when (inputDialogType) {
-                            "text" -> writeBuffer.add(WriteData.Text(inputText1))
-                            "email" -> writeBuffer.add(WriteData.UriRecord("mailto:$inputText1", inputText1))
-                            "phone" -> writeBuffer.add(WriteData.UriRecord("tel:$inputText1", inputText1))
+                    if (uiState.writeInputText1.isNotBlank()) {
+                        val inputType = uiState.writeInputDialogType
+                        val text = uiState.writeInputText1
+                        val newRecord = when (inputType) {
+                            "text" -> WriteData.Text(text)
+                            "email" -> WriteData.UriRecord("mailto:$text", text)
+                            "phone" -> WriteData.UriRecord("tel:$text", text)
+                            else -> null
+                        }
+                        if (newRecord != null) {
+                            viewModel.addWriteData(newRecord)
                         }
                     }
-                    showInputDialog = false
+                    viewModel.updateState { it.copy(showWriteInputDialog = false) }
                 }) {
                     Text(stringResource(id = R.string.ok))
                 }
             },
             dismissButton = {
-                TextButton(onClick = { showInputDialog = false }) {
+                TextButton(onClick = { viewModel.updateState { it.copy(showWriteInputDialog = false) } }) {
                     Text(stringResource(id = R.string.cancel))
                 }
             }
         )
     }
 
-    if (showConfirmDialog) {
+    if (uiState.showWriteConfirmDialog) {
         AlertDialog(
             onDismissRequest = { 
-                showConfirmDialog = false
-                isSwitchChecked = false 
+                viewModel.updateState { it.copy(showWriteConfirmDialog = false, isWriteSwitchChecked = false) } 
             },
             title = { Text(stringResource(id = R.string.nfc_write_confirm_dialog_title)) },
             text = {
                 Column {
-                    Text(stringResource(id = R.string.nfc_write_confirm_dialog_desc, writeBuffer.size))
+                    Text(stringResource(id = R.string.nfc_write_confirm_dialog_desc, uiState.writeBuffer.size))
                     Spacer(modifier = Modifier.height(Dimensions.SpaceS))
-                    writeBuffer.forEach { data ->
+                    uiState.writeBuffer.forEach { data ->
                         val display = when (data) {
                             is WriteData.Text -> data.text
                             is WriteData.UriRecord -> data.display
@@ -258,16 +248,14 @@ fun NfcWriteScreen(navController: NavController) {
             },
             confirmButton = {
                 TextButton(onClick = {
-                    showConfirmDialog = false
-                    showWriteDialog = true
+                    viewModel.updateState { it.copy(showWriteConfirmDialog = false, showWriteDialog = true) }
                 }) {
                     Text(stringResource(id = R.string.ok))
                 }
             },
             dismissButton = {
                 TextButton(onClick = { 
-                    showConfirmDialog = false
-                    isSwitchChecked = false 
+                    viewModel.updateState { it.copy(showWriteConfirmDialog = false, isWriteSwitchChecked = false) }
                 }) {
                     Text(stringResource(id = R.string.cancel))
                 }
@@ -275,17 +263,15 @@ fun NfcWriteScreen(navController: NavController) {
         )
     }
 
-    if (showWriteDialog) {
+    if (uiState.showWriteDialog) {
         NfcWriterDialog(
             onDismiss = {
-                showWriteDialog = false
-                isSwitchChecked = false
-                writeResult = null
+                viewModel.updateState { it.copy(showWriteDialog = false, isWriteSwitchChecked = false, writeResult = null) }
             },
-            writeBuffer = writeBuffer,
-            writeResult = writeResult,
+            writeBuffer = uiState.writeBuffer,
+            writeResult = uiState.writeResult,
             onNfcWriteResult = { result ->
-                writeResult = result
+                viewModel.updateState { it.copy(writeResult = result) }
             }
         )
     }

@@ -4,6 +4,7 @@ import icu.guestliang.nfcworkflow.R
 import icu.guestliang.nfcworkflow.data.NfcHistoryManager
 import icu.guestliang.nfcworkflow.data.NfcReadRecord
 import icu.guestliang.nfcworkflow.logging.AppLogger
+import icu.guestliang.nfcworkflow.navigation.Screen
 import icu.guestliang.nfcworkflow.nfc.parseNfcTag
 import icu.guestliang.nfcworkflow.ui.components.SplicedColumnGroup
 import icu.guestliang.nfcworkflow.ui.components.SplicedJumpPageWidget
@@ -21,14 +22,11 @@ import android.nfc.NfcAdapter
 import android.provider.Settings
 import android.widget.Toast
 import androidx.activity.compose.BackHandler
-import androidx.compose.animation.AnimatedContentTransitionScope
 import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.core.tween
 import androidx.compose.animation.expandHorizontally
 import androidx.compose.animation.expandVertically
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
-import androidx.compose.animation.scaleOut
 import androidx.compose.animation.shrinkHorizontally
 import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.ExperimentalFoundationApi
@@ -46,6 +44,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.GridItemSpan
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.lazy.items
@@ -74,7 +73,6 @@ import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -86,58 +84,22 @@ import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
-import androidx.navigation.compose.NavHost
-import androidx.navigation.compose.composable
-import androidx.navigation.compose.rememberNavController
 
 @Composable
-fun NfcReadScreen(navController: NavController) {
-    // Use an internal NavController for smooth page transitions between the main menu and history
-    val internalNavController = rememberNavController()
-
-    NavHost(
-        navController = internalNavController,
-        startDestination = "read_menu",
-        enterTransition = {
-            slideIntoContainer(AnimatedContentTransitionScope.SlideDirection.Left, animationSpec = tween(300)) + fadeIn(tween(300))
-        },
-        exitTransition = {
-            fadeOut(tween(300))
-        },
-        popEnterTransition = {
-            slideIntoContainer(AnimatedContentTransitionScope.SlideDirection.Right, animationSpec = tween(300)) + fadeIn(tween(300))
-        },
-        popExitTransition = {
-            scaleOut(targetScale = 0.85f, animationSpec = tween(300)) + fadeOut(tween(300))
-        }
-    ) {
-        composable("read_menu") {
-            NfcReadMenuScreen(
-                onNavigateToHistory = { internalNavController.navigate("read_history") }
-            )
-        }
-        composable("read_history") {
-            NfcReadHistoryPage(
-                onBack = { internalNavController.popBackStack() }
-            )
-        }
-    }
-}
-
-@Composable
-fun NfcReadMenuScreen(onNavigateToHistory: () -> Unit) {
+fun NfcReadScreen(navController: NavController, viewModel: NfcViewModel = viewModel()) {
     val context = LocalContext.current
     val coroutineScope = rememberCoroutineScope()
-    AppLogger.debug(context, "NfcReadMenuScreen recomposed", "UI")
+    val uiState by viewModel.uiState.collectAsState()
+    
+    AppLogger.debug(context, "NfcReadScreen recomposed", "UI")
 
     LaunchedEffect(Unit) {
         NfcHistoryManager.loadHistory(context)
     }
 
     val historyList by NfcHistoryManager.historyFlow.collectAsState()
-    var showNfcDialog by remember { mutableStateOf(false) }
-    var nfcResult by remember { mutableStateOf<String?>(null) }
 
     val nfcNotSupportedStr = stringResource(id = R.string.nfc_not_supported)
     val nfcDisabledStr = stringResource(id = R.string.nfc_disabled_prompt)
@@ -164,7 +126,7 @@ fun NfcReadMenuScreen(onNavigateToHistory: () -> Unit) {
                             icon = Icons.Default.Nfc,
                             title = stringResource(id = R.string.nfc_read_title),
                             description = stringResource(id = R.string.nfc_read_desc),
-                            checked = showNfcDialog,
+                            checked = uiState.showReadNfcDialog,
                             onCheckedChange = { isChecked ->
                                 if (isChecked) {
                                     val nfcAdapter = NfcAdapter.getDefaultAdapter(context)
@@ -174,11 +136,10 @@ fun NfcReadMenuScreen(onNavigateToHistory: () -> Unit) {
                                         Toast.makeText(context, nfcDisabledStr, Toast.LENGTH_SHORT).show()
                                         context.startActivity(Intent(Settings.ACTION_NFC_SETTINGS))
                                     } else {
-                                        showNfcDialog = true
+                                        viewModel.updateState { it.copy(showReadNfcDialog = true) }
                                     }
                                 } else {
-                                    showNfcDialog = false
-                                    nfcResult = null
+                                    viewModel.updateState { it.copy(showReadNfcDialog = false, readNfcResult = null) }
                                 }
                             }
                         )
@@ -193,7 +154,7 @@ fun NfcReadMenuScreen(onNavigateToHistory: () -> Unit) {
                             icon = Icons.Default.History,
                             title = stringResource(id = R.string.nfc_read_history_title, historyList.size),
                             description = stringResource(id = R.string.nfc_read_history_desc),
-                            onClick = onNavigateToHistory
+                            onClick = { navController.navigate(Screen.NfcReadHistory.route) }
                         )
                     }
                 }
@@ -201,15 +162,14 @@ fun NfcReadMenuScreen(onNavigateToHistory: () -> Unit) {
         }
     }
 
-    if (showNfcDialog) {
+    if (uiState.showReadNfcDialog) {
         NfcReaderDialog(
             onDismiss = {
-                showNfcDialog = false
-                nfcResult = null
+                viewModel.updateState { it.copy(showReadNfcDialog = false, readNfcResult = null) }
             },
-            nfcResult = nfcResult,
+            nfcResult = uiState.readNfcResult,
             onNfcRead = { result ->
-                nfcResult = result
+                viewModel.updateState { it.copy(readNfcResult = result) }
                 
                 val idMatch = Regex("ID: ([\\w:]+)").find(result)
                 val simpleUid = idMatch?.groupValues?.get(1) ?: "Unknown UID"
@@ -229,18 +189,19 @@ fun NfcReadMenuScreen(onNavigateToHistory: () -> Unit) {
 }
 
 @Composable
-fun NfcReadHistoryPage(onBack: () -> Unit) {
+fun NfcReadHistoryPage(viewModel: NfcViewModel, onBack: () -> Unit) {
     val context = LocalContext.current
     val coroutineScope = rememberCoroutineScope()
-    
     val historyList by NfcHistoryManager.historyFlow.collectAsState()
 
     NfcReadHistoryScreen(
         historyList = historyList,
+        viewModel = viewModel,
         onBack = onBack,
         onDeleteRecords = { ids ->
             coroutineScope.launch {
                 NfcHistoryManager.deleteRecords(context, ids)
+                viewModel.clearSelection()
             }
         }
     )
@@ -250,43 +211,39 @@ fun NfcReadHistoryPage(onBack: () -> Unit) {
 @Composable
 fun NfcReadHistoryScreen(
     historyList: List<NfcReadRecord>,
+    viewModel: NfcViewModel,
     onBack: () -> Unit,
     onDeleteRecords: (Set<String>) -> Unit
 ) {
+    val uiState by viewModel.uiState.collectAsState()
+
     BackHandler {
         onBack()
+        viewModel.clearSelection()
     }
-
-    var selectionMode by remember { mutableStateOf(false) }
-    val selectedIds = remember { mutableStateListOf<String>() }
-    var showDeleteConfirm by remember { mutableStateOf(false) }
 
     val configuration = LocalConfiguration.current
     val isLandscape = configuration.orientation == Configuration.ORIENTATION_LANDSCAPE
     
     val df = remember { SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault()) }
 
-    fun toggleSelection(id: String) {
-        if (selectedIds.contains(id)) {
-            selectedIds.remove(id)
-            if (selectedIds.isEmpty()) selectionMode = false
-        } else {
-            selectedIds.add(id)
-        }
-    }
-
     Scaffold(
         topBar = {
             TopAppBar(
                 title = { Text(stringResource(id = R.string.nfc_read_history_page_title) + " (${historyList.size})") },
                 navigationIcon = {
-                    IconButton(onClick = onBack) {
+                    IconButton(onClick = { 
+                        onBack() 
+                        viewModel.clearSelection()
+                    }) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(id = R.string.cd_back))
                     }
                 },
                 actions = {
-                    if (selectionMode) {
-                        IconButton(onClick = { showDeleteConfirm = true }) {
+                    if (uiState.readSelectionMode) {
+                        IconButton(onClick = { 
+                            viewModel.updateState { it.copy(showReadDeleteConfirm = true) } 
+                        }) {
                             Icon(Icons.Default.Delete, contentDescription = "Delete")
                         }
                     }
@@ -321,23 +278,24 @@ fun NfcReadHistoryScreen(
                     verticalArrangement = Arrangement.spacedBy(Dimensions.SpaceM),
                     modifier = Modifier.fillMaxSize()
                 ) {
-                    item {
+                    item(span = { GridItemSpan(maxLineSpan) }) {
                         LongPressHintCard()
                     }
                     items(historyList) { record ->
                         HistoryCard(
                             record = record,
-                            selectionMode = selectionMode,
-                            isSelected = selectedIds.contains(record.id),
+                            selectionMode = uiState.readSelectionMode,
+                            isSelected = uiState.readSelectedIds.contains(record.id),
                             onLongClick = {
-                                if (!selectionMode) {
-                                    selectionMode = true
-                                    selectedIds.add(record.id)
+                                if (!uiState.readSelectionMode) {
+                                    viewModel.updateState { 
+                                        it.copy(readSelectionMode = true, readSelectedIds = setOf(record.id)) 
+                                    }
                                 }
                             },
                             onClick = {
-                                if (selectionMode) {
-                                    toggleSelection(record.id)
+                                if (uiState.readSelectionMode) {
+                                    viewModel.toggleSelection(record.id)
                                 }
                             },
                             dateString = df.format(Date(record.timestamp))
@@ -361,17 +319,18 @@ fun NfcReadHistoryScreen(
                     items(historyList) { record ->
                         HistoryCard(
                             record = record,
-                            selectionMode = selectionMode,
-                            isSelected = selectedIds.contains(record.id),
+                            selectionMode = uiState.readSelectionMode,
+                            isSelected = uiState.readSelectedIds.contains(record.id),
                             onLongClick = {
-                                if (!selectionMode) {
-                                    selectionMode = true
-                                    selectedIds.add(record.id)
+                                if (!uiState.readSelectionMode) {
+                                    viewModel.updateState { 
+                                        it.copy(readSelectionMode = true, readSelectedIds = setOf(record.id)) 
+                                    }
                                 }
                             },
                             onClick = {
-                                if (selectionMode) {
-                                    toggleSelection(record.id)
+                                if (uiState.readSelectionMode) {
+                                    viewModel.toggleSelection(record.id)
                                 }
                             },
                             dateString = df.format(Date(record.timestamp))
@@ -382,23 +341,20 @@ fun NfcReadHistoryScreen(
         }
     }
 
-    if (showDeleteConfirm) {
+    if (uiState.showReadDeleteConfirm) {
         AlertDialog(
-            onDismissRequest = { showDeleteConfirm = false },
+            onDismissRequest = { viewModel.updateState { it.copy(showReadDeleteConfirm = false) } },
             title = { Text(stringResource(id = R.string.nfc_read_history_delete_title)) },
-            text = { Text(stringResource(id = R.string.nfc_read_history_delete_prompt, selectedIds.size)) },
+            text = { Text(stringResource(id = R.string.nfc_read_history_delete_prompt, uiState.readSelectedIds.size)) },
             confirmButton = {
                 TextButton(onClick = {
-                    onDeleteRecords(selectedIds.toSet())
-                    selectionMode = false
-                    selectedIds.clear()
-                    showDeleteConfirm = false
+                    onDeleteRecords(uiState.readSelectedIds)
                 }) {
                     Text(stringResource(id = R.string.ok))
                 }
             },
             dismissButton = {
-                TextButton(onClick = { showDeleteConfirm = false }) {
+                TextButton(onClick = { viewModel.updateState { it.copy(showReadDeleteConfirm = false) } }) {
                     Text(stringResource(id = R.string.cancel))
                 }
             }
@@ -452,7 +408,7 @@ fun HistoryCard(
     Card(
         modifier = Modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(Dimensions.Radius.M)) // 保证 ripple 特效和卡片圆角一致
+            .clip(RoundedCornerShape(Dimensions.Radius.M))
             .combinedClickable(
                 onClick = {
                     if (selectionMode) onClick()
