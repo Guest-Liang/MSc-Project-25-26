@@ -32,6 +32,7 @@ import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -48,8 +49,10 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.History
+import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Nfc
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
@@ -78,6 +81,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.style.TextAlign
 import androidx.navigation.NavController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
@@ -273,7 +277,7 @@ fun NfcReadHistoryScreen(
                 title = { Text(stringResource(id = R.string.nfc_read_history_page_title) + " (${historyList.size})") },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
-                        Icon(Icons.Default.History, contentDescription = "Back")
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(id = R.string.cd_back))
                     }
                 },
                 actions = {
@@ -286,68 +290,89 @@ fun NfcReadHistoryScreen(
             )
         }
     ) { innerPadding ->
-        if (isLandscape) {
-            LazyVerticalGrid(
-                columns = GridCells.Fixed(2),
-                contentPadding = PaddingValues(
-                    start = Dimensions.SpaceM,
-                    end = Dimensions.SpaceM,
-                    top = innerPadding.calculateTopPadding() + Dimensions.SpaceM,
-                    bottom = innerPadding.calculateBottomPadding() + Dimensions.SpaceM
-                ),
-                horizontalArrangement = Arrangement.spacedBy(Dimensions.SpaceM),
-                verticalArrangement = Arrangement.spacedBy(Dimensions.SpaceM),
-                modifier = Modifier.fillMaxSize()
+        if (historyList.isEmpty()) {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(innerPadding),
+                contentAlignment = Alignment.Center
             ) {
-                items(historyList) { record ->
-                    HistoryCard(
-                        record = record,
-                        selectionMode = selectionMode,
-                        isSelected = selectedIds.contains(record.id),
-                        onLongClick = {
-                            if (!selectionMode) {
-                                selectionMode = true
-                                selectedIds.add(record.id)
-                            }
-                        },
-                        onClick = {
-                            if (selectionMode) {
-                                toggleSelection(record.id)
-                            }
-                        },
-                        dateString = df.format(Date(record.timestamp))
-                    )
-                }
+                Text(
+                    text = stringResource(id = R.string.nfc_read_history_empty_hint),
+                    style = MaterialTheme.typography.bodyLarge,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
             }
         } else {
-            LazyColumn(
-                contentPadding = PaddingValues(
-                    start = Dimensions.SpaceM,
-                    end = Dimensions.SpaceM,
-                    top = innerPadding.calculateTopPadding() + Dimensions.SpaceM,
-                    bottom = innerPadding.calculateBottomPadding() + Dimensions.SpaceL
-                ),
-                verticalArrangement = Arrangement.spacedBy(Dimensions.SpaceM),
-                modifier = Modifier.fillMaxSize()
-            ) {
-                items(historyList) { record ->
-                    HistoryCard(
-                        record = record,
-                        selectionMode = selectionMode,
-                        isSelected = selectedIds.contains(record.id),
-                        onLongClick = {
-                            if (!selectionMode) {
-                                selectionMode = true
-                                selectedIds.add(record.id)
-                            }
-                        },
-                        onClick = {
-                            if (selectionMode) {
-                                toggleSelection(record.id)
-                            }
-                        },
-                        dateString = df.format(Date(record.timestamp))
-                    )
+            if (isLandscape) {
+                LazyVerticalGrid(
+                    columns = GridCells.Fixed(2),
+                    contentPadding = PaddingValues(
+                        start = Dimensions.SpaceM,
+                        end = Dimensions.SpaceM,
+                        top = innerPadding.calculateTopPadding() + Dimensions.SpaceM,
+                        bottom = innerPadding.calculateBottomPadding() + Dimensions.SpaceM
+                    ),
+                    horizontalArrangement = Arrangement.spacedBy(Dimensions.SpaceM),
+                    verticalArrangement = Arrangement.spacedBy(Dimensions.SpaceM),
+                    modifier = Modifier.fillMaxSize()
+                ) {
+                    item {
+                        LongPressHintCard()
+                    }
+                    items(historyList) { record ->
+                        HistoryCard(
+                            record = record,
+                            selectionMode = selectionMode,
+                            isSelected = selectedIds.contains(record.id),
+                            onLongClick = {
+                                if (!selectionMode) {
+                                    selectionMode = true
+                                    selectedIds.add(record.id)
+                                }
+                            },
+                            onClick = {
+                                if (selectionMode) {
+                                    toggleSelection(record.id)
+                                }
+                            },
+                            dateString = df.format(Date(record.timestamp))
+                        )
+                    }
+                }
+            } else {
+                LazyColumn(
+                    contentPadding = PaddingValues(
+                        start = Dimensions.SpaceM,
+                        end = Dimensions.SpaceM,
+                        top = innerPadding.calculateTopPadding() + Dimensions.SpaceM,
+                        bottom = innerPadding.calculateBottomPadding() + Dimensions.SpaceL
+                    ),
+                    verticalArrangement = Arrangement.spacedBy(Dimensions.SpaceM),
+                    modifier = Modifier.fillMaxSize()
+                ) {
+                    item {
+                        LongPressHintCard()
+                    }
+                    items(historyList) { record ->
+                        HistoryCard(
+                            record = record,
+                            selectionMode = selectionMode,
+                            isSelected = selectedIds.contains(record.id),
+                            onLongClick = {
+                                if (!selectionMode) {
+                                    selectionMode = true
+                                    selectedIds.add(record.id)
+                                }
+                            },
+                            onClick = {
+                                if (selectionMode) {
+                                    toggleSelection(record.id)
+                                }
+                            },
+                            dateString = df.format(Date(record.timestamp))
+                        )
+                    }
                 }
             }
         }
@@ -376,6 +401,37 @@ fun NfcReadHistoryScreen(
         )
     }
 }
+
+@Composable
+fun LongPressHintCard() {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(Dimensions.Radius.M),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.5f)
+        )
+    ) {
+        Row(
+            modifier = Modifier.padding(Dimensions.SpaceS),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Icon(
+                imageVector = Icons.Default.Info,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.onSecondaryContainer,
+                modifier = Modifier.padding(end = Dimensions.SpaceS)
+            )
+            Text(
+                text = stringResource(id = R.string.nfc_read_history_long_press_hint),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSecondaryContainer,
+                textAlign = TextAlign.Start,
+                modifier = Modifier.weight(1f)
+            )
+        }
+    }
+}
+
 
 @OptIn(ExperimentalFoundationApi::class)
 @Composable

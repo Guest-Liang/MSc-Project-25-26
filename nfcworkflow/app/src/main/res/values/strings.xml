@@ -115,10 +115,13 @@
     <string name="nfc_read_history_page_title">读取记录</string>
     <string name="nfc_read_history_delete_title">删除记录</string>
     <string name="nfc_read_history_delete_prompt">确定要删除选中的 %1$d 条记录吗？</string>
+    <string name="nfc_read_history_empty_hint">暂无读取记录</string>
+    <string name="nfc_read_history_long_press_hint">长按记录可多选删除</string>
 
+    <!-- write screen -->
+    <string name="nfc_write_group_switch">NFC 写入控制</string>
     <string name="nfc_write_type_text">写入文本</string>
     <string name="nfc_write_type_email">写入邮件</string>
-    <string name="nfc_write_type_wifi">写入 Wi-Fi</string>
     <string name="nfc_write_type_phone">写入电话</string>
     <string name="nfc_write_buffer_title">写入缓冲区</string>
 

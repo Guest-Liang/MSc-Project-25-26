@@ -41,7 +41,6 @@ import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Email
 import androidx.compose.material.icons.filled.Nfc
 import androidx.compose.material.icons.filled.TextFields
-import androidx.compose.material.icons.filled.Wifi
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
@@ -103,7 +102,7 @@ fun NfcWriteScreen(navController: NavController) {
             verticalArrangement = Arrangement.spacedBy(Dimensions.SpaceS)
         ) {
             item {
-                SplicedColumnGroup(title = "") {
+                SplicedColumnGroup(title = stringResource(id = R.string.nfc_write_group_switch)) {
                     item {
                         SplicedSwitchWidget(
                             icon = Icons.Default.Edit,
@@ -156,17 +155,6 @@ fun NfcWriteScreen(navController: NavController) {
                             title = stringResource(id = R.string.nfc_write_type_email),
                             onClick = {
                                 inputDialogType = "email"
-                                inputText1 = ""
-                                showInputDialog = true
-                            }
-                        )
-                    }
-                    item {
-                        SplicedJumpPageWidget(
-                            icon = Icons.Default.Wifi,
-                            title = stringResource(id = R.string.nfc_write_type_wifi),
-                            onClick = {
-                                inputDialogType = "wifi"
                                 inputText1 = ""
                                 showInputDialog = true
                             }
@@ -233,7 +221,6 @@ fun NfcWriteScreen(navController: NavController) {
                             "text" -> writeBuffer.add(WriteData.Text(inputText1))
                             "email" -> writeBuffer.add(WriteData.UriRecord("mailto:$inputText1", inputText1))
                             "phone" -> writeBuffer.add(WriteData.UriRecord("tel:$inputText1", inputText1))
-                            "wifi" -> writeBuffer.add(WriteData.UriRecord("WIFI:S:$inputText1;;", inputText1))
                         }
                     }
                     showInputDialog = false
