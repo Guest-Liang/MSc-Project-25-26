@@ -24,10 +24,12 @@ import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedContentTransitionScope
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.tween
+import androidx.compose.animation.expandHorizontally
 import androidx.compose.animation.expandVertically
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.scaleOut
+import androidx.compose.animation.shrinkHorizontally
 import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.combinedClickable
@@ -37,6 +39,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -78,6 +81,7 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
@@ -448,6 +452,7 @@ fun HistoryCard(
     Card(
         modifier = Modifier
             .fillMaxWidth()
+            .clip(RoundedCornerShape(Dimensions.Radius.M)) // 保证 ripple 特效和卡片圆角一致
             .combinedClickable(
                 onClick = {
                     if (selectionMode) onClick()
@@ -464,24 +469,39 @@ fun HistoryCard(
             modifier = Modifier.padding(Dimensions.SpaceM),
             verticalAlignment = Alignment.Top
         ) {
-            if (selectionMode) {
-                Checkbox(
-                    checked = isSelected,
-                    onCheckedChange = null,
-                    modifier = Modifier.padding(end = Dimensions.SpaceM)
-                )
+            AnimatedVisibility(
+                visible = selectionMode,
+                enter = expandHorizontally(expandFrom = Alignment.Start) + fadeIn(),
+                exit = shrinkHorizontally(shrinkTowards = Alignment.Start) + fadeOut()
+            ) {
+                Box(
+                    modifier = Modifier.height(Dimensions.Space5XL),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Checkbox(
+                        checked = isSelected,
+                        onCheckedChange = null,
+                        modifier = Modifier.padding(end = Dimensions.SpaceM)
+                    )
+                }
             }
+            
             Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    text = "UID: ${record.uid}",
-                    style = MaterialTheme.typography.titleMedium,
-                    color = MaterialTheme.colorScheme.onSurface
-                )
-                Text(
-                    text = dateString,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
+                Column(
+                    modifier = Modifier.defaultMinSize(minHeight = Dimensions.Space5XL),
+                    verticalArrangement = Arrangement.Center
+                ) {
+                    Text(
+                        text = "UID: ${record.uid}",
+                        style = MaterialTheme.typography.titleMedium,
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
+                    Text(
+                        text = dateString,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
                 
                 AnimatedVisibility(
                     visible = expanded,

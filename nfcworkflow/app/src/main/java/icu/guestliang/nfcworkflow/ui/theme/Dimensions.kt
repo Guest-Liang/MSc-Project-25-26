@@ -14,6 +14,8 @@ object Dimensions {
     val SpaceXXL = 24.dp
     val SpaceXXXL = 32.dp
     val Space4XL = 40.dp
+    val Space5XL = 48.dp
+
 
     // Corner Radius
     object Radius {
