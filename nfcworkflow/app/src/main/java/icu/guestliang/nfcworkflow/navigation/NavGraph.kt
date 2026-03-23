@@ -1,6 +1,8 @@
 package icu.guestliang.nfcworkflow.navigation
 
 import icu.guestliang.nfcworkflow.R
+import icu.guestliang.nfcworkflow.ui.NfcReadHistoryPage
+import icu.guestliang.nfcworkflow.ui.NfcViewModel
 import icu.guestliang.nfcworkflow.ui.admin.AdminAssignOrderScreen
 import icu.guestliang.nfcworkflow.ui.admin.AdminCreateOrderScreen
 import icu.guestliang.nfcworkflow.ui.admin.AdminQueryLogsScreen
@@ -12,8 +14,6 @@ import icu.guestliang.nfcworkflow.ui.worker.CompleteOrderScreen
 import icu.guestliang.nfcworkflow.ui.worker.ViewOrdersScreen
 import icu.guestliang.nfcworkflow.ui.worker.WorkerHistoryScreen
 import icu.guestliang.nfcworkflow.ui.worker.WorkerScanScreen
-import icu.guestliang.nfcworkflow.ui.NfcReadHistoryPage
-import icu.guestliang.nfcworkflow.ui.NfcViewModel
 import androidx.compose.animation.AnimatedContentTransitionScope
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn

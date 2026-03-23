@@ -1,5 +1,6 @@
 package icu.guestliang.nfcworkflow.ui.worker
 
+import icu.guestliang.nfcworkflow.R
 import icu.guestliang.nfcworkflow.data.PrefsDataStore
 import icu.guestliang.nfcworkflow.logging.AppLogger
 import icu.guestliang.nfcworkflow.network.ApiClient
@@ -74,7 +75,7 @@ class WorkerViewModel : ViewModel() {
             try {
                 val token = PrefsDataStore.flow(context).firstOrNull()?.token
                 if (token == null) {
-                    _uiState.update { it.copy(isLoading = false, error = "Not logged in") }
+                    _uiState.update { it.copy(isLoading = false, error = context.getString(R.string.err_not_logged_in)) }
                     return@launch
                 }
 
@@ -90,7 +91,7 @@ class WorkerViewModel : ViewModel() {
                 }
             } catch (e: Exception) {
                 AppLogger.error(context, e, "Failed to fetch orders", "WorkerViewModel")
-                _uiState.update { it.copy(isLoading = false, error = e.message ?: "Unknown error") }
+                _uiState.update { it.copy(isLoading = false, error = e.message ?: context.getString(R.string.err_worker_fetch_orders_failed)) }
             }
         }
     }
@@ -101,7 +102,7 @@ class WorkerViewModel : ViewModel() {
             try {
                 val token = PrefsDataStore.flow(context).firstOrNull()?.token
                 if (token == null) {
-                    _uiState.update { it.copy(isLoading = false, error = "Not logged in") }
+                    _uiState.update { it.copy(isLoading = false, error = context.getString(R.string.err_not_logged_in)) }
                     return@launch
                 }
 
@@ -177,11 +178,11 @@ class WorkerViewModel : ViewModel() {
                         }
                         _uiState.update { it.copy(isLoading = false, history = filtered, isFallbackTriggered = true) }
                     } else {
-                        _uiState.update { it.copy(isLoading = false, error = "Network timeout/connection failed") }
+                        _uiState.update { it.copy(isLoading = false, error = context.getString(R.string.err_network_timeout)) }
                     }
                 } else {
                     AppLogger.error(context, e, "Failed to fetch history", "WorkerViewModel")
-                    _uiState.update { it.copy(isLoading = false, error = e.message ?: "Unknown error") }
+                    _uiState.update { it.copy(isLoading = false, error = e.message ?: context.getString(R.string.err_worker_fetch_history_failed)) }
                 }
             }
         }
@@ -193,7 +194,7 @@ class WorkerViewModel : ViewModel() {
             try {
                 val token = PrefsDataStore.flow(context).firstOrNull()?.token
                 if (token == null) {
-                    _uiState.update { it.copy(isLoading = false, error = "Not logged in") }
+                    _uiState.update { it.copy(isLoading = false, error = context.getString(R.string.err_not_logged_in)) }
                     return@launch
                 }
 
@@ -215,7 +216,7 @@ class WorkerViewModel : ViewModel() {
                 }
             } catch (e: Exception) {
                 AppLogger.error(context, e, "Failed to scan order", "WorkerViewModel")
-                _uiState.update { it.copy(isLoading = false, error = e.message ?: "Unknown error") }
+                _uiState.update { it.copy(isLoading = false, error = e.message ?: context.getString(R.string.err_worker_scan_failed)) }
             }
         }
     }
@@ -226,7 +227,7 @@ class WorkerViewModel : ViewModel() {
             try {
                 val token = PrefsDataStore.flow(context).firstOrNull()?.token
                 if (token == null) {
-                    _uiState.update { it.copy(isLoading = false, error = "Not logged in") }
+                    _uiState.update { it.copy(isLoading = false, error = context.getString(R.string.err_not_logged_in)) }
                     return@launch
                 }
 
@@ -244,7 +245,7 @@ class WorkerViewModel : ViewModel() {
                 }
             } catch (e: Exception) {
                 AppLogger.error(context, e, "Failed to complete order", "WorkerViewModel")
-                _uiState.update { it.copy(isLoading = false, error = e.message ?: "Unknown error") }
+                _uiState.update { it.copy(isLoading = false, error = e.message ?: context.getString(R.string.err_worker_complete_failed)) }
             }
         }
     }

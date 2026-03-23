@@ -419,8 +419,8 @@ fun AdminQueryLogsScreen(
                                     OutlinedButton(onClick = dropUnlessResumed { showWorkerDialog = true }) {
                                         val workerText = if (selectedWorkers.isEmpty()) 
                                             stringResource(R.string.admin_select_worker) 
-                                        else 
-                                            "Workers Selected (${selectedWorkers.size})"
+                                        else
+                                            stringResource(R.string.admin_workers_selected, selectedWorkers.size)
                                         Text(workerText)
                                     }
                                 }

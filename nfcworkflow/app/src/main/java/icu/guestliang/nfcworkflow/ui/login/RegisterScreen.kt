@@ -103,7 +103,7 @@ fun RegisterScreen(
                     registerState = registerState,
                     onRegisterClick = {
                         if (username.isBlank() || password.isBlank()) {
-                            viewModel.triggerEmptyFieldsError()
+                            viewModel.triggerEmptyFieldsError(context)
                         } else {
                             showAdminDialog = true
                         }
@@ -140,7 +140,7 @@ fun RegisterScreen(
                     registerState = registerState,
                     onRegisterClick = {
                         if (username.isBlank() || password.isBlank()) {
-                            viewModel.triggerEmptyFieldsError()
+                            viewModel.triggerEmptyFieldsError(context)
                         } else {
                             showAdminDialog = true
                         }
@@ -181,15 +181,15 @@ fun RegisterScreen(
                         showAdminDialog = false
                         if (isResetPassword) {
                             if (isWorker) {
-                                viewModel.resetWorkerPassword(username, password, adminUsername, adminPassword)
+                                viewModel.resetWorkerPassword(context, username, password, adminUsername, adminPassword)
                             } else {
-                                viewModel.resetAdminPassword(username, password, adminUsername, adminPassword)
+                                viewModel.resetAdminPassword(context, username, password, adminUsername, adminPassword)
                             }
                         } else {
                             if (isWorker) {
-                                viewModel.registerWorker(username, password, adminUsername, adminPassword)
+                                viewModel.registerWorker(context, username, password, adminUsername, adminPassword)
                             } else {
-                                viewModel.registerAdmin(username, password, adminUsername, adminPassword)
+                                viewModel.registerAdmin(context, username, password, adminUsername, adminPassword)
                             }
                         }
                     },
@@ -211,7 +211,7 @@ fun RegisterScreen(
         val errorText = if (errorState.isEmptyFields) {
             stringResource(id = R.string.login_error_empty)
         } else {
-            stringResource(id = R.string.register_error_failed, errorState.errorMessage ?: "")
+            errorState.errorMessage ?: stringResource(id = R.string.register_error_failed, "")
         }
 
         AlertDialog(

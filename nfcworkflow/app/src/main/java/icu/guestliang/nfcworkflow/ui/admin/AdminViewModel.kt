@@ -1,5 +1,6 @@
 package icu.guestliang.nfcworkflow.ui.admin
 
+import icu.guestliang.nfcworkflow.R
 import icu.guestliang.nfcworkflow.data.PrefsDataStore
 import icu.guestliang.nfcworkflow.logging.AppLogger
 import icu.guestliang.nfcworkflow.network.AdminAnalysisSummary
@@ -108,12 +109,12 @@ class AdminViewModel : ViewModel() {
     ): Job {
         return viewModelScope.launch {
             if (title.isBlank() || description.isBlank()) {
-                _uiState.update { it.copy(error = "Title and description cannot be empty") }
+                _uiState.update { it.copy(error = context.getString(R.string.err_title_desc_empty)) }
                 return@launch
             }
 
             if (orderType == "sequence" && steps.isEmpty()) {
-                _uiState.update { it.copy(error = "Sequence order must have at least one step") }
+                _uiState.update { it.copy(error = context.getString(R.string.err_sequence_no_steps)) }
                 return@launch
             }
 
@@ -121,7 +122,7 @@ class AdminViewModel : ViewModel() {
             try {
                 val token = getToken(context)
                 if (token == null) {
-                    _uiState.update { it.copy(isLoading = false, error = "Not logged in") }
+                    _uiState.update { it.copy(isLoading = false, error = context.getString(R.string.err_not_logged_in)) }
                     return@launch
                 }
 
@@ -155,17 +156,17 @@ class AdminViewModel : ViewModel() {
                         }.body()
                         
                         if (!stepsResp.success) {
-                            _uiState.update { it.copy(isLoading = false, error = "Order created but failed to save steps: " + stepsResp.message) }
+                            _uiState.update { it.copy(isLoading = false, error = context.getString(R.string.err_failed_to_save_steps, stepsResp.message)) }
                             return@launch
                         }
                     }
-                    _uiState.update { it.copy(isLoading = false, successMessage = "Order created successfully") }
+                    _uiState.update { it.copy(isLoading = false, successMessage = context.getString(R.string.err_order_created_success)) }
                 } else {
                     _uiState.update { it.copy(isLoading = false, error = response.message) }
                 }
             } catch (e: Exception) {
                 AppLogger.error(context, e, "Failed to create order", "AdminViewModel")
-                _uiState.update { it.copy(isLoading = false, error = e.message ?: "Unknown error") }
+                _uiState.update { it.copy(isLoading = false, error = e.message ?: context.getString(R.string.err_unknown)) }
             }
         }
     }
@@ -176,7 +177,7 @@ class AdminViewModel : ViewModel() {
             try {
                 val token = getToken(context)
                 if (token == null) {
-                    _uiState.update { it.copy(isLoading = false, error = "Not logged in") }
+                    _uiState.update { it.copy(isLoading = false, error = context.getString(R.string.err_not_logged_in)) }
                     return@launch
                 }
 
@@ -264,11 +265,11 @@ class AdminViewModel : ViewModel() {
                         }
                         _uiState.update { it.copy(isLoading = false, orders = filtered, isFallbackTriggered = true) }
                     } else {
-                        _uiState.update { it.copy(isLoading = false, error = "Network timeout/connection failed") }
+                        _uiState.update { it.copy(isLoading = false, error = context.getString(R.string.err_network_timeout)) }
                     }
                 } else {
                     AppLogger.error(context, e, "Failed to fetch orders", "AdminViewModel")
-                    _uiState.update { it.copy(isLoading = false, error = e.message ?: "Unknown error") }
+                    _uiState.update { it.copy(isLoading = false, error = e.message ?: context.getString(R.string.err_unknown)) }
                 }
             }
         }
@@ -280,7 +281,7 @@ class AdminViewModel : ViewModel() {
             try {
                 val token = getToken(context)
                 if (token == null) {
-                    _uiState.update { it.copy(isLoading = false, error = "Not logged in") }
+                    _uiState.update { it.copy(isLoading = false, error = context.getString(R.string.err_not_logged_in)) }
                     return@launch
                 }
 
@@ -305,7 +306,7 @@ class AdminViewModel : ViewModel() {
                 }
             } catch (e: Exception) {
                 AppLogger.error(context, e, "Failed to fetch workers", "AdminViewModel")
-                _uiState.update { it.copy(isLoading = false, error = e.message ?: "Unknown error") }
+                _uiState.update { it.copy(isLoading = false, error = e.message ?: context.getString(R.string.err_unknown)) }
             }
         }
     }
@@ -316,7 +317,7 @@ class AdminViewModel : ViewModel() {
             try {
                 val token = getToken(context)
                 if (token == null) {
-                    _uiState.update { it.copy(isLoading = false, error = "Not logged in") }
+                    _uiState.update { it.copy(isLoading = false, error = context.getString(R.string.err_not_logged_in)) }
                     return@launch
                 }
 
@@ -340,7 +341,7 @@ class AdminViewModel : ViewModel() {
                 }
             } catch (e: Exception) {
                 AppLogger.error(context, e, "Failed to assign order", "AdminViewModel")
-                _uiState.update { it.copy(isLoading = false, error = e.message ?: "Unknown error") }
+                _uiState.update { it.copy(isLoading = false, error = e.message ?: context.getString(R.string.err_unknown)) }
             }
         }
     }
@@ -351,7 +352,7 @@ class AdminViewModel : ViewModel() {
             try {
                 val token = getToken(context)
                 if (token == null) {
-                    _uiState.update { it.copy(isLoading = false, error = "Not logged in") }
+                    _uiState.update { it.copy(isLoading = false, error = context.getString(R.string.err_not_logged_in)) }
                     return@launch
                 }
 
@@ -406,11 +407,11 @@ class AdminViewModel : ViewModel() {
                         }
                         _uiState.update { it.copy(isLoading = false, logs = filtered, isFallbackTriggered = true) }
                     } else {
-                        _uiState.update { it.copy(isLoading = false, error = "Network timeout/connection failed") }
+                        _uiState.update { it.copy(isLoading = false, error = context.getString(R.string.err_network_timeout)) }
                     }
                 } else {
                     AppLogger.error(context, e, "Failed to fetch logs", "AdminViewModel")
-                    _uiState.update { it.copy(isLoading = false, error = e.message ?: "Unknown error") }
+                    _uiState.update { it.copy(isLoading = false, error = e.message ?: context.getString(R.string.err_unknown)) }
                 }
             }
         }
