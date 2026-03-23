@@ -230,7 +230,7 @@
     <string name="admin_log_target">Target: %1$s #%2$s</string>
     <string name="admin_log_user">User ID: %1$d</string>
     <string name="admin_log_time">Time: %1$s</string>
-    <string name="admin_workers_selected">Number of workers selected: %1$d</string>
+    <string name="admin_workers_selected">Workers Selected (%1$d)</string>
     <string name="admin_analysis_summary_title">Global Analysis Summary</string>
     <string name="admin_analysis_total_orders">Total number of work orders: %1$d (Standard: %2$d, Sequence: %3$d)</string>
     <string name="admin_analysis_completed_orders">Total completed: %1$d</string>
