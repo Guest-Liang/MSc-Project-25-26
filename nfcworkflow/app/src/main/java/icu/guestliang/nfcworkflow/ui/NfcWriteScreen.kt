@@ -370,7 +370,7 @@ fun writeNfcTag(tag: Tag, data: List<WriteData>, context: Context): String {
             }
         }
     } catch (e: Exception) {
-        return context.getString(R.string.nfc_write_result_error, e.message ?: "Unknown error")
+        return context.getString(R.string.nfc_write_result_error, e.message ?: context.getString(R.string.err_unknown))
     }
 }
 
