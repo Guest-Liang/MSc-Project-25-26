@@ -25,7 +25,7 @@ sealed class RegisterState {
     object Idle : RegisterState()
     object Loading : RegisterState()
     object Success : RegisterState()
-    data class Error(val isEmptyFields: Boolean = false, val errorMessage: String? = null) : RegisterState()
+    data class Error(val errorMessage: String? = null) : RegisterState()
 }
 
 class RegisterViewModel : ViewModel() {
@@ -59,12 +59,12 @@ class RegisterViewModel : ViewModel() {
     }
 
     fun triggerEmptyFieldsError(context: Context) {
-        _registerState.value = RegisterState.Error(isEmptyFields = true, errorMessage = context.getString(R.string.err_empty_fields))
+        _registerState.value = RegisterState.Error(errorMessage = context.getString(R.string.err_empty_fields))
     }
 
     private fun submitAccountAction(context: Context, targetUser: String, targetPass: String, adminUser: String, adminPass: String, endpoint: String) {
         if (targetUser.isBlank() || targetPass.isBlank() || adminUser.isBlank() || adminPass.isBlank()) {
-            _registerState.value = RegisterState.Error(isEmptyFields = true, errorMessage = context.getString(R.string.err_empty_fields))
+            _registerState.value = RegisterState.Error(errorMessage = context.getString(R.string.err_empty_fields))
             return
         }
 

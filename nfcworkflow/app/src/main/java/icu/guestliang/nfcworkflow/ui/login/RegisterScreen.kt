@@ -208,11 +208,7 @@ fun RegisterScreen(
 
     if (registerState is RegisterState.Error) {
         val errorState = registerState as RegisterState.Error
-        val errorText = if (errorState.isEmptyFields) {
-            stringResource(id = R.string.login_error_empty)
-        } else {
-            errorState.errorMessage ?: stringResource(id = R.string.register_error_failed, "")
-        }
+        val errorText = errorState.errorMessage ?: stringResource(id = R.string.register_error_failed, "")
 
         AlertDialog(
             onDismissRequest = { viewModel.resetState() },
