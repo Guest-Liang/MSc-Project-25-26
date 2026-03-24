@@ -347,25 +347,37 @@ fun writeNfcTag(tag: Tag, data: List<WriteData>, context: Context): String {
     try {
         val ndef = Ndef.get(tag)
         if (ndef != null) {
-            ndef.connect()
-            if (!ndef.isWritable) {
-                ndef.close()
-                return context.getString(R.string.nfc_write_result_read_only)
+            try {
+                ndef.connect()
+                if (!ndef.isWritable) {
+                    return context.getString(R.string.nfc_write_result_read_only)
+                }
+                if (ndef.maxSize < message.toByteArray().size) {
+                    return context.getString(R.string.nfc_write_result_not_enough_space)
+                }
+                ndef.writeNdefMessage(message)
+                return context.getString(R.string.nfc_write_result_success)
+            } finally {
+                try {
+                    ndef.close()
+                } catch (e: Exception) {
+                    // Ignore exception on close
+                }
             }
-            if (ndef.maxSize < message.toByteArray().size) {
-                ndef.close()
-                return context.getString(R.string.nfc_write_result_not_enough_space)
-            }
-            ndef.writeNdefMessage(message)
-            ndef.close()
-            return context.getString(R.string.nfc_write_result_success)
         } else {
             val format = NdefFormatable.get(tag)
             if (format != null) {
-                format.connect()
-                format.format(message)
-                format.close()
-                return context.getString(R.string.nfc_write_result_format_success)
+                try {
+                    format.connect()
+                    format.format(message)
+                    return context.getString(R.string.nfc_write_result_format_success)
+                } finally {
+                    try {
+                        format.close()
+                    } catch (e: Exception) {
+                        // Ignore exception on close
+                    }
+                }
             } else {
                 return context.getString(R.string.nfc_write_result_unsupported)
             }
