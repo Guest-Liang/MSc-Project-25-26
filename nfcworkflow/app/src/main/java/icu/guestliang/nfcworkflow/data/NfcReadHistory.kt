@@ -25,7 +25,7 @@ object NfcHistoryManager {
     private val _historyFlow = MutableStateFlow<List<NfcReadRecord>>(emptyList())
     val historyFlow: StateFlow<List<NfcReadRecord>> = _historyFlow.asStateFlow()
 
-    fun loadHistory(context: Context) {
+    suspend fun loadHistory(context: Context) = withContext(Dispatchers.IO) {
         val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
         val jsonString = prefs.getString(KEY_HISTORY, "[]") ?: "[]"
         try {
