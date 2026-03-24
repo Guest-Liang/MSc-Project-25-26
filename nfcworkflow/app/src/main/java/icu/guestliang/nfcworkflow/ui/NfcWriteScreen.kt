@@ -1,4 +1,3 @@
-@file:Suppress("UseStringResource")
 package icu.guestliang.nfcworkflow.ui
 
 import icu.guestliang.nfcworkflow.R
