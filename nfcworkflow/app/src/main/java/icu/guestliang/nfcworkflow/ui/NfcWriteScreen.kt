@@ -7,7 +7,6 @@ import icu.guestliang.nfcworkflow.ui.components.SplicedJumpPageWidget
 import icu.guestliang.nfcworkflow.ui.components.SplicedSwitchWidget
 import icu.guestliang.nfcworkflow.ui.theme.Dimensions
 import icu.guestliang.nfcworkflow.utils.findActivity
-import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -50,6 +49,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
@@ -285,6 +285,7 @@ fun NfcWriterDialog(
 ) {
     val context = LocalContext.current
     val activity = context.findActivity()
+    val coroutineScope = rememberCoroutineScope()
 
     DisposableEffect(activity) {
         val nfcAdapter = activity?.let { NfcAdapter.getDefaultAdapter(it) }
@@ -296,7 +297,7 @@ fun NfcWriterDialog(
                         NfcAdapter.FLAG_READER_NFC_V
             
             val readerCallback = NfcAdapter.ReaderCallback { tag ->
-                CoroutineScope(Dispatchers.IO).launch {
+                coroutineScope.launch(Dispatchers.IO) {
                     val result = writeNfcTag(tag, writeBuffer, context)
                     withContext(Dispatchers.Main) {
                         onNfcWriteResult(result)
