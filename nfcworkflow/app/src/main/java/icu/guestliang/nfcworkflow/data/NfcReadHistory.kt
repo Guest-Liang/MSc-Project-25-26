@@ -4,6 +4,8 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
@@ -24,29 +26,40 @@ object NfcHistoryManager {
 
     private val _historyFlow = MutableStateFlow<List<NfcReadRecord>>(emptyList())
     val historyFlow: StateFlow<List<NfcReadRecord>> = _historyFlow.asStateFlow()
+    
+    // Mutex to prevent concurrent read-modify-write conflicts
+    private val mutex = Mutex()
 
     suspend fun loadHistory(context: Context) = withContext(Dispatchers.IO) {
         val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
         val jsonString = prefs.getString(KEY_HISTORY, "[]") ?: "[]"
         try {
             val list = Json.decodeFromString<List<NfcReadRecord>>(jsonString)
-            _historyFlow.value = list.sortedByDescending { it.timestamp }
+            mutex.withLock {
+                _historyFlow.value = list.sortedByDescending { it.timestamp }
+            }
         } catch (e: Exception) {
-            _historyFlow.value = emptyList()
+            mutex.withLock {
+                _historyFlow.value = emptyList()
+            }
         }
     }
 
     suspend fun addRecord(context: Context, record: NfcReadRecord) = withContext(Dispatchers.IO) {
-        val currentList = _historyFlow.value.toMutableList()
-        currentList.add(0, record)
-        saveHistory(context, currentList)
-        _historyFlow.value = currentList
+        mutex.withLock {
+            val currentList = _historyFlow.value.toMutableList()
+            currentList.add(0, record)
+            saveHistory(context, currentList)
+            _historyFlow.value = currentList
+        }
     }
 
     suspend fun deleteRecords(context: Context, idsToDelete: Set<String>) = withContext(Dispatchers.IO) {
-        val currentList = _historyFlow.value.filter { it.id !in idsToDelete }
-        saveHistory(context, currentList)
-        _historyFlow.value = currentList
+        mutex.withLock {
+            val currentList = _historyFlow.value.filter { it.id !in idsToDelete }
+            saveHistory(context, currentList)
+            _historyFlow.value = currentList
+        }
     }
 
     private fun saveHistory(context: Context, list: List<NfcReadRecord>) {
