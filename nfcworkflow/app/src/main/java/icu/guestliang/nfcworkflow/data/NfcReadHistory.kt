@@ -23,6 +23,7 @@ data class NfcReadRecord(
 object NfcHistoryManager {
     private const val PREFS_NAME = "nfc_history_prefs"
     private const val KEY_HISTORY = "history_list"
+    private const val MAX_HISTORY_SIZE = 50 // Limit the number of history records
 
     private val _historyFlow = MutableStateFlow<List<NfcReadRecord>>(emptyList())
     val historyFlow: StateFlow<List<NfcReadRecord>> = _historyFlow.asStateFlow()
@@ -49,8 +50,16 @@ object NfcHistoryManager {
         mutex.withLock {
             val currentList = _historyFlow.value.toMutableList()
             currentList.add(0, record)
-            saveHistory(context, currentList)
-            _historyFlow.value = currentList
+            
+            // Limit the list size to prevent infinite growth and SharedPreferences bloat
+            val truncatedList = if (currentList.size > MAX_HISTORY_SIZE) {
+                currentList.take(MAX_HISTORY_SIZE)
+            } else {
+                currentList
+            }
+            
+            saveHistory(context, truncatedList)
+            _historyFlow.value = truncatedList
         }
     }
 
