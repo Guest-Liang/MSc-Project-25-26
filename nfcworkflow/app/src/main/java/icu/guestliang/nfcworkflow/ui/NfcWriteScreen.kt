@@ -126,7 +126,7 @@ fun NfcWriteScreen(navController: NavController, viewModel: NfcViewModel = viewM
                             title = stringResource(id = R.string.nfc_write_type_text),
                             onClick = {
                                 viewModel.updateState { 
-                                    it.copy(showWriteInputDialog = true, writeInputDialogType = "text", writeInputText1 = "") 
+                                    it.copy(showWriteInputDialog = true, writeInputDialogType = WriteType.TEXT, writeInputText1 = "") 
                                 }
                             }
                         )
@@ -137,7 +137,7 @@ fun NfcWriteScreen(navController: NavController, viewModel: NfcViewModel = viewM
                             title = stringResource(id = R.string.nfc_write_type_email),
                             onClick = {
                                 viewModel.updateState { 
-                                    it.copy(showWriteInputDialog = true, writeInputDialogType = "email", writeInputText1 = "") 
+                                    it.copy(showWriteInputDialog = true, writeInputDialogType = WriteType.EMAIL, writeInputText1 = "") 
                                 }
                             }
                         )
@@ -148,7 +148,7 @@ fun NfcWriteScreen(navController: NavController, viewModel: NfcViewModel = viewM
                             title = stringResource(id = R.string.nfc_write_type_phone),
                             onClick = {
                                 viewModel.updateState { 
-                                    it.copy(showWriteInputDialog = true, writeInputDialogType = "phone", writeInputText1 = "") 
+                                    it.copy(showWriteInputDialog = true, writeInputDialogType = WriteType.PHONE, writeInputText1 = "") 
                                 }
                             }
                         )
@@ -194,8 +194,12 @@ fun NfcWriteScreen(navController: NavController, viewModel: NfcViewModel = viewM
                 OutlinedTextField(
                     value = uiState.writeInputText1,
                     onValueChange = { newText -> viewModel.updateState { it.copy(writeInputText1 = newText) } },
-                    label = { Text(uiState.writeInputDialogType.uppercase(Locale.getDefault())) },
-                    keyboardOptions = if (uiState.writeInputDialogType == "phone") KeyboardOptions(keyboardType = KeyboardType.Phone) else KeyboardOptions.Default
+                    label = { 
+                        uiState.writeInputDialogType?.let { type ->
+                            Text(stringResource(id = type.labelRes))
+                        }
+                    },
+                    keyboardOptions = if (uiState.writeInputDialogType == WriteType.PHONE) KeyboardOptions(keyboardType = KeyboardType.Phone) else KeyboardOptions.Default
                 )
             },
             confirmButton = {
@@ -204,9 +208,9 @@ fun NfcWriteScreen(navController: NavController, viewModel: NfcViewModel = viewM
                         val inputType = uiState.writeInputDialogType
                         val text = uiState.writeInputText1
                         val newRecord = when (inputType) {
-                            "text" -> WriteData.Text(text)
-                            "email" -> WriteData.UriRecord("mailto:$text", text)
-                            "phone" -> WriteData.UriRecord("tel:$text", text)
+                            WriteType.TEXT -> WriteData.Text(text)
+                            WriteType.EMAIL -> WriteData.UriRecord("mailto:$text", text)
+                            WriteType.PHONE -> WriteData.UriRecord("tel:$text", text)
                             else -> null
                         }
                         if (newRecord != null) {

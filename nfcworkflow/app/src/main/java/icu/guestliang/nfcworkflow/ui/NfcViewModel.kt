@@ -1,10 +1,17 @@
 package icu.guestliang.nfcworkflow.ui
 
+import icu.guestliang.nfcworkflow.R
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import androidx.lifecycle.ViewModel
+
+enum class WriteType(val labelRes: Int) {
+    TEXT(R.string.nfc_write_type_text),
+    EMAIL(R.string.nfc_write_type_email),
+    PHONE(R.string.nfc_write_type_phone)
+}
 
 // Moved from NfcWriteScreen
 sealed class WriteData(val typeName: String) {
@@ -27,7 +34,7 @@ data class NfcUiState(
     val showWriteConfirmDialog: Boolean = false,
     val showWriteDialog: Boolean = false,
     val showWriteInputDialog: Boolean = false,
-    val writeInputDialogType: String = "",
+    val writeInputDialogType: WriteType? = null,
     val writeInputText1: String = "",
     val writeResult: String? = null
 )
