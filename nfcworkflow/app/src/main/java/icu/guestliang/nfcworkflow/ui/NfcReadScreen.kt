@@ -281,7 +281,7 @@ fun NfcReadHistoryScreen(
                     item(span = { GridItemSpan(maxLineSpan) }) {
                         LongPressHintCard()
                     }
-                    items(historyList) { record ->
+                    items(items = historyList, key = { it.id }) { record ->
                         HistoryCard(
                             record = record,
                             selectionMode = uiState.readSelectionMode,
@@ -316,7 +316,7 @@ fun NfcReadHistoryScreen(
                     item {
                         LongPressHintCard()
                     }
-                    items(historyList) { record ->
+                    items(items = historyList, key = { it.id }) { record ->
                         HistoryCard(
                             record = record,
                             selectionMode = uiState.readSelectionMode,
