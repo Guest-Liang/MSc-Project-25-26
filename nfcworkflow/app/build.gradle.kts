@@ -1,4 +1,8 @@
 import com.android.build.api.dsl.ApplicationExtension
+import com.android.build.api.variant.FilterConfiguration.FilterType.ABI
+import com.android.build.api.variant.VariantOutputConfiguration.OutputType.UNIVERSAL
+
+private val abiTargets = arrayOf("arm64-v8a", "armeabi-v7a", "x86_64")
 
 plugins {
     alias(libs.plugins.android.application)
@@ -9,15 +13,12 @@ plugins {
 configure<ApplicationExtension> {
     namespace = "icu.guestliang.nfcworkflow"
     compileSdk = 36
-    ndkVersion = "29.0.14206865"
+    ndkVersion = "30.0.14518594-beta1"
 
     defaultConfig {
         applicationId = "icu.guestliang.nfcworkflow"
         minSdk = 31
         targetSdk = 36
-        ndk {
-            abiFilters += setOf("arm64-v8a", "x86_64")
-        }
         versionCode = gitCommitCount()
         versionName = libs.versions.app.version.get()
 
@@ -54,6 +55,14 @@ configure<ApplicationExtension> {
         sourceCompatibility = JavaVersion.VERSION_24
         targetCompatibility = JavaVersion.VERSION_24
     }
+    splits {
+        abi {
+            isEnable = true
+            reset()
+            include(*abiTargets)
+            isUniversalApk = true
+        }
+    }
     packaging {
         jniLibs {
             useLegacyPackaging = false
@@ -66,10 +75,24 @@ kotlin {
 androidComponents {
     onVariants { variant ->
         variant.outputs.forEach { output ->
+            val abiFilter = output.filters
+                .find { it.filterType == ABI }
+                ?.identifier
+            val isUniversalOutput = output.outputType == UNIVERSAL
+            val abiName = abiFilter ?: "universal"
+
+            if (variant.name == "debug" && !isUniversalOutput) {
+                output.enabled.set(false)
+                return@forEach
+            }
+
             val appName = "NFCWorkFlow"
             val vName = libs.versions.app.version.get()
             val vCode = gitCommitCount()
-            (output as? com.android.build.api.variant.impl.VariantOutputImpl)?.outputFileName?.set("${appName}_v${vName}_${vCode}-${variant.name}.apk")
+            val variantName = variant.name.lowercase()
+            (output as? com.android.build.api.variant.impl.VariantOutputImpl)
+                ?.outputFileName
+                ?.set("${appName}_v${vName}_${vCode}-${variantName}-${abiName}.apk")
         }
     }
 }

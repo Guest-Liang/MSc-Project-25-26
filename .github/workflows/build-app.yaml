@@ -101,14 +101,23 @@ jobs:
             RANGE="HEAD"
           fi
 
+          if [[ "$RANGE" == "HEAD" ]]; then
+            SINGLE_CHANGELOG="$(git log -n 50 --pretty=format:'%h %s' HEAD)"
+            FULL_CHANGELOG="$(git log -n 50 --pretty=format:'---%n### %h%n%B%n' HEAD)"
+          else
+            SINGLE_CHANGELOG="$(git log --pretty=format:'%h %s' "$RANGE")"
+            FULL_CHANGELOG="$(git log --pretty=format:'---%n### %h%n%B%n' "$RANGE")"
+          fi
+
           {
             echo "changelog<<EOF"
-            if [[ "$RANGE" == "HEAD" ]]; then
-              git log -n 50 --pretty=format:'- %h %s' HEAD
-            else
-              git log --pretty=format:'- %h %s' "$RANGE"
-            fi
-            echo
+            echo "$SINGLE_CHANGELOG"
+            echo "EOF"
+          } >> "$GITHUB_OUTPUT"
+
+          {
+            echo "full_changelog<<EOF"
+            echo "$FULL_CHANGELOG"
             echo "EOF"
           } >> "$GITHUB_OUTPUT"
 
@@ -123,16 +132,38 @@ jobs:
           chmod +x ./gradlew
           ./gradlew --no-daemon clean assembleRelease assembleDebug
 
-      - name: Upload Release APK (artifact, unarchived)
+      # 1. ARM 64-v8a
+      - name: Upload Release APK (arm64-v8a)
         uses: actions/upload-artifact@v7
         with:
-          path: nfcworkflow/app/build/outputs/apk/release/*-release.apk
+          path: nfcworkflow/app/build/outputs/apk/release/*-release-arm64-v8a.apk
           archive: false
 
-      - name: Upload Debug APK (artifact, unarchived)
+      # 2. ARM v7a
+      - name: Upload Release APK (armeabi-v7a)
         uses: actions/upload-artifact@v7
         with:
-          path: nfcworkflow/app/build/outputs/apk/debug/*-debug.apk
+          path: nfcworkflow/app/build/outputs/apk/release/*-release-armeabi-v7a.apk
+          archive: false
+
+      # 3. x86_64
+      - name: Upload Release APK (x86_64)
+        uses: actions/upload-artifact@v7
+        with:
+          path: nfcworkflow/app/build/outputs/apk/release/*-release-x86_64.apk
+          archive: false
+
+      # 4. Universal
+      - name: Upload Release APK (Universal)
+        uses: actions/upload-artifact@v7
+        with:
+          path: nfcworkflow/app/build/outputs/apk/release/*-release-universal.apk
+          archive: false
+
+      - name: Upload Debug Universal APK
+        uses: actions/upload-artifact@v7
+        with:
+          path: nfcworkflow/app/build/outputs/apk/debug/*-debug-universal.apk
           archive: false
 
       - name: 创建 GitHub Release
@@ -148,10 +179,17 @@ jobs:
             - 构建时间: ${{ steps.date.outputs.BUILD_TIME }} (UTC+8)
             ### 🧾 本次变更（自上次 Release 以来）
             ${{ steps.changelog.outputs.changelog }}
+
+            <details>
+            <summary>查看完整 Commit 信息</summary>
+
+            ${{ steps.changelog.outputs.full_changelog }}
+
+            </details>
           draft: false
           prerelease: false
           files: |
-            nfcworkflow/app/build/outputs/apk/release/*-release.apk
-            nfcworkflow/app/build/outputs/apk/debug/*-debug.apk
+            nfcworkflow/app/build/outputs/apk/release/*-release-*.apk
+            nfcworkflow/app/build/outputs/apk/debug/*-debug-universal.apk
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

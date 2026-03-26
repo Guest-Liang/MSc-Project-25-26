@@ -13,12 +13,12 @@ ktorSerializationKotlinxJsonVersion = "3.4.1"
 material = "1.13.0"
 navigationCompose = "2.9.7"
 
-app-version = "0.6.5"
+app-version = "0.7.0"
 
 [libraries]
 androidx-activity-compose = { group = "androidx.activity", name = "activity-compose", version = "1.13.0" }
 androidx-appcompat = { group = "androidx.appcompat", name = "appcompat", version.ref = "appcompat" }
-androidx-compose-bom = { group = "androidx.compose", name = "compose-bom", version = "2026.03.00" }
+androidx-compose-bom = { group = "androidx.compose", name = "compose-bom", version = "2026.03.01" }
 androidx-compose-foundation = { group = "androidx.compose.foundation", name = "foundation" }
 androidx-compose-material3 = { group = "androidx.compose.material3", name = "material3" }
 androidx-compose-material-icons-extended = { group = "androidx.compose.material", module = "androidx.compose.material:material-icons-extended" }
