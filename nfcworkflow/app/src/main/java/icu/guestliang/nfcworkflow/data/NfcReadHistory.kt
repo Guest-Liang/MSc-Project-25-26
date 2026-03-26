@@ -52,11 +52,7 @@ object NfcHistoryManager {
             currentList.add(0, record)
             
             // Limit the list size to prevent infinite growth and SharedPreferences bloat
-            val truncatedList = if (currentList.size > MAX_HISTORY_SIZE) {
-                currentList.take(MAX_HISTORY_SIZE)
-            } else {
-                currentList
-            }
+            val truncatedList = currentList.take(MAX_HISTORY_SIZE)
             
             saveHistory(context, truncatedList)
             _historyFlow.value = truncatedList
