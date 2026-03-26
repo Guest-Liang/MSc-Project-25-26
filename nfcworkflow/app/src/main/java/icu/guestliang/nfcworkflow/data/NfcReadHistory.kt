@@ -52,7 +52,7 @@ object NfcHistoryManager {
             currentList.add(0, record)
             
             // Limit the list size to prevent infinite growth and SharedPreferences bloat
-            val truncatedList = currentList.take(MAX_HISTORY_SIZE)
+            val truncatedList = currentList.take(MAX_HISTORY_SIZE).toList()
             
             saveHistory(context, truncatedList)
             _historyFlow.value = truncatedList
@@ -61,7 +61,7 @@ object NfcHistoryManager {
 
     suspend fun deleteRecords(context: Context, idsToDelete: Set<String>) = withContext(Dispatchers.IO) {
         mutex.withLock {
-            val currentList = _historyFlow.value.filter { it.id !in idsToDelete }
+            val currentList = _historyFlow.value.filter { it.id !in idsToDelete }.toList()
             saveHistory(context, currentList)
             _historyFlow.value = currentList
         }
