@@ -51,10 +51,6 @@ configure<ApplicationExtension> {
         buildConfig = true
         resValues = true
     }
-    compileOptions {
-        sourceCompatibility = JavaVersion.VERSION_24
-        targetCompatibility = JavaVersion.VERSION_24
-    }
     splits {
         abi {
             isEnable = true
@@ -70,7 +66,7 @@ configure<ApplicationExtension> {
     }
 }
 kotlin {
-    jvmToolchain(24)
+    jvmToolchain(25)
 }
 androidComponents {
     onVariants { variant ->
