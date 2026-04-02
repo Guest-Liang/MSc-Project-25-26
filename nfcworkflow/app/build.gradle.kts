@@ -51,14 +51,33 @@ configure<ApplicationExtension> {
         buildConfig = true
         resValues = true
     }
-    splits {
-        abi {
-            isEnable = true
-            reset()
-            include(*abiTargets)
-            isUniversalApk = true
+    
+    // Disable ABI splits entirely during IDE sync/build unless explicitly building for release/CLI
+    val isIdeBuild = project.hasProperty("android.injected.invoked.from.ide")
+    
+    // Workaround for Kotlin DSL complaining about suspicious receiver types for Collection properties
+    var isDebugVariant = false
+    for (req in project.gradle.startParameter.taskRequests) {
+        for (arg in req.args) {
+            if (arg.contains("Debug", ignoreCase = true)) {
+                isDebugVariant = true
+                break
+            }
+        }
+        if (isDebugVariant) break
+    }
+    
+    if (!isIdeBuild || !isDebugVariant) {
+        splits {
+            abi {
+                isEnable = true
+                reset()
+                include(*abiTargets)
+                isUniversalApk = true
+            }
         }
     }
+    
     packaging {
         jniLibs {
             useLegacyPackaging = false
@@ -77,7 +96,11 @@ androidComponents {
             val isUniversalOutput = output.outputType == UNIVERSAL
             val abiName = abiFilter ?: "universal"
 
-            if (variant.name == "debug" && !isUniversalOutput) {
+            val isIdeBuild = project.hasProperty("android.injected.invoked.from.ide")
+            
+            // Only disable non-universal debug outputs if we are NOT building from the IDE
+            // to allow standard Run/Debug workflow to succeed
+            if (!isIdeBuild && variant.name == "debug" && !isUniversalOutput) {
                 output.enabled.set(false)
                 return@forEach
             }

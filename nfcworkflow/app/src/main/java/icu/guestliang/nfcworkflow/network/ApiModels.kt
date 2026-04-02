@@ -12,6 +12,13 @@ data class ApiResponse(
 )
 
 @Serializable
+data class PaginatedResponse<T>(
+    val items: List<T> = emptyList(),
+    val nextCursor: String? = null,
+    val hasMore: Boolean = false
+)
+
+@Serializable
 data class LoginRequest(
     val username: String,
     val password: String

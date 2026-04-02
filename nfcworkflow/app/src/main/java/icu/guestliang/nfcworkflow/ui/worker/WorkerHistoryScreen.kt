@@ -7,8 +7,8 @@ import icu.guestliang.nfcworkflow.ui.components.NfcScannerDialog
 import icu.guestliang.nfcworkflow.ui.components.SplicedColumnGroup
 import icu.guestliang.nfcworkflow.ui.theme.Dimensions
 import icu.guestliang.nfcworkflow.utils.getLocalizedStatus
-import kotlinx.coroutines.delay
 import android.content.res.Configuration
+import android.widget.Toast
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -26,6 +26,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
@@ -35,7 +36,6 @@ import androidx.compose.material.icons.filled.DateRange
 import androidx.compose.material.icons.filled.ExpandLess
 import androidx.compose.material.icons.filled.ExpandMore
 import androidx.compose.material.icons.filled.Nfc
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -55,6 +55,7 @@ import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
@@ -84,7 +85,6 @@ fun WorkerHistoryScreen(
     val isLandscape = LocalConfiguration.current.orientation == Configuration.ORIENTATION_LANDSCAPE
 
     var isFilterExpanded by remember { mutableStateOf(isLandscape) }
-    var showFallbackDialog by remember { mutableStateOf(false) }
     var showNfcDialog by remember { mutableStateOf(false) }
 
     // Query states
@@ -98,21 +98,32 @@ fun WorkerHistoryScreen(
     val actionOptions = listOf("scan", "completed")
     val resultOptions = listOf("standard_matched", "sequence_step_completed", "mismatch", "out_of_order", "duplicate")
 
+    fun getCurrentQuery(): WorkerHistoryQuery? {
+        val orderIds = orderIdQuery.split(",").map { it.trim() }.filter { it.isNotEmpty() }
+        if (orderIds.isEmpty() && selectedActions.isEmpty() && selectedResults.isEmpty() && uidHexQuery.isBlank() && startTime.isBlank() && endTime.isBlank()) return null
+        return WorkerHistoryQuery(
+            orderId = orderIds.ifEmpty { null },
+            action = selectedActions.toList().ifEmpty { null },
+            result = selectedResults.toList().ifEmpty { null },
+            uidHex = uidHexQuery.ifBlank { null },
+            startTime = startTime.ifBlank { null },
+            endTime = endTime.ifBlank { null }
+        )
+    }
+
     LaunchedEffect(Unit) {
         viewModel.fetchHistory(context)
     }
 
-    LaunchedEffect(uiState.isFallbackTriggered) {
-        if (uiState.isFallbackTriggered) {
-            showFallbackDialog = true
-            delay(3000)
-            showFallbackDialog = false
-            viewModel.clearFallbackTriggered()
-        }
-    }
-
     LaunchedEffect(isLandscape) {
         isFilterExpanded = isLandscape
+    }
+
+    LaunchedEffect(uiState.appendError) {
+        uiState.appendError?.let {
+            Toast.makeText(context, it, Toast.LENGTH_SHORT).show()
+            viewModel.clearAppendError()
+        }
     }
 
     Scaffold(
@@ -254,16 +265,7 @@ fun WorkerHistoryScreen(
                             }
                             Spacer(modifier = Modifier.width(Dimensions.SpaceS))
                             Button(onClick = dropUnlessResumed {
-                                val orderIds = orderIdQuery.split(",").map { it.trim() }.filter { it.isNotEmpty() }
-                                val query = WorkerHistoryQuery(
-                                    orderId = orderIds.ifEmpty { null },
-                                    action = selectedActions.toList().ifEmpty { null },
-                                    result = selectedResults.toList().ifEmpty { null },
-                                    uidHex = uidHexQuery.ifBlank { null },
-                                    startTime = startTime.ifBlank { null },
-                                    endTime = endTime.ifBlank { null }
-                                )
-                                viewModel.fetchHistory(context, query)
+                                viewModel.fetchHistory(context, getCurrentQuery())
                             }) {
                                 Text(stringResource(R.string.admin_search_btn))
                             }
@@ -273,7 +275,9 @@ fun WorkerHistoryScreen(
 
                 // Results Panel
                 Box(modifier = Modifier.weight(0.55f).fillMaxSize()) {
-                    HistoryResultsList(uiState = uiState)
+                    HistoryResultsList(uiState = uiState, onLoadMore = {
+                        viewModel.fetchHistory(context, getCurrentQuery(), isAppend = true)
+                    })
                 }
             }
         } else {
@@ -412,16 +416,7 @@ fun WorkerHistoryScreen(
                                     Spacer(modifier = Modifier.width(Dimensions.SpaceS))
                                     Button(onClick = dropUnlessResumed {
                                         isFilterExpanded = false
-                                        val orderIds = orderIdQuery.split(",").map { it.trim() }.filter { it.isNotEmpty() }
-                                        val query = WorkerHistoryQuery(
-                                            orderId = orderIds.ifEmpty { null },
-                                            action = selectedActions.toList().ifEmpty { null },
-                                            result = selectedResults.toList().ifEmpty { null },
-                                            uidHex = uidHexQuery.ifBlank { null },
-                                            startTime = startTime.ifBlank { null },
-                                            endTime = endTime.ifBlank { null }
-                                        )
-                                        viewModel.fetchHistory(context, query)
+                                        viewModel.fetchHistory(context, getCurrentQuery())
                                     }) {
                                         Text(stringResource(R.string.admin_search_btn))
                                     }
@@ -432,27 +427,10 @@ fun WorkerHistoryScreen(
                 }
 
                 // Results List
-                HistoryResultsList(uiState = uiState)
+                HistoryResultsList(uiState = uiState, onLoadMore = {
+                    viewModel.fetchHistory(context, getCurrentQuery(), isAppend = true)
+                })
             }
-        }
-
-        if (showFallbackDialog) {
-            AlertDialog(
-                onDismissRequest = { 
-                    showFallbackDialog = false
-                    viewModel.clearFallbackTriggered()
-                },
-                title = { Text(stringResource(R.string.dialog_empty_state_title)) },
-                text = { Text(stringResource(R.string.admin_search_fallback_msg)) },
-                confirmButton = {
-                    TextButton(onClick = dropUnlessResumed { 
-                        showFallbackDialog = false 
-                        viewModel.clearFallbackTriggered()
-                    }) {
-                        Text(stringResource(R.string.ok))
-                    }
-                }
-            )
         }
         
         if (showNfcDialog) {
@@ -468,17 +446,35 @@ fun WorkerHistoryScreen(
 }
 
 @Composable
-fun HistoryResultsList(uiState: WorkerUiState) {
-    if (uiState.isLoading) {
+fun HistoryResultsList(uiState: WorkerUiState, onLoadMore: () -> Unit) {
+    if (uiState.isLoading && uiState.history.isEmpty()) {
         Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
             CircularProgressIndicator()
         }
-    } else if (uiState.error != null) {
+    } else if (uiState.error != null && uiState.history.isEmpty()) {
         Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
             Text(text = uiState.error, color = MaterialTheme.colorScheme.error)
         }
     } else {
+        val listState = rememberLazyListState()
+
+        val isAtBottom by remember {
+            derivedStateOf {
+                val layoutInfo = listState.layoutInfo
+                val totalItems = layoutInfo.totalItemsCount
+                val lastVisibleItem = layoutInfo.visibleItemsInfo.lastOrNull()?.index ?: 0
+                totalItems > 0 && lastVisibleItem >= totalItems - 1
+            }
+        }
+
+        LaunchedEffect(isAtBottom) {
+            if (isAtBottom && uiState.hasMoreHistory && !uiState.isAppendingHistory && !uiState.isLoading) {
+                onLoadMore()
+            }
+        }
+
         LazyColumn(
+            state = listState,
             modifier = Modifier.fillMaxSize(),
             contentPadding = PaddingValues(bottom = Dimensions.SpaceL)
         ) {
@@ -566,6 +562,19 @@ fun HistoryResultsList(uiState: WorkerUiState) {
                                     Text(text = stringResource(R.string.admin_log_time, it), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                                 }
                             }
+                        }
+                    }
+                }
+
+                if (uiState.isAppendingHistory) {
+                    item {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(Dimensions.SpaceM),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            CircularProgressIndicator()
                         }
                     }
                 }

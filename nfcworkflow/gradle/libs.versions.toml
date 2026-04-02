@@ -14,7 +14,7 @@ ktorClientContentNegotiation = "3.4.2"
 ktorClientCore = "3.4.2"
 ktorSerializationKotlinxJsonVersion = "3.4.2"
 
-app-version = "0.7.1"
+app-version = "0.8.0"
 
 [libraries]
 androidx-activity-compose = { group = "androidx.activity", name = "activity-compose", version = "1.13.0" }

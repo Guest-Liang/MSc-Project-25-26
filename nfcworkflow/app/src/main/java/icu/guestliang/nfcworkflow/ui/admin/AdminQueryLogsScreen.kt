@@ -6,9 +6,9 @@ import icu.guestliang.nfcworkflow.ui.components.CustomDateTimePickerDialog
 import icu.guestliang.nfcworkflow.ui.components.NfcScannerDialog
 import icu.guestliang.nfcworkflow.ui.theme.Dimensions
 import icu.guestliang.nfcworkflow.utils.getLocalizedStatus
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import android.content.res.Configuration
+import android.widget.Toast
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -27,6 +27,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
@@ -60,6 +61,7 @@ import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
@@ -89,7 +91,6 @@ fun AdminQueryLogsScreen(
     val uiState by viewModel.uiState.collectAsState()
     var isInitialLoad by remember { mutableStateOf(true) }
     var showEmptyDialog by remember { mutableStateOf(false) }
-    var showFallbackDialog by remember { mutableStateOf(false) }
     var showNfcDialog by remember { mutableStateOf(false) }
     val coroutineScope = rememberCoroutineScope()
     val isLandscape = LocalConfiguration.current.orientation == Configuration.ORIENTATION_LANDSCAPE
@@ -112,6 +113,21 @@ fun AdminQueryLogsScreen(
     val resultOptions = listOf("standard_matched", "sequence_step_completed", "sequence_steps_saved", "mismatch", "out_of_order", "duplicate", "standard_completed", "sequence_completed", "deprecated_complete_api")
     val scrollBehavior = TopAppBarDefaults.enterAlwaysScrollBehavior()
 
+    fun getCurrentQuery(): LogSearchQuery? {
+        val orderIds = orderIdQuery.split(",").map { it.trim() }.filter { it.isNotEmpty() }
+        if (orderIds.isEmpty() && selectedWorkers.isEmpty() && selectedOrderTypes.isEmpty() && selectedActions.isEmpty() && selectedResults.isEmpty() && uidHexQuery.isBlank() && startTime.isBlank() && endTime.isBlank()) return null
+        return LogSearchQuery(
+            orderId = orderIds.ifEmpty { null },
+            action = selectedActions.toList().ifEmpty { null },
+            result = selectedResults.toList().ifEmpty { null },
+            operator = selectedWorkers.toList().ifEmpty { null },
+            uidHex = uidHexQuery.ifBlank { null },
+            orderType = selectedOrderTypes.toList().ifEmpty { null },
+            startTime = startTime.ifBlank { null },
+            endTime = endTime.ifBlank { null }
+        )
+    }
+
     LaunchedEffect(Unit) {
         val job0 = viewModel.fetchWorkers(context)
         val job1 = viewModel.fetchLogs(context)
@@ -122,17 +138,15 @@ fun AdminQueryLogsScreen(
         isInitialLoad = false
     }
 
-    LaunchedEffect(uiState.isFallbackTriggered) {
-        if (uiState.isFallbackTriggered) {
-            showFallbackDialog = true
-            delay(3000)
-            showFallbackDialog = false
-            viewModel.clearFallbackTriggered()
-        }
-    }
-    
     LaunchedEffect(isLandscape) {
         isFilterExpanded = isLandscape
+    }
+    
+    LaunchedEffect(uiState.appendError) {
+        uiState.appendError?.let {
+            Toast.makeText(context, it, Toast.LENGTH_SHORT).show()
+            viewModel.clearAppendError()
+        }
     }
 
     Scaffold(
@@ -346,7 +360,10 @@ fun AdminQueryLogsScreen(
                         viewModel = viewModel,
                         coroutineScope = coroutineScope,
                         showEmptyDialog = showEmptyDialog,
-                        onShowEmptyDialogChange = { showEmptyDialog = it }
+                        onShowEmptyDialogChange = { showEmptyDialog = it },
+                        onLoadMore = {
+                            viewModel.fetchLogs(context, getCurrentQuery(), isAppend = true)
+                        }
                     )
                 }
             }
@@ -557,7 +574,10 @@ fun AdminQueryLogsScreen(
                         viewModel = viewModel,
                         coroutineScope = coroutineScope,
                         showEmptyDialog = showEmptyDialog,
-                        onShowEmptyDialogChange = { showEmptyDialog = it }
+                        onShowEmptyDialogChange = { showEmptyDialog = it },
+                        onLoadMore = {
+                            viewModel.fetchLogs(context, getCurrentQuery(), isAppend = true)
+                        }
                     )
                 }
             }
@@ -600,25 +620,6 @@ fun AdminQueryLogsScreen(
             )
         }
         
-        if (showFallbackDialog) {
-            AlertDialog(
-                onDismissRequest = { 
-                    showFallbackDialog = false
-                    viewModel.clearFallbackTriggered()
-                },
-                title = { Text(stringResource(R.string.dialog_empty_state_title)) },
-                text = { Text(stringResource(R.string.admin_search_fallback_msg)) },
-                confirmButton = {
-                    TextButton(onClick = dropUnlessResumed { 
-                        showFallbackDialog = false 
-                        viewModel.clearFallbackTriggered()
-                    }) {
-                        Text(stringResource(R.string.ok))
-                    }
-                }
-            )
-        }
-        
         if (showNfcDialog) {
             NfcScannerDialog(
                 onDismiss = { showNfcDialog = false },
@@ -638,7 +639,8 @@ fun LogResultsList(
     viewModel: AdminViewModel,
     coroutineScope: kotlinx.coroutines.CoroutineScope,
     showEmptyDialog: Boolean,
-    onShowEmptyDialogChange: (Boolean) -> Unit
+    onShowEmptyDialogChange: (Boolean) -> Unit,
+    onLoadMore: () -> Unit
 ) {
     val context = LocalContext.current
     when {
@@ -720,7 +722,25 @@ fun LogResultsList(
                 )
             }
 
+            val listState = rememberLazyListState()
+
+            val isAtBottom by remember {
+                derivedStateOf {
+                    val layoutInfo = listState.layoutInfo
+                    val totalItems = layoutInfo.totalItemsCount
+                    val lastVisibleItem = layoutInfo.visibleItemsInfo.lastOrNull()?.index ?: 0
+                    totalItems > 0 && lastVisibleItem >= totalItems - 1
+                }
+            }
+
+            LaunchedEffect(isAtBottom) {
+                if (isAtBottom && uiState.hasMoreLogs && !uiState.isAppendingLogs && !uiState.isLoading) {
+                    onLoadMore()
+                }
+            }
+
             LazyColumn(
+                state = listState,
                 modifier = Modifier.fillMaxSize(),
                 contentPadding = PaddingValues(bottom = Dimensions.SpaceL)
             ) {
@@ -823,6 +843,19 @@ fun LogResultsList(
 
                                 Text(text = stringResource(R.string.admin_log_time, log.timestamp ?: "N/A"), style = MaterialTheme.typography.bodySmall)
                             }
+                        }
+                    }
+                }
+
+                if (uiState.isAppendingLogs) {
+                    item {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(Dimensions.SpaceM),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            CircularProgressIndicator()
                         }
                     }
                 }

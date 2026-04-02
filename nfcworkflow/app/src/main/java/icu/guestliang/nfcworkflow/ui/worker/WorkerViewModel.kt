@@ -8,12 +8,12 @@ import icu.guestliang.nfcworkflow.network.ApiResponse
 import icu.guestliang.nfcworkflow.network.CompleteOrderRequest
 import icu.guestliang.nfcworkflow.network.LogEntry
 import icu.guestliang.nfcworkflow.network.Order
+import icu.guestliang.nfcworkflow.network.PaginatedResponse
 import icu.guestliang.nfcworkflow.network.ScanErrorData
 import icu.guestliang.nfcworkflow.network.ScanRequest
 import icu.guestliang.nfcworkflow.network.ScanResponseData
 import icu.guestliang.nfcworkflow.network.WorkerSummary
 import io.ktor.client.call.body
-import io.ktor.client.plugins.HttpRequestTimeoutException
 import io.ktor.client.request.get
 import io.ktor.client.request.header
 import io.ktor.client.request.parameter
@@ -23,6 +23,7 @@ import io.ktor.http.ContentType
 import io.ktor.http.HttpHeaders
 import io.ktor.http.contentType
 import kotlinx.coroutines.async
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -31,8 +32,6 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.decodeFromJsonElement
-import java.net.ConnectException
-import java.net.SocketTimeoutException
 import android.content.Context
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -48,12 +47,20 @@ data class WorkerHistoryQuery(
 
 data class WorkerUiState(
     val isLoading: Boolean = false,
+    val isAppendingOrders: Boolean = false,
+    val isAppendingHistory: Boolean = false,
     val error: String? = null,
+    val appendError: String? = null,
+    
     val orders: List<Order> = emptyList(),
+    val nextOrdersCursor: String? = null,
+    val hasMoreOrders: Boolean = true,
+    
     val history: List<LogEntry> = emptyList(),
-    val allHistory: List<LogEntry> = emptyList(),
+    val nextHistoryCursor: String? = null,
+    val hasMoreHistory: Boolean = true,
+    
     val historySummary: WorkerSummary? = null,
-    val isFallbackTriggered: Boolean = false,
     val actionSuccess: Boolean = false,
     val scanResponseData: ScanResponseData? = null,
     val scanErrorData: ScanErrorData? = null
@@ -65,51 +72,108 @@ class WorkerViewModel : ViewModel() {
 
     private val json = Json { ignoreUnknownKeys = true; isLenient = true }
 
-    fun clearFallbackTriggered() {
-        _uiState.update { it.copy(isFallbackTriggered = false) }
+    fun clearAppendError() {
+        _uiState.update { it.copy(appendError = null) }
     }
 
-    fun fetchMyOrders(context: Context) {
+    fun fetchMyOrders(context: Context, isAppend: Boolean = false) {
+        if (isAppend && (_uiState.value.isAppendingOrders || !_uiState.value.hasMoreOrders)) return
+        
         viewModelScope.launch {
-            _uiState.update { it.copy(isLoading = true, error = null) }
+            if (isAppend) {
+                _uiState.update { it.copy(isAppendingOrders = true, appendError = null) }
+            } else {
+                _uiState.update { it.copy(isLoading = true, error = null, orders = emptyList(), nextOrdersCursor = null, hasMoreOrders = true) }
+            }
+            
+            val startTime = System.currentTimeMillis()
+            
             try {
                 val token = PrefsDataStore.flow(context).firstOrNull()?.token
                 if (token == null) {
-                    _uiState.update { it.copy(isLoading = false, error = context.getString(R.string.err_not_logged_in)) }
+                    val msg = context.getString(R.string.err_not_logged_in)
+                    if (isAppend) _uiState.update { it.copy(isAppendingOrders = false, appendError = msg) }
+                    else _uiState.update { it.copy(isLoading = false, error = msg) }
                     return@launch
                 }
 
                 val response: ApiResponse = ApiClient.client.get("worker/orders") {
                     header(HttpHeaders.Authorization, "Bearer $token")
+                    parameter("limit", 6)
+                    if (isAppend) {
+                        _uiState.value.nextOrdersCursor?.let { parameter("cursor", it) }
+                    }
                 }.body()
 
                 if (response.success && response.data != null) {
-                    val ordersList: List<Order> = json.decodeFromJsonElement(response.data)
-                    _uiState.update { it.copy(isLoading = false, orders = ordersList) }
+                    val paginatedData: PaginatedResponse<Order> = json.decodeFromJsonElement(response.data)
+                    
+                    val elapsed = System.currentTimeMillis() - startTime
+                    if (isAppend && elapsed < 500) {
+                        delay(500 - elapsed) // Wait to show spinner for at least 0.5s
+                    }
+                    
+                    if (isAppend) {
+                        _uiState.update { 
+                            it.copy(
+                                isAppendingOrders = false,
+                                orders = it.orders + paginatedData.items,
+                                nextOrdersCursor = paginatedData.nextCursor,
+                                hasMoreOrders = paginatedData.hasMore
+                            )
+                        }
+                    } else {
+                        _uiState.update { 
+                            it.copy(
+                                isLoading = false,
+                                orders = paginatedData.items,
+                                nextOrdersCursor = paginatedData.nextCursor,
+                                hasMoreOrders = paginatedData.hasMore
+                            )
+                        }
+                    }
                 } else {
-                    _uiState.update { it.copy(isLoading = false, error = response.message) }
+                    if (isAppend) _uiState.update { it.copy(isAppendingOrders = false, appendError = response.message) }
+                    else _uiState.update { it.copy(isLoading = false, error = response.message) }
                 }
             } catch (e: Exception) {
                 AppLogger.error(context, e, "Failed to fetch orders", "WorkerViewModel")
-                _uiState.update { it.copy(isLoading = false, error = e.message ?: context.getString(R.string.err_worker_fetch_orders_failed)) }
+                val msg = e.message ?: context.getString(R.string.err_worker_fetch_orders_failed)
+                if (isAppend) _uiState.update { it.copy(isAppendingOrders = false, appendError = msg) }
+                else _uiState.update { it.copy(isLoading = false, error = msg) }
             }
         }
     }
 
-    fun fetchHistory(context: Context, query: WorkerHistoryQuery? = null) {
+    fun fetchHistory(context: Context, query: WorkerHistoryQuery? = null, isAppend: Boolean = false) {
+        if (isAppend && (_uiState.value.isAppendingHistory || !_uiState.value.hasMoreHistory)) return
+        
         viewModelScope.launch {
-            _uiState.update { it.copy(isLoading = true, error = null) }
+            if (isAppend) {
+                _uiState.update { it.copy(isAppendingHistory = true, appendError = null) }
+            } else {
+                _uiState.update { it.copy(isLoading = true, error = null, history = emptyList(), nextHistoryCursor = null, hasMoreHistory = true) }
+            }
+            
+            val startTime = System.currentTimeMillis()
+            
             try {
                 val token = PrefsDataStore.flow(context).firstOrNull()?.token
                 if (token == null) {
-                    _uiState.update { it.copy(isLoading = false, error = context.getString(R.string.err_not_logged_in)) }
+                    val msg = context.getString(R.string.err_not_logged_in)
+                    if (isAppend) _uiState.update { it.copy(isAppendingHistory = false, appendError = msg) }
+                    else _uiState.update { it.copy(isLoading = false, error = msg) }
                     return@launch
                 }
 
-                // Fetch history and summary in parallel
+                // Fetch history
                 val historyTask = async {
                     ApiClient.client.get("worker/history") {
                         header(HttpHeaders.Authorization, "Bearer $token")
+                        parameter("limit", 6)
+                        if (isAppend) {
+                            _uiState.value.nextHistoryCursor?.let { parameter("cursor", it) }
+                        }
                         query?.let { q ->
                             q.orderId?.takeIf { it.isNotEmpty() }?.let { parameter("orderId", it.joinToString(",")) }
                             q.action?.takeIf { it.isNotEmpty() }?.let { parameter("action", it.joinToString(",")) }
@@ -121,69 +185,64 @@ class WorkerViewModel : ViewModel() {
                     }.body<ApiResponse>()
                 }
 
-                val summaryTask = async {
+                val summaryTask = if (!isAppend) async {
                     ApiClient.client.get("worker/history/summary") {
                         header(HttpHeaders.Authorization, "Bearer $token")
                     }.body<ApiResponse>()
-                }
+                } else null
 
                 val historyResponse = historyTask.await()
-                val summaryResponse = summaryTask.await()
+                val summaryResponse = summaryTask?.await()
 
                 var errorMsg: String? = null
-                var parsedHistory = emptyList<LogEntry>()
-                var parsedSummary: WorkerSummary? = null
+                var paginatedData: PaginatedResponse<LogEntry>? = null
+                var parsedSummary: WorkerSummary? = _uiState.value.historySummary
 
                 if (historyResponse.success && historyResponse.data != null) {
-                    parsedHistory = json.decodeFromJsonElement(historyResponse.data)
+                    paginatedData = json.decodeFromJsonElement(historyResponse.data)
                 } else {
                     errorMsg = historyResponse.message
                 }
 
-                if (summaryResponse.success && summaryResponse.data != null) {
+                if (summaryResponse?.success == true && summaryResponse.data != null) {
                     parsedSummary = json.decodeFromJsonElement(summaryResponse.data)
                 }
+                
+                val elapsed = System.currentTimeMillis() - startTime
+                if (isAppend && elapsed < 500) {
+                    delay(500 - elapsed)
+                }
 
-                if (errorMsg == null) {
-                    if (query == null) {
+                if (errorMsg == null && paginatedData != null) {
+                    if (isAppend) {
                         _uiState.update { 
-                            it.copy(isLoading = false, history = parsedHistory, allHistory = parsedHistory, historySummary = parsedSummary) 
+                            it.copy(
+                                isAppendingHistory = false, 
+                                history = it.history + paginatedData.items, 
+                                nextHistoryCursor = paginatedData.nextCursor,
+                                hasMoreHistory = paginatedData.hasMore
+                            ) 
                         }
                     } else {
                         _uiState.update { 
-                            it.copy(isLoading = false, history = parsedHistory, historySummary = parsedSummary) 
+                            it.copy(
+                                isLoading = false, 
+                                history = paginatedData.items, 
+                                historySummary = parsedSummary,
+                                nextHistoryCursor = paginatedData.nextCursor,
+                                hasMoreHistory = paginatedData.hasMore
+                            ) 
                         }
                     }
                 } else {
-                    _uiState.update { it.copy(isLoading = false, error = errorMsg) }
+                    if (isAppend) _uiState.update { it.copy(isAppendingHistory = false, appendError = errorMsg) }
+                    else _uiState.update { it.copy(isLoading = false, error = errorMsg) }
                 }
             } catch (e: Exception) {
-                if (e is HttpRequestTimeoutException || e is ConnectException || e is SocketTimeoutException) {
-                    val currentAllHistory = _uiState.value.allHistory
-                    if (query != null && currentAllHistory.isNotEmpty()) {
-                        AppLogger.error(context, e, "History API failed, falling back to local filter", "WorkerViewModel")
-                        val filtered = currentAllHistory.filter { log ->
-                            var match = true
-                            query.orderId?.takeIf { it.isNotEmpty() }?.let { if (log.order_id?.toString() !in it && log.orderId?.toString() !in it) match = false }
-                            query.action?.takeIf { it.isNotEmpty() }?.let { if (log.action !in it) match = false }
-                            query.result?.takeIf { it.isNotEmpty() }?.let { if (log.result !in it) match = false }
-                            query.uidHex?.takeIf { it.isNotBlank() }?.let { if (log.scanUidHex?.contains(it, true) != true && log.expectedUidHex?.contains(it, true) != true) match = false }
-                            query.startTime?.takeIf { it.isNotBlank() }?.let { start ->
-                                if (log.timestamp == null || log.timestamp < start) match = false
-                            }
-                            query.endTime?.takeIf { it.isNotBlank() }?.let { end ->
-                                if (log.timestamp == null || log.timestamp > end) match = false
-                            }
-                            match
-                        }
-                        _uiState.update { it.copy(isLoading = false, history = filtered, isFallbackTriggered = true) }
-                    } else {
-                        _uiState.update { it.copy(isLoading = false, error = context.getString(R.string.err_network_timeout)) }
-                    }
-                } else {
-                    AppLogger.error(context, e, "Failed to fetch history", "WorkerViewModel")
-                    _uiState.update { it.copy(isLoading = false, error = e.message ?: context.getString(R.string.err_worker_fetch_history_failed)) }
-                }
+                AppLogger.error(context, e, "Failed to fetch history", "WorkerViewModel")
+                val msg = e.message ?: context.getString(R.string.err_worker_fetch_history_failed)
+                if (isAppend) _uiState.update { it.copy(isAppendingHistory = false, appendError = msg) }
+                else _uiState.update { it.copy(isLoading = false, error = msg) }
             }
         }
     }

@@ -8,14 +8,17 @@ import icu.guestliang.nfcworkflow.ui.components.SplicedBaseWidget
 import icu.guestliang.nfcworkflow.ui.components.SplicedColumnGroup
 import icu.guestliang.nfcworkflow.ui.theme.Dimensions
 import icu.guestliang.nfcworkflow.utils.getLocalizedStatus
+import android.widget.Toast
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.Assignment
@@ -34,6 +37,7 @@ import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -58,9 +62,32 @@ fun ViewOrdersScreen(
 
     val uiState by viewModel.uiState.collectAsState()
     val scrollBehavior = TopAppBarDefaults.enterAlwaysScrollBehavior()
+    val listState = rememberLazyListState()
 
     LaunchedEffect(Unit) {
         viewModel.fetchMyOrders(context)
+    }
+
+    val isAtBottom by remember {
+        derivedStateOf {
+            val layoutInfo = listState.layoutInfo
+            val totalItems = layoutInfo.totalItemsCount
+            val lastVisibleItem = layoutInfo.visibleItemsInfo.lastOrNull()?.index ?: 0
+            totalItems > 0 && lastVisibleItem >= totalItems - 1
+        }
+    }
+
+    LaunchedEffect(isAtBottom) {
+        if (isAtBottom && uiState.hasMoreOrders && !uiState.isAppendingOrders && !uiState.isLoading) {
+            viewModel.fetchMyOrders(context, isAppend = true)
+        }
+    }
+
+    LaunchedEffect(uiState.appendError) {
+        uiState.appendError?.let {
+            Toast.makeText(context, it, Toast.LENGTH_SHORT).show()
+            viewModel.clearAppendError()
+        }
     }
 
     Scaffold(
@@ -84,10 +111,10 @@ fun ViewOrdersScreen(
                 .padding(innerPadding)
         ) {
             when {
-                uiState.isLoading -> {
+                uiState.isLoading && uiState.orders.isEmpty() -> {
                     CircularProgressIndicator(modifier = Modifier.align(Alignment.Center))
                 }
-                uiState.error != null -> {
+                uiState.error != null && uiState.orders.isEmpty() -> {
                     Text(
                         text = uiState.error ?: "",
                         color = MaterialTheme.colorScheme.error,
@@ -104,11 +131,24 @@ fun ViewOrdersScreen(
                 }
                 else -> {
                     LazyColumn(
+                        state = listState,
                         modifier = Modifier.fillMaxSize(),
                         contentPadding = PaddingValues(bottom = Dimensions.SpaceL)
                     ) {
                         items(uiState.orders) { order ->
                             OrderCard(order = order, navController = navController)
+                        }
+                        if (uiState.isAppendingOrders) {
+                            item {
+                                Box(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(Dimensions.SpaceM),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    CircularProgressIndicator()
+                                }
+                            }
                         }
                     }
                 }

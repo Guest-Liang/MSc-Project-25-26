@@ -7,9 +7,9 @@ import icu.guestliang.nfcworkflow.ui.components.CustomDateTimePickerDialog
 import icu.guestliang.nfcworkflow.ui.components.NfcScannerDialog
 import icu.guestliang.nfcworkflow.ui.theme.Dimensions
 import icu.guestliang.nfcworkflow.utils.getLocalizedStatus
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import android.content.res.Configuration
+import android.widget.Toast
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -28,6 +28,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
@@ -63,6 +64,7 @@ import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
@@ -93,7 +95,6 @@ fun AdminSearchOrdersScreen(
     val uiState by viewModel.uiState.collectAsState()
     var isInitialLoad by remember { mutableStateOf(true) }
     var showEmptyDialog by remember { mutableStateOf(false) }
-    var showFallbackDialog by remember { mutableStateOf(false) }
     var selectedOrder by remember { mutableStateOf<Order?>(null) }
     var showNfcDialog by remember { mutableStateOf(false) }
     val coroutineScope = rememberCoroutineScope()
@@ -122,24 +123,43 @@ fun AdminSearchOrdersScreen(
     
     val scrollBehavior = TopAppBarDefaults.enterAlwaysScrollBehavior()
 
+    fun getCurrentQuery(): OrderSearchQuery? {
+        if (titleQuery.isBlank() && descQuery.isBlank() && targetUidHexQuery.isBlank() && 
+            selectedOrderTypes.isEmpty() && selectedStatuses.isEmpty() && selectedAssigned.isEmpty() && 
+            selectedProgress.isEmpty() && createdStart.isBlank() && createdEnd.isBlank() && 
+            updatedStart.isBlank() && updatedEnd.isBlank()) return null
+            
+        return OrderSearchQuery(
+            title = titleQuery,
+            description = descQuery,
+            nfcTag = targetUidHexQuery,
+            orderType = selectedOrderTypes.toList(),
+            status = selectedStatuses.toList(),
+            assigned = selectedAssigned.toList(),
+            progress = selectedProgress.toList(),
+            createdStart = createdStart,
+            createdEnd = createdEnd,
+            updatedStart = updatedStart,
+            updatedEnd = updatedEnd
+        )
+    }
+
     LaunchedEffect(Unit) {
         viewModel.fetchWorkers(context)
         viewModel.fetchOrders(context).join()
         isInitialLoad = false
     }
 
-    LaunchedEffect(uiState.isFallbackTriggered) {
-        if (uiState.isFallbackTriggered) {
-            showFallbackDialog = true
-            delay(3000)
-            showFallbackDialog = false
-            viewModel.clearFallbackTriggered()
-        }
-    }
-    
     // Automatically manage filter expansion based on orientation changes if desired
     LaunchedEffect(isLandscape) {
         isFilterExpanded = isLandscape
+    }
+    
+    LaunchedEffect(uiState.appendError) {
+        uiState.appendError?.let {
+            Toast.makeText(context, it, Toast.LENGTH_SHORT).show()
+            viewModel.clearAppendError()
+        }
     }
 
     Scaffold(
@@ -352,20 +372,7 @@ fun AdminSearchOrdersScreen(
                             }
                             Spacer(modifier = Modifier.width(Dimensions.SpaceS))
                             Button(onClick = dropUnlessResumed {
-                                val query = OrderSearchQuery(
-                                    title = titleQuery,
-                                    description = descQuery,
-                                    nfcTag = targetUidHexQuery,
-                                    orderType = selectedOrderTypes.toList(),
-                                    status = selectedStatuses.toList(),
-                                    assigned = selectedAssigned.toList(),
-                                    progress = selectedProgress.toList(),
-                                    createdStart = createdStart,
-                                    createdEnd = createdEnd,
-                                    updatedStart = updatedStart,
-                                    updatedEnd = updatedEnd
-                                )
-                                viewModel.fetchOrders(context, query)
+                                viewModel.fetchOrders(context, getCurrentQuery())
                             }) {
                                 Text(stringResource(R.string.admin_search_btn))
                             }
@@ -380,7 +387,10 @@ fun AdminSearchOrdersScreen(
                         uiState = uiState,
                         viewModel = viewModel,
                         coroutineScope = coroutineScope,
-                        onOrderSelected = { selectedOrder = it }
+                        onOrderSelected = { selectedOrder = it },
+                        onLoadMore = {
+                            viewModel.fetchOrders(context, getCurrentQuery(), isAppend = true)
+                        }
                     )
                 }
             }
@@ -592,20 +602,7 @@ fun AdminSearchOrdersScreen(
                                     Spacer(modifier = Modifier.width(Dimensions.SpaceS))
                                     Button(onClick = dropUnlessResumed {
                                         isFilterExpanded = false
-                                        val query = OrderSearchQuery(
-                                            title = titleQuery,
-                                            description = descQuery,
-                                            nfcTag = targetUidHexQuery,
-                                            orderType = selectedOrderTypes.toList(),
-                                            status = selectedStatuses.toList(),
-                                            assigned = selectedAssigned.toList(),
-                                            progress = selectedProgress.toList(),
-                                            createdStart = createdStart,
-                                            createdEnd = createdEnd,
-                                            updatedStart = updatedStart,
-                                            updatedEnd = updatedEnd
-                                        )
-                                        viewModel.fetchOrders(context, query)
+                                        viewModel.fetchOrders(context, getCurrentQuery())
                                     }) {
                                         Text(stringResource(R.string.admin_search_btn))
                                     }
@@ -621,7 +618,10 @@ fun AdminSearchOrdersScreen(
                     uiState = uiState,
                     viewModel = viewModel,
                     coroutineScope = coroutineScope,
-                    onOrderSelected = { selectedOrder = it }
+                    onOrderSelected = { selectedOrder = it },
+                    onLoadMore = {
+                        viewModel.fetchOrders(context, getCurrentQuery(), isAppend = true)
+                    }
                 )
             }
         }
@@ -658,25 +658,6 @@ fun AdminSearchOrdersScreen(
                 },
                 confirmButton = {
                     TextButton(onClick = dropUnlessResumed { showWorkerDialog = false }) {
-                        Text(stringResource(R.string.ok))
-                    }
-                }
-            )
-        }
-        
-        if (showFallbackDialog) {
-            AlertDialog(
-                onDismissRequest = { 
-                    showFallbackDialog = false
-                    viewModel.clearFallbackTriggered()
-                },
-                title = { Text(stringResource(R.string.dialog_empty_state_title)) },
-                text = { Text(stringResource(R.string.admin_search_fallback_msg)) },
-                confirmButton = {
-                    TextButton(onClick = dropUnlessResumed { 
-                        showFallbackDialog = false 
-                        viewModel.clearFallbackTriggered()
-                    }) {
                         Text(stringResource(R.string.ok))
                     }
                 }
@@ -728,14 +709,15 @@ fun OrderResultsList(
     uiState: AdminUiState,
     viewModel: AdminViewModel,
     coroutineScope: kotlinx.coroutines.CoroutineScope,
-    onOrderSelected: (Order) -> Unit
+    onOrderSelected: (Order) -> Unit,
+    onLoadMore: () -> Unit
 ) {
     val context = LocalContext.current
-    if (isInitialLoad || uiState.isLoading) {
+    if (isInitialLoad || (uiState.isLoading && uiState.orders.isEmpty())) {
         Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
             CircularProgressIndicator()
         }
-    } else if (uiState.error != null) {
+    } else if (uiState.error != null && uiState.orders.isEmpty()) {
         Column(
             modifier = Modifier
                 .fillMaxSize()
@@ -794,7 +776,25 @@ fun OrderResultsList(
                 )
             }
         } else {
+            val listState = rememberLazyListState()
+
+            val isAtBottom by remember {
+                derivedStateOf {
+                    val layoutInfo = listState.layoutInfo
+                    val totalItems = layoutInfo.totalItemsCount
+                    val lastVisibleItem = layoutInfo.visibleItemsInfo.lastOrNull()?.index ?: 0
+                    totalItems > 0 && lastVisibleItem >= totalItems - 1
+                }
+            }
+
+            LaunchedEffect(isAtBottom) {
+                if (isAtBottom && uiState.hasMoreOrders && !uiState.isAppendingOrders && !uiState.isLoading) {
+                    onLoadMore()
+                }
+            }
+
             LazyColumn(
+                state = listState,
                 modifier = Modifier.fillMaxSize(),
                 contentPadding = PaddingValues(Dimensions.SpaceL),
                 verticalArrangement = Arrangement.spacedBy(Dimensions.SpaceL)
@@ -838,6 +838,19 @@ fun OrderResultsList(
                                 contentDescription = null,
                                 tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
                             )
+                        }
+                    }
+                }
+
+                if (uiState.isAppendingOrders) {
+                    item {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(Dimensions.SpaceM),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            CircularProgressIndicator()
                         }
                     }
                 }

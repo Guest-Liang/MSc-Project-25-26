@@ -11,10 +11,10 @@ import icu.guestliang.nfcworkflow.network.CreateOrderResponseData
 import icu.guestliang.nfcworkflow.network.LogEntry
 import icu.guestliang.nfcworkflow.network.Order
 import icu.guestliang.nfcworkflow.network.OrderStep
+import icu.guestliang.nfcworkflow.network.PaginatedResponse
 import icu.guestliang.nfcworkflow.network.SaveOrderStepsRequest
 import icu.guestliang.nfcworkflow.network.WorkerUser
 import io.ktor.client.call.body
-import io.ktor.client.plugins.HttpRequestTimeoutException
 import io.ktor.client.request.get
 import io.ktor.client.request.header
 import io.ktor.client.request.parameter
@@ -24,6 +24,7 @@ import io.ktor.http.ContentType
 import io.ktor.http.HttpHeaders
 import io.ktor.http.contentType
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -37,8 +38,6 @@ import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.decodeFromJsonElement
 import kotlinx.serialization.json.jsonArray
 import kotlinx.serialization.json.jsonObject
-import java.net.ConnectException
-import java.net.SocketTimeoutException
 import android.content.Context
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -70,14 +69,22 @@ data class LogSearchQuery(
 
 data class AdminUiState(
     val isLoading: Boolean = false,
+    val isAppendingOrders: Boolean = false,
+    val isAppendingLogs: Boolean = false,
     val error: String? = null,
+    val appendError: String? = null,
     val successMessage: String? = null,
+    
     val orders: List<Order> = emptyList(),
-    val allOrders: List<Order> = emptyList(),
-    val isFallbackTriggered: Boolean = false,
+    val nextOrdersCursor: String? = null,
+    val hasMoreOrders: Boolean = true,
+    
     val workers: List<WorkerUser> = emptyList(),
+    
     val logs: List<LogEntry> = emptyList(),
-    val allLogs: List<LogEntry> = emptyList(),
+    val nextLogsCursor: String? = null,
+    val hasMoreLogs: Boolean = true,
+    
     val analysisSummary: AdminAnalysisSummary? = null
 )
 
@@ -90,9 +97,9 @@ class AdminViewModel : ViewModel() {
     fun clearMessages() {
         _uiState.update { it.copy(error = null, successMessage = null) }
     }
-
-    fun clearFallbackTriggered() {
-        _uiState.update { it.copy(isFallbackTriggered = false) }
+    
+    fun clearAppendError() {
+        _uiState.update { it.copy(appendError = null) }
     }
 
     private suspend fun getToken(context: Context): String? {
@@ -171,18 +178,33 @@ class AdminViewModel : ViewModel() {
         }
     }
 
-    fun fetchOrders(context: Context, query: OrderSearchQuery? = null): Job {
+    fun fetchOrders(context: Context, query: OrderSearchQuery? = null, isAppend: Boolean = false): Job {
         return viewModelScope.launch {
-            _uiState.update { it.copy(isLoading = true, error = null) }
+            if (isAppend && (_uiState.value.isAppendingOrders || !_uiState.value.hasMoreOrders)) return@launch
+            
+            if (isAppend) {
+                _uiState.update { it.copy(isAppendingOrders = true, appendError = null) }
+            } else {
+                _uiState.update { it.copy(isLoading = true, error = null, orders = emptyList(), nextOrdersCursor = null, hasMoreOrders = true) }
+            }
+            
+            val startTime = System.currentTimeMillis()
+            
             try {
                 val token = getToken(context)
                 if (token == null) {
-                    _uiState.update { it.copy(isLoading = false, error = context.getString(R.string.err_not_logged_in)) }
+                    val msg = context.getString(R.string.err_not_logged_in)
+                    if (isAppend) _uiState.update { it.copy(isAppendingOrders = false, appendError = msg) }
+                    else _uiState.update { it.copy(isLoading = false, error = msg) }
                     return@launch
                 }
 
                 val response: ApiResponse = ApiClient.client.get("orders/search") {
                     header(HttpHeaders.Authorization, "Bearer $token")
+                    parameter("limit", 5)
+                    if (isAppend) {
+                        _uiState.value.nextOrdersCursor?.let { parameter("cursor", it) }
+                    }
                     query?.let { q ->
                         q.title?.takeIf { it.isNotBlank() }?.let { parameter("title", it) }
                         q.description?.takeIf { it.isNotBlank() }?.let { parameter("description", it) }
@@ -199,78 +221,45 @@ class AdminViewModel : ViewModel() {
                 }.body()
 
                 if (response.success && response.data != null) {
-                    val list: List<Order> = try {
+                    val paginatedData: PaginatedResponse<Order> = try {
                         json.decodeFromJsonElement(response.data)
                     } catch (e: Exception) {
-                        emptyList()
+                        PaginatedResponse(emptyList(), null, false)
                     }
-                    if (query == null) {
-                        _uiState.update { it.copy(isLoading = false, orders = list, allOrders = list) }
+                    
+                    val elapsed = System.currentTimeMillis() - startTime
+                    if (isAppend && elapsed < 1000) {
+                        delay(1000 - elapsed)
+                    }
+                    
+                    if (isAppend) {
+                        _uiState.update { 
+                            it.copy(
+                                isAppendingOrders = false,
+                                orders = it.orders + paginatedData.items,
+                                nextOrdersCursor = paginatedData.nextCursor,
+                                hasMoreOrders = paginatedData.hasMore
+                            )
+                        }
                     } else {
-                        _uiState.update { it.copy(isLoading = false, orders = list) }
+                        _uiState.update { 
+                            it.copy(
+                                isLoading = false, 
+                                orders = paginatedData.items,
+                                nextOrdersCursor = paginatedData.nextCursor,
+                                hasMoreOrders = paginatedData.hasMore
+                            ) 
+                        }
                     }
                 } else {
-                    _uiState.update { it.copy(isLoading = false, error = response.message) }
+                    if (isAppend) _uiState.update { it.copy(isAppendingOrders = false, appendError = response.message) }
+                    else _uiState.update { it.copy(isLoading = false, error = response.message) }
                 }
             } catch (e: Exception) {
-                if (e is HttpRequestTimeoutException || e is ConnectException || e is SocketTimeoutException) {
-                    val currentAllOrders = _uiState.value.allOrders
-                    if (query != null && currentAllOrders.isNotEmpty()) {
-                        AppLogger.error(context, e, "Search API failed, falling back to local filter", "AdminViewModel")
-                        val filtered = currentAllOrders.filter { order ->
-                            var match = true
-                            query.title?.takeIf { it.isNotBlank() }?.let { if (!order.title.contains(it, true)) match = false }
-                            query.description?.takeIf { it.isNotBlank() }?.let { if (!order.description.contains(it, true)) match = false }
-                            
-                            val uidField = order.targetUidHex ?: order.nfc_tag
-                            query.nfcTag?.takeIf { it.isNotBlank() }?.let { if (uidField?.contains(it, true) != true) match = false }
-                            
-                            query.orderType?.takeIf { it.isNotEmpty() }?.let { if (order.orderType !in it) match = false }
-                            query.status?.takeIf { it.isNotEmpty() }?.let { if (order.status !in it) match = false }
-                            
-                            query.progress?.takeIf { it.isNotEmpty() }?.let { progressList ->
-                                val computedProgress = if (order.status == "completed") {
-                                    "completed"
-                                } else if (order.orderType == "sequence" && order.sequenceCompletedSteps > 0) {
-                                    "in_progress"
-                                } else {
-                                    "not_started"
-                                }
-                                if (computedProgress !in progressList) match = false
-                            }
-
-                            query.assigned?.takeIf { it.isNotEmpty() }?.let { assignedList ->
-                                val finalAssignedTo = order.assignedTo ?: order.assigned_to
-                                val isUnassigned = finalAssignedTo == null
-                                val assignedStr = finalAssignedTo?.toString()
-                                val wantUnassigned = "NULL" in assignedList
-                                val matchAssigned = (wantUnassigned && isUnassigned) || (assignedStr != null && assignedStr in assignedList)
-                                if (!matchAssigned) match = false
-                            }
-                            
-                            val createdField = order.createdAt ?: order.created_at
-                            query.createdStart?.takeIf { it.isNotBlank() }?.let { start ->
-                                if (createdField == null || createdField < start) match = false
-                            }
-                            query.createdEnd?.takeIf { it.isNotBlank() }?.let { end ->
-                                if (createdField == null || createdField > end) match = false
-                            }
-                            query.updatedStart?.takeIf { it.isNotBlank() }?.let { start ->
-                                if (order.updated_at == null || order.updated_at < start) match = false
-                            }
-                            query.updatedEnd?.takeIf { it.isNotBlank() }?.let { end ->
-                                if (order.updated_at == null || order.updated_at > end) match = false
-                            }
-                            match
-                        }
-                        _uiState.update { it.copy(isLoading = false, orders = filtered, isFallbackTriggered = true) }
-                    } else {
-                        _uiState.update { it.copy(isLoading = false, error = context.getString(R.string.err_network_timeout)) }
-                    }
-                } else {
-                    AppLogger.error(context, e, "Failed to fetch orders", "AdminViewModel")
-                    _uiState.update { it.copy(isLoading = false, error = e.message ?: context.getString(R.string.err_unknown)) }
-                }
+                AppLogger.error(context, e, "Failed to fetch orders", "AdminViewModel")
+                val msg = e.message ?: context.getString(R.string.err_unknown)
+                if (isAppend) _uiState.update { it.copy(isAppendingOrders = false, appendError = msg) }
+                else _uiState.update { it.copy(isLoading = false, error = msg) }
             }
         }
     }
@@ -321,7 +310,6 @@ class AdminViewModel : ViewModel() {
                     return@launch
                 }
 
-                // 手动构建 JSON 以确保 userId: null 被发送，避免全局启用 explicitNulls 带来的副作用
                 val requestBody = buildJsonObject {
                     put("orderId", JsonPrimitive(orderId))
                     put("userId", if (workerId == null) JsonNull else JsonPrimitive(workerId))
@@ -346,18 +334,33 @@ class AdminViewModel : ViewModel() {
         }
     }
 
-    fun fetchLogs(context: Context, query: LogSearchQuery? = null): Job {
+    fun fetchLogs(context: Context, query: LogSearchQuery? = null, isAppend: Boolean = false): Job {
         return viewModelScope.launch {
-            _uiState.update { it.copy(isLoading = true, error = null) }
+            if (isAppend && (_uiState.value.isAppendingLogs || !_uiState.value.hasMoreLogs)) return@launch
+            
+            if (isAppend) {
+                _uiState.update { it.copy(isAppendingLogs = true, appendError = null) }
+            } else {
+                _uiState.update { it.copy(isLoading = true, error = null, logs = emptyList(), nextLogsCursor = null, hasMoreLogs = true) }
+            }
+            
+            val startTime = System.currentTimeMillis()
+            
             try {
                 val token = getToken(context)
                 if (token == null) {
-                    _uiState.update { it.copy(isLoading = false, error = context.getString(R.string.err_not_logged_in)) }
+                    val msg = context.getString(R.string.err_not_logged_in)
+                    if (isAppend) _uiState.update { it.copy(isAppendingLogs = false, appendError = msg) }
+                    else _uiState.update { it.copy(isLoading = false, error = msg) }
                     return@launch
                 }
 
                 val response: ApiResponse = ApiClient.client.get("orders/logs") {
                     header(HttpHeaders.Authorization, "Bearer $token")
+                    parameter("limit", 5)
+                    if (isAppend) {
+                        _uiState.value.nextLogsCursor?.let { parameter("cursor", it) }
+                    }
                     query?.let { q ->
                         q.orderId?.takeIf { it.isNotEmpty() }?.let { parameter("orderId", it.joinToString(",")) }
                         q.action?.takeIf { it.isNotEmpty() }?.let { parameter("action", it.joinToString(",")) }
@@ -371,48 +374,45 @@ class AdminViewModel : ViewModel() {
                 }.body()
 
                 if (response.success && response.data != null) {
-                    val list: List<LogEntry> = try {
+                    val paginatedData: PaginatedResponse<LogEntry> = try {
                         json.decodeFromJsonElement(response.data)
                     } catch (e: Exception) {
-                        emptyList()
+                        PaginatedResponse(emptyList(), null, false)
                     }
-                    if (query == null) {
-                        _uiState.update { it.copy(isLoading = false, logs = list, allLogs = list) }
+                    
+                    val elapsed = System.currentTimeMillis() - startTime
+                    if (isAppend && elapsed < 1000) {
+                        delay(1000 - elapsed)
+                    }
+                    
+                    if (isAppend) {
+                        _uiState.update { 
+                            it.copy(
+                                isAppendingLogs = false,
+                                logs = it.logs + paginatedData.items,
+                                nextLogsCursor = paginatedData.nextCursor,
+                                hasMoreLogs = paginatedData.hasMore
+                            )
+                        }
                     } else {
-                        _uiState.update { it.copy(isLoading = false, logs = list) }
+                        _uiState.update { 
+                            it.copy(
+                                isLoading = false, 
+                                logs = paginatedData.items,
+                                nextLogsCursor = paginatedData.nextCursor,
+                                hasMoreLogs = paginatedData.hasMore
+                            ) 
+                        }
                     }
                 } else {
-                    _uiState.update { it.copy(isLoading = false, error = response.message) }
+                    if (isAppend) _uiState.update { it.copy(isAppendingLogs = false, appendError = response.message) }
+                    else _uiState.update { it.copy(isLoading = false, error = response.message) }
                 }
             } catch (e: Exception) {
-                if (e is HttpRequestTimeoutException || e is ConnectException || e is SocketTimeoutException) {
-                    val currentAllLogs = _uiState.value.allLogs
-                    if (query != null && currentAllLogs.isNotEmpty()) {
-                        AppLogger.error(context, e, "Logs fetch failed, falling back to local filter", "AdminViewModel")
-                        val filtered = currentAllLogs.filter { log ->
-                            var match = true
-                            query.orderId?.takeIf { it.isNotEmpty() }?.let { if (log.orderId?.toString() !in it && log.order_id?.toString() !in it) match = false }
-                            query.action?.takeIf { it.isNotEmpty() }?.let { if (log.action !in it) match = false }
-                            query.result?.takeIf { it.isNotEmpty() }?.let { if (log.result !in it) match = false }
-                            query.operator?.takeIf { it.isNotEmpty() }?.let { if (log.workerId?.toString() !in it && log.operator_id?.toString() !in it) match = false }
-                            query.uidHex?.takeIf { it.isNotBlank() }?.let { if (log.scanUidHex?.contains(it, true) != true && log.expectedUidHex?.contains(it, true) != true) match = false }
-                            query.orderType?.takeIf { it.isNotEmpty() }?.let { if (log.orderType !in it) match = false }
-                            query.startTime?.takeIf { it.isNotBlank() }?.let { start ->
-                                if (log.timestamp == null || log.timestamp < start) match = false
-                            }
-                            query.endTime?.takeIf { it.isNotBlank() }?.let { end ->
-                                if (log.timestamp == null || log.timestamp > end) match = false
-                            }
-                            match
-                        }
-                        _uiState.update { it.copy(isLoading = false, logs = filtered, isFallbackTriggered = true) }
-                    } else {
-                        _uiState.update { it.copy(isLoading = false, error = context.getString(R.string.err_network_timeout)) }
-                    }
-                } else {
-                    AppLogger.error(context, e, "Failed to fetch logs", "AdminViewModel")
-                    _uiState.update { it.copy(isLoading = false, error = e.message ?: context.getString(R.string.err_unknown)) }
-                }
+                AppLogger.error(context, e, "Failed to fetch logs", "AdminViewModel")
+                val msg = e.message ?: context.getString(R.string.err_unknown)
+                if (isAppend) _uiState.update { it.copy(isAppendingLogs = false, appendError = msg) }
+                else _uiState.update { it.copy(isLoading = false, error = msg) }
             }
         }
     }
