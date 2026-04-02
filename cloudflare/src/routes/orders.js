@@ -4,6 +4,8 @@ import { jsonResponse } from "../utils/response.js"
 import { ERR, INFO } from "../utils/status.js"
 import {
   ORDER_TYPES,
+  decodeCursor,
+  encodeCursor,
   formatOrderLog,
   formatOrderRecord,
   formatOrderStep,
@@ -12,11 +14,16 @@ import {
   getOrderSteps,
   normalizeUidHex,
   parseCsvParam,
+  parsePaginationLimit,
   parsePositiveInteger,
   resolveOrderType
 } from "../utils/order.js"
 
 export const orderRoutes = new Hono()
+const ORDER_SEARCH_DEFAULT_LIMIT = 5
+const ORDER_SEARCH_MAX_LIMIT = 100
+const ORDER_LOGS_DEFAULT_LIMIT = 5
+const ORDER_LOGS_MAX_LIMIT = 100
 
 function parsePositiveIntegerList(rawValue, error) {
   const values = parseCsvParam(rawValue)
@@ -217,9 +224,34 @@ orderRoutes.get("/logs", requireAdmin, async (c) => {
   const params = c.req.query()
   const conditions = []
   const values = []
+  const { value: limit, error: limitError } = parsePaginationLimit(
+    params.limit,
+    ORDER_LOGS_DEFAULT_LIMIT,
+    ORDER_LOGS_MAX_LIMIT
+  )
+
+  if (limitError) return jsonResponse(null, limitError)
 
   if (params.startTime && params.endTime && params.startTime > params.endTime) {
     return jsonResponse(null, ERR.INVALID_TIME_RANGE)
+  }
+
+  if (params.cursor) {
+    const cursor = decodeCursor(params.cursor)
+    const cursorId = parsePositiveInteger(cursor?.id)
+    const cursorTimestamp = typeof cursor?.timestamp === "string" && cursor.timestamp.trim().length > 0
+      ? cursor.timestamp
+      : null
+
+    if (!cursorId || !cursorTimestamp) {
+      return jsonResponse(null, {
+        ...ERR.INVALID_CURSOR,
+        data: { cursor: params.cursor }
+      })
+    }
+
+    conditions.push("(l.timestamp < ? OR (l.timestamp = ? AND l.id < ?))")
+    values.push(cursorTimestamp, cursorTimestamp, cursorId)
   }
 
   if (params.orderId) {
@@ -286,14 +318,25 @@ orderRoutes.get("/logs", requireAdmin, async (c) => {
     FROM order_logs l
     LEFT JOIN orders o ON o.id = l.order_id
     ${where}
-    ORDER BY l.timestamp DESC
+    ORDER BY l.timestamp DESC, l.id DESC
+    LIMIT ?
   `
 
-  const rows = await c.env.MScPJ_DB.prepare(sql).bind(...values).all()
+  const rows = await c.env.MScPJ_DB.prepare(sql).bind(...values, limit + 1).all()
+  const pageRows = (rows.results ?? []).slice(0, limit)
+  const hasMore = (rows.results ?? []).length > limit
+  const lastRow = hasMore ? pageRows[pageRows.length - 1] : null
+  const nextCursor = lastRow
+    ? encodeCursor({ timestamp: lastRow.timestamp, id: lastRow.id })
+    : null
 
   return jsonResponse({
     ...INFO.SQL_QUERY_SUCCESS,
-    data: (rows.results ?? []).map(formatOrderLog)
+    data: {
+      items: pageRows.map(formatOrderLog),
+      nextCursor,
+      hasMore
+    }
   })
 })
 
@@ -301,6 +344,13 @@ orderRoutes.get("/search", requireAdmin, async (c) => {
   const params = c.req.query()
   const conditions = []
   const values = []
+  const { value: limit, error: limitError } = parsePaginationLimit(
+    params.limit,
+    ORDER_SEARCH_DEFAULT_LIMIT,
+    ORDER_SEARCH_MAX_LIMIT
+  )
+
+  if (limitError) return jsonResponse(null, limitError)
 
   if (params.createdStart && params.createdEnd && params.createdStart > params.createdEnd) {
     return jsonResponse(null, ERR.INVALID_TIME_RANGE)
@@ -308,6 +358,21 @@ orderRoutes.get("/search", requireAdmin, async (c) => {
 
   if (params.updatedStart && params.updatedEnd && params.updatedStart > params.updatedEnd) {
     return jsonResponse(null, ERR.INVALID_TIME_RANGE)
+  }
+
+  if (params.cursor) {
+    const cursor = decodeCursor(params.cursor)
+    const cursorId = parsePositiveInteger(cursor?.id)
+
+    if (!cursorId) {
+      return jsonResponse(null, {
+        ...ERR.INVALID_CURSOR,
+        data: { cursor: params.cursor }
+      })
+    }
+
+    conditions.push("id < ?")
+    values.push(cursorId)
   }
 
   if (params.title) {
@@ -410,13 +475,21 @@ orderRoutes.get("/search", requireAdmin, async (c) => {
   }
 
   const where = conditions.length > 0 ? `WHERE ${conditions.join(" AND ")}` : ""
-  const sql = `SELECT * FROM orders ${where} ORDER BY id DESC`
+  const sql = `SELECT * FROM orders ${where} ORDER BY id DESC LIMIT ?`
 
-  const rows = await c.env.MScPJ_DB.prepare(sql).bind(...values).all()
-  const formattedOrders = await enrichOrdersWithNextSteps(c.env.MScPJ_DB, rows.results ?? [])
+  const rows = await c.env.MScPJ_DB.prepare(sql).bind(...values, limit + 1).all()
+  const pageRows = (rows.results ?? []).slice(0, limit)
+  const hasMore = (rows.results ?? []).length > limit
+  const formattedOrders = await enrichOrdersWithNextSteps(c.env.MScPJ_DB, pageRows)
+  const lastRow = hasMore ? pageRows[pageRows.length - 1] : null
+  const nextCursor = lastRow ? encodeCursor({ id: lastRow.id }) : null
 
   return jsonResponse({
     ...INFO.SQL_QUERY_SUCCESS,
-    data: formattedOrders
+    data: {
+      items: formattedOrders,
+      nextCursor,
+      hasMore
+    }
   })
 })

@@ -407,10 +407,21 @@ View the current worker’s assigned orders.
 Authorization: Bearer <worker-token>
 ```
 
+### Query Params（可选 / optional）
+
+| 参数 / Param | 示例 / Example | 中文说明 | English |
+| --- | --- | --- | --- |
+| `limit` | `6` | 本页返回条数，建议“我的工单”页面传 `6` | Page size; `6` is recommended for the worker order list |
+| `cursor` | `<opaque-cursor>` | 上一页返回的 `nextCursor`，不要自行解析 | The previous page's `nextCursor`; treat it as opaque |
+
 ### Notes / 说明
 
 - 对顺序工单，响应还会返回下一步预期的 UID / 地点信息。  
   For sequence orders, the response also returns the next expected UID / location information.
+- 列表按“未完成在前、已完成在后”排序；各组内再按工单 `id` 从大到小（新到旧）排列。  
+  The list is sorted with incomplete orders first and completed orders last; within each group, orders are sorted by `id` descending (new to old).
+- 当 `nextCursor = null` 时表示没有更多数据，客户端应停止继续下拉加载。  
+  `nextCursor = null` means there are no more results and the client should stop loading more pages.
 
 ### Response Example
 
@@ -419,26 +430,30 @@ Authorization: Bearer <worker-token>
   "success": true,
   "code": 9002,
   "message": "SQL query success",
-  "data": [
-    {
-      "id": 101,
-      "title": "Floor 3 Sequence Patrol",
-      "description": "Visit all checkpoints in order",
-      "orderType": "sequence",
-      "targetUidHex": null,
-      "status": "assigned",
-      "assignedTo": 2,
-      "locationCode": "floor3",
-      "displayName": "Floor 3 sequence patrol",
-      "assignedAt": "2026-03-22 09:00:00",
-      "sequenceTotalSteps": 3,
-      "sequenceCompletedSteps": 1,
-      "nextStepIndex": 2,
-      "nextExpectedUidHex": "04EEFF00112233",
-      "nextLocationCode": "room302-server1",
-      "nextDisplayName": "Room 302 Server 1"
-    }
-  ]
+  "data": {
+    "items": [
+      {
+        "id": 101,
+        "title": "Floor 3 Sequence Patrol",
+        "description": "Visit all checkpoints in order",
+        "orderType": "sequence",
+        "targetUidHex": null,
+        "status": "assigned",
+        "assignedTo": 2,
+        "locationCode": "floor3",
+        "displayName": "Floor 3 sequence patrol",
+        "assignedAt": "2026-03-22 09:00:00",
+        "sequenceTotalSteps": 3,
+        "sequenceCompletedSteps": 1,
+        "nextStepIndex": 2,
+        "nextExpectedUidHex": "04EEFF00112233",
+        "nextLocationCode": "room302-server1",
+        "nextDisplayName": "Room 302 Server 1"
+      }
+    ],
+    "nextCursor": "eyJjb21wbGV0ZWRCdWNrZXQiOjAsImlkIjoxMDF9",
+    "hasMore": true
+  }
 }
 ```
 
@@ -573,6 +588,15 @@ Authorization: Bearer <worker-token>
 | `uidHex` | `04AABBCCDD1122` | 按扫描或期望 UID 过滤 | Filter by scanned or expected UID |
 | `startTime` | `2026-03-20 00:00:00` | 起始时间（含） | Start time inclusive |
 | `endTime` | `2026-03-20 23:59:59` | 结束时间（含） | End time inclusive |
+| `limit` | `3` | 本页返回条数，建议历史记录页面传 `3` | Page size; `3` is recommended for the worker history page |
+| `cursor` | `<opaque-cursor>` | 上一页返回的 `nextCursor`，不要自行解析 | The previous page's `nextCursor`; treat it as opaque |
+
+### Pagination / 排序说明
+
+- 结果按 `timestamp DESC, id DESC` 排序，也就是从新到旧。  
+  Results are ordered by `timestamp DESC, id DESC`, i.e. newest first.
+- 当 `nextCursor = null` 时表示没有下一页。  
+  `nextCursor = null` means there is no next page.
 
 ### Response Example
 
@@ -581,27 +605,31 @@ Authorization: Bearer <worker-token>
   "success": true,
   "code": 9002,
   "message": "SQL query success",
-  "data": [
-    {
-      "id": 88,
-      "orderId": 101,
-      "action": "scan",
-      "operatorId": 2,
-      "timestamp": "2026-03-22 11:20:30",
-      "result": "sequence_step_completed",
-      "stepIndex": 1,
-      "scanUidHex": "04AABBCCDD1122",
-      "expectedUidHex": "04AABBCCDD1122",
-      "locationCode": "room301",
-      "displayName": "Room 301",
-      "orderType": "sequence",
-      "orderTitle": "Floor 3 Sequence Patrol",
-      "details": {
+  "data": {
+    "items": [
+      {
+        "id": 88,
+        "orderId": 101,
+        "action": "scan",
+        "operatorId": 2,
+        "timestamp": "2026-03-22 11:20:30",
+        "result": "sequence_step_completed",
+        "stepIndex": 1,
+        "scanUidHex": "04AABBCCDD1122",
+        "expectedUidHex": "04AABBCCDD1122",
+        "locationCode": "room301",
+        "displayName": "Room 301",
         "orderType": "sequence",
-        "rawText": "ID: 04AABBCCDD1122"
+        "orderTitle": "Floor 3 Sequence Patrol",
+        "details": {
+          "orderType": "sequence",
+          "rawText": "ID: 04AABBCCDD1122"
+        }
       }
-    }
-  ]
+    ],
+    "nextCursor": "eyJ0aW1lc3RhbXAiOiIyMDI2LTAzLTIyIDExOjIwOjMwIiwiaWQiOjg4fQ",
+    "hasMore": true
+  }
 }
 ```
 
@@ -700,11 +728,20 @@ Admins query order lifecycle logs, scan evidence, and failure records.
 | `orderType` | `standard,sequence` | 按工单类型过滤 | Filter by order type |
 | `startTime` | `2026-03-20 00:00:00` | 起始时间（含） | Start time inclusive |
 | `endTime` | `2026-03-20 23:59:59` | 结束时间（含） | End time inclusive |
+| `limit` | `5` | 本页返回条数，建议工单日志页面传 `5` | Page size; `5` is recommended for the admin log page |
+| `cursor` | `<opaque-cursor>` | 上一页返回的 `nextCursor`，不要自行解析 | The previous page's `nextCursor`; treat it as opaque |
 
 ### `orderType` 过滤说明 / `orderType` filter note
 
 - `orderType=standard` 会同时匹配 `order_type = 'standard'` 和 `order_type IS NULL` 的历史工单记录。  
   `orderType=standard` matches both historical records with `order_type = 'standard'` and those with `order_type IS NULL`.
+
+### Pagination / 排序说明
+
+- 结果按 `timestamp DESC, id DESC` 排序，也就是从新到旧。  
+  Results are ordered by `timestamp DESC, id DESC`, i.e. newest first.
+- 当 `nextCursor = null` 时表示没有下一页。  
+  `nextCursor = null` means there is no next page.
 
 ### 典型 action / result 值 / Typical action and result values
 
@@ -717,6 +754,40 @@ Admins query order lifecycle logs, scan evidence, and failure records.
 | `scan` | `standard_matched`, `sequence_step_completed`, `mismatch`, `out_of_order`, `duplicate` |
 | `completed` | `standard_completed`, `sequence_completed` |
 | `complete` | `deprecated_complete_api` |
+
+### Response Example
+
+```json
+{
+  "success": true,
+  "code": 9002,
+  "message": "SQL query success",
+  "data": {
+    "items": [
+      {
+        "id": 205,
+        "orderId": 101,
+        "action": "scan",
+        "operatorId": 2,
+        "timestamp": "2026-03-22 11:20:30",
+        "result": "sequence_step_completed",
+        "stepIndex": 1,
+        "scanUidHex": "04AABBCCDD1122",
+        "expectedUidHex": "04AABBCCDD1122",
+        "locationCode": "room301",
+        "displayName": "Room 301",
+        "orderType": "sequence",
+        "orderTitle": "Floor 3 Sequence Patrol",
+        "details": {
+          "orderType": "sequence"
+        }
+      }
+    ],
+    "nextCursor": "eyJ0aW1lc3RhbXAiOiIyMDI2LTAzLTIyIDExOjIwOjMwIiwiaWQiOjIwNX0",
+    "hasMore": true
+  }
+}
+```
 
 ## GET `/orders/search`
 
@@ -738,6 +809,8 @@ Search work orders with multiple filters.
 | `createdEnd` | `2026-03-31 23:59:59` | 创建时间终点（含） | Created time end inclusive |
 | `updatedStart` | `2026-03-01 00:00:00` | 更新时间起点（含） | Updated time start inclusive |
 | `updatedEnd` | `2026-03-31 23:59:59` | 更新时间终点（含） | Updated time end inclusive |
+| `limit` | `4` / `5` | 本页返回条数；指派工单页面建议传 `4`，查询工单页面建议传 `5` | Page size; `4` is recommended for the assign page and `5` for the order search page |
+| `cursor` | `<opaque-cursor>` | 上一页返回的 `nextCursor`，不要自行解析 | The previous page's `nextCursor`; treat it as opaque |
 
 ### `orderType` 过滤说明 / `orderType` filter note
 
@@ -752,6 +825,51 @@ Search work orders with multiple filters.
   `in_progress`: sequence orders only; at least one step is done, but the whole order is not completed yet.
 - `completed`: 工单已经完成。  
   `completed`: the order is completed.
+
+### Pagination / 排序说明
+
+- 结果按工单 `id DESC` 排序，也就是从新到旧。  
+  Results are ordered by order `id DESC`, i.e. newest first.
+- 当 `nextCursor = null` 时表示没有下一页。  
+  `nextCursor = null` means there is no next page.
+
+### Response Example
+
+```json
+{
+  "success": true,
+  "code": 9002,
+  "message": "SQL query success",
+  "data": {
+    "items": [
+      {
+        "id": 101,
+        "title": "Floor 3 Sequence Patrol",
+        "description": "Visit all checkpoints in order",
+        "status": "assigned",
+        "assignedTo": 2,
+        "createdAt": "2026-03-22 08:40:00",
+        "updatedAt": "2026-03-22 11:20:30",
+        "orderType": "sequence",
+        "targetUidHex": null,
+        "locationCode": "floor3",
+        "displayName": "Floor 3 sequence patrol",
+        "assignedAt": "2026-03-22 09:00:00",
+        "completedAt": null,
+        "sequenceTotalSteps": 3,
+        "sequenceCompletedSteps": 1,
+        "progressStatus": "in_progress",
+        "nextStepIndex": 2,
+        "nextExpectedUidHex": "04EEFF00112233",
+        "nextLocationCode": "room302-server1",
+        "nextDisplayName": "Room 302 Server 1"
+      }
+    ],
+    "nextCursor": "eyJpZCI6MTAxfQ",
+    "hasMore": true
+  }
+}
+```
 
 ## GET `/orders/analysis/summary`
 

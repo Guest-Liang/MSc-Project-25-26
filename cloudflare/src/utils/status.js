@@ -44,6 +44,8 @@ export const ERR = {
   INVALID_PROGRESS_FILTER: { code: 4023, message: "Invalid progress filter" },
   INVALID_SCAN_PAYLOAD: { code: 4024, message: "Scan payload must include a valid orderId and uidHex" },
   ORDER_TARGET_UID_MISSING: { code: 4025, message: "Order target UID Hex is not configured" },
+  INVALID_CURSOR: { code: 4026, message: "Invalid cursor" },
+  INVALID_PAGINATION_LIMIT: { code: 4027, message: "Invalid pagination limit" },
 
   // System (5000–5999)
   DB_ERROR: { code: 5001, message: "Database error" },

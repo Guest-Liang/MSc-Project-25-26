@@ -1,3 +1,5 @@
+import { ERR } from "./status.js"
+
 export const ORDER_TYPES = {
   STANDARD: "standard",
   SEQUENCE: "sequence"
@@ -65,6 +67,73 @@ export function parseCsvParam(value) {
     .split(",")
     .map((item) => item.trim())
     .filter((item) => item.length > 0)
+}
+
+export function parsePaginationLimit(rawValue, defaultLimit, maxLimit) {
+  if (rawValue === undefined || rawValue === null) {
+    return { value: defaultLimit }
+  }
+
+  if (typeof rawValue === "string" && rawValue.trim().length === 0) {
+    return { value: defaultLimit }
+  }
+
+  const parsed = parsePositiveInteger(rawValue)
+  if (!parsed || parsed > maxLimit) {
+    return {
+      error: {
+        ...ERR.INVALID_PAGINATION_LIMIT,
+        data: {
+          receivedValue: rawValue ?? null,
+          defaultLimit,
+          maxLimit
+        }
+      }
+    }
+  }
+
+  return { value: parsed }
+}
+
+function toBase64Url(raw) {
+  return btoa(raw)
+    .replace(/\+/g, "-")
+    .replace(/\//g, "_")
+    .replace(/=+$/g, "")
+}
+
+function fromBase64Url(raw) {
+  const padded = raw
+    .replace(/-/g, "+")
+    .replace(/_/g, "/")
+    .padEnd(Math.ceil(raw.length / 4) * 4, "=")
+
+  return atob(padded)
+}
+
+export function encodeCursor(payload) {
+  try {
+    return toBase64Url(JSON.stringify(payload))
+  } catch {
+    return null
+  }
+}
+
+export function decodeCursor(rawValue) {
+  if (typeof rawValue !== "string" || rawValue.trim().length === 0) {
+    return null
+  }
+
+  try {
+    const decoded = JSON.parse(fromBase64Url(rawValue.trim()))
+    if (!decoded || typeof decoded !== "object" || Array.isArray(decoded)) {
+      return null
+    }
+
+    return decoded
+  } catch {
+    return null
+  }
 }
 
 export function parseJsonDetails(detailsJson) {

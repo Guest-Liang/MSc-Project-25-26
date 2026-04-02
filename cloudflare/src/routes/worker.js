@@ -4,12 +4,15 @@ import { ERR, INFO } from "../utils/status.js"
 import { jsonResponse } from "../utils/response.js"
 import {
   ORDER_TYPES,
+  decodeCursor,
+  encodeCursor,
   formatOrderLog,
   formatOrderRecord,
   getNextSequenceStep,
   getOrderById,
   getOrderSteps,
   normalizeUidHex,
+  parsePaginationLimit,
   parsePositiveInteger,
   parseCsvParam,
   toOptionalTrimmedString,
@@ -17,6 +20,10 @@ import {
 } from "../utils/order.js"
 
 export const workerRoutes = new Hono()
+const WORKER_ORDERS_DEFAULT_LIMIT = 6
+const WORKER_ORDERS_MAX_LIMIT = 100
+const WORKER_HISTORY_DEFAULT_LIMIT = 3
+const WORKER_HISTORY_MAX_LIMIT = 100
 
 workerRoutes.use("*", requireWorker)
 
@@ -47,16 +54,63 @@ function buildUidHexCondition(columnA, columnB, uidHexValues, conditions, values
 
 workerRoutes.get("/orders", async (c) => {
   const user = c.get("user")
+  const params = c.req.query()
+  const conditions = ["assigned_to = ?"]
+  const values = [user.id]
+  const { value: limit, error: limitError } = parsePaginationLimit(
+    params.limit,
+    WORKER_ORDERS_DEFAULT_LIMIT,
+    WORKER_ORDERS_MAX_LIMIT
+  )
+
+  if (limitError) return jsonResponse(null, limitError)
+
+  if (params.cursor) {
+    const cursor = decodeCursor(params.cursor)
+    const completedBucket = cursor?.completedBucket
+    const cursorId = parsePositiveInteger(cursor?.id)
+
+    if ((completedBucket !== 0 && completedBucket !== 1) || !cursorId) {
+      return jsonResponse(null, {
+        ...ERR.INVALID_CURSOR,
+        data: { cursor: params.cursor }
+      })
+    }
+
+    conditions.push("((CASE WHEN status = 'completed' THEN 1 ELSE 0 END) > ? OR ((CASE WHEN status = 'completed' THEN 1 ELSE 0 END) = ? AND id < ?))")
+    values.push(completedBucket, completedBucket, cursorId)
+  }
+
+  const where = `WHERE ${conditions.join(" AND ")}`
 
   const list = await c.env.MScPJ_DB.prepare(
-    "SELECT * FROM orders WHERE assigned_to = ? ORDER BY updated_at DESC"
-  ).bind(user.id).all()
+    `SELECT *,
+      CASE WHEN status = 'completed' THEN 1 ELSE 0 END AS completed_bucket
+     FROM orders
+     ${where}
+     ORDER BY completed_bucket ASC, id DESC
+     LIMIT ?`
+  ).bind(...values, limit + 1).all()
 
-  const formattedOrders = await enrichWorkerOrders(c.env.MScPJ_DB, list.results ?? [])
+  const pageRows = (list.results ?? []).slice(0, limit)
+  const hasMore = (list.results ?? []).length > limit
+
+  const formattedOrders = await enrichWorkerOrders(c.env.MScPJ_DB, pageRows)
+  const lastRow = hasMore ? pageRows[pageRows.length - 1] : null
+  const nextCursor = lastRow
+    ? encodeCursor({
+      completedBucket: Number(lastRow.completed_bucket ?? 0),
+      id: lastRow.id
+    })
+    : null
 
   return jsonResponse({
     ...INFO.SQL_QUERY_SUCCESS,
-    data: formattedOrders
+    data: {
+      items: formattedOrders,
+      nextCursor,
+      hasMore
+    }
   })
 })
 
@@ -65,9 +119,34 @@ workerRoutes.get("/history", async (c) => {
   const params = c.req.query()
   const conditions = ["l.operator_id = ?"]
   const values = [user.id]
+  const { value: limit, error: limitError } = parsePaginationLimit(
+    params.limit,
+    WORKER_HISTORY_DEFAULT_LIMIT,
+    WORKER_HISTORY_MAX_LIMIT
+  )
+
+  if (limitError) return jsonResponse(null, limitError)
 
   if (params.startTime && params.endTime && params.startTime > params.endTime) {
     return jsonResponse(null, ERR.INVALID_TIME_RANGE)
+  }
+
+  if (params.cursor) {
+    const cursor = decodeCursor(params.cursor)
+    const cursorId = parsePositiveInteger(cursor?.id)
+    const cursorTimestamp = typeof cursor?.timestamp === "string" && cursor.timestamp.trim().length > 0
+      ? cursor.timestamp
+      : null
+
+    if (!cursorId || !cursorTimestamp) {
+      return jsonResponse(null, {
+        ...ERR.INVALID_CURSOR,
+        data: { cursor: params.cursor }
+      })
+    }
+
+    conditions.push("(l.timestamp < ? OR (l.timestamp = ? AND l.id < ?))")
+    values.push(cursorTimestamp, cursorTimestamp, cursorId)
   }
 
   if (params.orderId) {
@@ -121,14 +200,25 @@ workerRoutes.get("/history", async (c) => {
     FROM order_logs l
     LEFT JOIN orders o ON o.id = l.order_id
     ${where}
-    ORDER BY l.timestamp DESC
+    ORDER BY l.timestamp DESC, l.id DESC
+    LIMIT ?
   `
 
-  const rows = await c.env.MScPJ_DB.prepare(sql).bind(...values).all()
+  const rows = await c.env.MScPJ_DB.prepare(sql).bind(...values, limit + 1).all()
+  const pageRows = (rows.results ?? []).slice(0, limit)
+  const hasMore = (rows.results ?? []).length > limit
+  const lastRow = hasMore ? pageRows[pageRows.length - 1] : null
+  const nextCursor = lastRow
+    ? encodeCursor({ timestamp: lastRow.timestamp, id: lastRow.id })
+    : null
 
   return jsonResponse({
     ...INFO.SQL_QUERY_SUCCESS,
-    data: (rows.results ?? []).map(formatOrderLog)
+    data: {
+      items: pageRows.map(formatOrderLog),
+      nextCursor,
+      hasMore
+    }
   })
 })
 
