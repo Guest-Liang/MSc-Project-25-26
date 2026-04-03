@@ -248,11 +248,7 @@ class AdminViewModel : ViewModel() {
                 }.body()
 
                 if (response.success && response.data != null) {
-                    val paginatedData: PaginatedResponse<Order> = try {
-                        json.decodeFromJsonElement(response.data)
-                    } catch (e: Exception) {
-                        PaginatedResponse(emptyList(), null, false)
-                    }
+                    val paginatedData: PaginatedResponse<Order> = json.decodeFromJsonElement(response.data)
                     
                     val elapsed = System.currentTimeMillis() - startTime
                     if (isAppend && elapsed < MIN_APPEND_DELAY_MS) {
@@ -420,11 +416,7 @@ class AdminViewModel : ViewModel() {
                 }.body()
 
                 if (response.success && response.data != null) {
-                    val paginatedData: PaginatedResponse<LogEntry> = try {
-                        json.decodeFromJsonElement(response.data)
-                    } catch (e: Exception) {
-                        PaginatedResponse(emptyList(), null, false)
-                    }
+                    val paginatedData: PaginatedResponse<LogEntry> = json.decodeFromJsonElement(response.data)
                     
                     val elapsed = System.currentTimeMillis() - startTime
                     if (isAppend && elapsed < MIN_APPEND_DELAY_MS) {
