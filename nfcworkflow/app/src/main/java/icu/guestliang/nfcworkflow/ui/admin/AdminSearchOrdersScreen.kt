@@ -1,5 +1,6 @@
 package icu.guestliang.nfcworkflow.ui.admin
 
+import dev.chrisbanes.haze.HazeState
 import icu.guestliang.nfcworkflow.R
 import icu.guestliang.nfcworkflow.logging.AppLogger
 import icu.guestliang.nfcworkflow.network.Order
@@ -88,7 +89,6 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.lifecycle.compose.dropUnlessResumed
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
-import dev.chrisbanes.haze.HazeState
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
@@ -256,7 +256,7 @@ fun AdminSearchOrdersScreen(
                                             singleLine = true
                                         )
                                         IconButton(onClick = { showNfcDialog = true }) {
-                                            Icon(Icons.Default.Nfc, contentDescription = "Scan NFC")
+                                            Icon(Icons.Default.Nfc, contentDescription = "Scan NFC", tint = MaterialTheme.colorScheme.onSurface)
                                         }
                                     }
 
@@ -488,7 +488,7 @@ fun AdminSearchOrdersScreen(
                                                 singleLine = true
                                             )
                                             IconButton(onClick = { showNfcDialog = true }) {
-                                                Icon(Icons.Default.Nfc, contentDescription = "Scan NFC")
+                                                Icon(Icons.Default.Nfc, contentDescription = "Scan NFC", tint = MaterialTheme.colorScheme.onSurface)
                                             }
                                         }
                                         

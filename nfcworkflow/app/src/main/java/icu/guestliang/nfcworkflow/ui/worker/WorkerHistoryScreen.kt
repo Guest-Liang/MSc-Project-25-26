@@ -559,12 +559,12 @@ fun HistoryResultsList(uiState: WorkerUiState, onLoadMore: () -> Unit, contentPa
                                 verticalArrangement = Arrangement.spacedBy(Dimensions.SpaceS)
                               ) {
                                 val actStr = if (log.action == "scan") stringResource(R.string.admin_log_action_scan) else getLocalizedStatus(log.action)
-                                Text(text = stringResource(R.string.admin_log_action, actStr))
+                                Text(text = stringResource(R.string.admin_log_action, actStr), color = MaterialTheme.colorScheme.onSurface)
                                 
                                 val orderId = log.orderId ?: log.order_id
                                 if (orderId != null) {
                                     val targetTitle = log.orderTitle ?: "Order"
-                                    Text(text = stringResource(R.string.admin_log_target, targetTitle, orderId.toString()))
+                                    Text(text = stringResource(R.string.admin_log_target, targetTitle, orderId.toString()), color = MaterialTheme.colorScheme.onSurface)
                                 }
                                 
                                 if (log.result != null) {
@@ -576,16 +576,16 @@ fun HistoryResultsList(uiState: WorkerUiState, onLoadMore: () -> Unit, contentPa
                                         "duplicate" -> stringResource(R.string.worker_history_result_duplicate)
                                         else -> log.result
                                     }
-                                    Text(text = stringResource(R.string.admin_log_result, localizedRes))
+                                    Text(text = stringResource(R.string.admin_log_result, localizedRes), color = MaterialTheme.colorScheme.onSurface)
                                 }
                                 
                                 if (log.scanUidHex != null) {
-                                    Text(text = stringResource(R.string.admin_log_scan_uid, log.scanUidHex), style = MaterialTheme.typography.bodySmall)
+                                    Text(text = stringResource(R.string.admin_log_scan_uid, log.scanUidHex), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                                 }
 
                                 if (log.locationCode != null) {
                                     val locName = log.displayName ?: log.locationCode
-                                    Text(text = stringResource(R.string.admin_log_location, locName), style = MaterialTheme.typography.bodySmall)
+                                    Text(text = stringResource(R.string.admin_log_location, locName), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                                 }
                                 
                                 log.timestamp?.let {

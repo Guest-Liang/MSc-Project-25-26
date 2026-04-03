@@ -1,5 +1,6 @@
 package icu.guestliang.nfcworkflow.ui.admin
 
+import dev.chrisbanes.haze.HazeState
 import icu.guestliang.nfcworkflow.R
 import icu.guestliang.nfcworkflow.logging.AppLogger
 import icu.guestliang.nfcworkflow.network.OrderStep
@@ -62,7 +63,6 @@ import androidx.compose.ui.res.stringResource
 import androidx.lifecycle.compose.dropUnlessResumed
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
-import dev.chrisbanes.haze.HazeState
 
 data class DraftStep(
     var targetUidHex: String = "",
@@ -331,7 +331,7 @@ private fun CreateOrderFormFields(
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         RadioButton(selected = orderType == "standard", onClick = { onOrderTypeChange("standard") })
-                        Text(stringResource(R.string.worker_order_type_standard))
+                        Text(stringResource(R.string.worker_order_type_standard), color = MaterialTheme.colorScheme.onSurface)
                     }
                     Row(
                         modifier = Modifier
@@ -340,7 +340,7 @@ private fun CreateOrderFormFields(
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         RadioButton(selected = orderType == "sequence", onClick = { onOrderTypeChange("sequence") })
-                        Text(stringResource(R.string.worker_order_type_sequence))
+                        Text(stringResource(R.string.worker_order_type_sequence), color = MaterialTheme.colorScheme.onSurface)
                     }
                 }
             }
@@ -356,7 +356,7 @@ private fun CreateOrderFormFields(
                     singleLine = true
                 )
                 IconButton(onClick = { onScanClick(null) }, modifier = Modifier.padding(start = Dimensions.SpaceS)) {
-                    Icon(Icons.Default.Nfc, contentDescription = "Scan NFC")
+                    Icon(Icons.Default.Nfc, contentDescription = "Scan NFC", tint = MaterialTheme.colorScheme.onSurface)
                 }
             }
             OutlinedTextField(
@@ -385,7 +385,7 @@ private fun CreateOrderFormFields(
                                     singleLine = true
                                 )
                                 IconButton(onClick = { onScanClick(index) }) {
-                                    Icon(Icons.Default.Nfc, contentDescription = stringResource(R.string.admin_order_scan_nfc_btn))
+                                    Icon(Icons.Default.Nfc, contentDescription = stringResource(R.string.admin_order_scan_nfc_btn), tint = MaterialTheme.colorScheme.onSurface)
                                 }
                             }
                             OutlinedTextField(

@@ -1,5 +1,6 @@
 package icu.guestliang.nfcworkflow.ui
 
+import dev.chrisbanes.haze.HazeState
 import icu.guestliang.nfcworkflow.R
 import icu.guestliang.nfcworkflow.data.NfcHistoryManager
 import icu.guestliang.nfcworkflow.data.NfcReadRecord
@@ -94,7 +95,6 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
-import dev.chrisbanes.haze.HazeState
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable

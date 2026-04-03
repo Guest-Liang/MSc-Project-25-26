@@ -1,5 +1,6 @@
 package icu.guestliang.nfcworkflow.ui.worker
 
+import dev.chrisbanes.haze.HazeState
 import icu.guestliang.nfcworkflow.R
 import icu.guestliang.nfcworkflow.logging.AppLogger
 import icu.guestliang.nfcworkflow.navigation.Screen
@@ -56,7 +57,6 @@ import androidx.compose.ui.res.stringResource
 import androidx.lifecycle.compose.dropUnlessResumed
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
-import dev.chrisbanes.haze.HazeState
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -213,26 +213,30 @@ fun OrderCard(order: Order, navController: NavController) {
                     ) {
                         Text(
                             text = stringResource(R.string.admin_order_description, order.description),
-                            style = MaterialTheme.typography.bodyMedium
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurface
                         )
                         
                         if (order.orderType == "standard") {
                             order.targetUidHex?.let {
                                 Text(
                                     text = stringResource(R.string.worker_order_target_uid, it),
-                                    style = MaterialTheme.typography.bodySmall
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
                             }
                             order.locationCode?.let {
                                 Text(
                                     text = stringResource(R.string.worker_order_location, it),
-                                    style = MaterialTheme.typography.bodySmall
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
                             }
                         } else if (order.orderType == "sequence") {
                             Text(
                                 text = stringResource(R.string.worker_order_step_progress, order.sequenceCompletedSteps, order.sequenceTotalSteps),
-                                style = MaterialTheme.typography.bodySmall
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
                             order.nextDisplayName?.let {
                                 Text(
