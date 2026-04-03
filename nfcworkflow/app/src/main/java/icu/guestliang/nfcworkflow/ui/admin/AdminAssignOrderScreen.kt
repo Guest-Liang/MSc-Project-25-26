@@ -18,7 +18,9 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.staggeredgrid.LazyVerticalStaggeredGrid
 import androidx.compose.foundation.lazy.staggeredgrid.StaggeredGridCells
+import androidx.compose.foundation.lazy.staggeredgrid.StaggeredGridItemSpan
 import androidx.compose.foundation.lazy.staggeredgrid.items
+import androidx.compose.foundation.lazy.staggeredgrid.rememberLazyStaggeredGridState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.AlertDialog
@@ -45,6 +47,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -78,7 +81,8 @@ fun AdminAssignOrderScreen(
     val hazeState = remember { HazeState() }
 
     LaunchedEffect(Unit) {
-        val ordersJob = viewModel.fetchOrders(context)
+        val assignableQuery = OrderSearchQuery(status = listOf("created", "assigned", "unassigned"))
+        val ordersJob = viewModel.fetchOrders(context, query = assignableQuery)
         val workersJob = viewModel.fetchWorkers(context)
         joinAll(ordersJob, workersJob)
         isInitialLoad = false
@@ -142,9 +146,10 @@ fun AdminAssignOrderScreen(
                         CircularProgressIndicator(modifier = Modifier.align(Alignment.Center))
                     }
                     else -> {
+                        // Keep filtering locally just in case, but rely on query for main filtering
                         val displayableOrders = uiState.orders.filter { it.status == "created" || it.status == "assigned" || it.status == "unassigned" }
                         
-                        if (displayableOrders.isEmpty() && !uiState.isLoading && !isInitialLoad) {
+                        if (displayableOrders.isEmpty() && !uiState.isLoading && !uiState.isAppendingOrders && !uiState.hasMoreOrders) {
                             Box(modifier = Modifier.fillMaxWidth().padding(innerPadding), contentAlignment = Alignment.Center) {
                                 Text(
                                     text = stringResource(R.string.admin_all_orders_assigned),
@@ -154,8 +159,25 @@ fun AdminAssignOrderScreen(
                                 )
                             }
                         } else {
+                            val gridState = rememberLazyStaggeredGridState()
+                            val isAtBottom by remember {
+                                derivedStateOf {
+                                    val layoutInfo = gridState.layoutInfo
+                                    val totalItems = layoutInfo.totalItemsCount
+                                    val lastVisibleItem = layoutInfo.visibleItemsInfo.lastOrNull()?.index ?: 0
+                                    totalItems > 0 && lastVisibleItem >= totalItems - 1
+                                }
+                            }
+
+                            LaunchedEffect(isAtBottom) {
+                                if (isAtBottom && uiState.hasMoreOrders && !uiState.isAppendingOrders && !uiState.isLoading) {
+                                    viewModel.fetchOrders(context, isAppend = true)
+                                }
+                            }
+
                             val columns = if (isLandscape) 2 else 1
                             LazyVerticalStaggeredGrid(
+                                state = gridState,
                                 columns = StaggeredGridCells.Fixed(columns),
                                 modifier = Modifier.fillMaxSize(),
                                 contentPadding = PaddingValues(
@@ -167,7 +189,7 @@ fun AdminAssignOrderScreen(
                                 horizontalArrangement = Arrangement.spacedBy(Dimensions.SpaceL),
                                 verticalItemSpacing = Dimensions.SpaceL
                             ) {
-                                items(displayableOrders) { order ->
+                                items(displayableOrders, key = { it.id ?: it.hashCode() }) { order ->
                                     Card(
                                         modifier = Modifier.fillMaxWidth(),
                                         elevation = CardDefaults.cardElevation(defaultElevation = Dimensions.Elevation.Low)
@@ -231,6 +253,19 @@ fun AdminAssignOrderScreen(
                                             ) {
                                                 Text(stringResource(R.string.admin_assign_btn))
                                             }
+                                        }
+                                    }
+                                }
+
+                                if (uiState.isAppendingOrders) {
+                                    item(span = StaggeredGridItemSpan.FullLine) {
+                                        Box(
+                                            modifier = Modifier
+                                                .fillMaxWidth()
+                                                .padding(Dimensions.SpaceM),
+                                            contentAlignment = Alignment.Center
+                                        ) {
+                                            CircularProgressIndicator()
                                         }
                                     }
                                 }
