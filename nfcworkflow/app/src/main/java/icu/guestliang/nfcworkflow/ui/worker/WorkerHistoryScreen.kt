@@ -1,12 +1,16 @@
 package icu.guestliang.nfcworkflow.ui.worker
 
+import dev.chrisbanes.haze.HazeState
 import icu.guestliang.nfcworkflow.R
 import icu.guestliang.nfcworkflow.logging.AppLogger
 import icu.guestliang.nfcworkflow.ui.components.CustomDateTimePickerDialog
 import icu.guestliang.nfcworkflow.ui.components.NfcScannerDialog
 import icu.guestliang.nfcworkflow.ui.components.SplicedColumnGroup
 import icu.guestliang.nfcworkflow.ui.theme.Dimensions
+import icu.guestliang.nfcworkflow.utils.LocalHazeState
 import icu.guestliang.nfcworkflow.utils.getLocalizedStatus
+import icu.guestliang.nfcworkflow.utils.haze
+import icu.guestliang.nfcworkflow.utils.hazeSource
 import android.content.res.Configuration
 import android.widget.Toast
 import androidx.compose.animation.AnimatedVisibility
@@ -44,15 +48,17 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.LargeTopAppBar
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
+import androidx.compose.material3.rememberTopAppBarState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.derivedStateOf
@@ -63,6 +69,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
@@ -81,7 +88,8 @@ fun WorkerHistoryScreen(
     AppLogger.debug(context, "WorkerHistoryScreen recomposed", "UI")
 
     val uiState by viewModel.uiState.collectAsState()
-    val scrollBehavior = TopAppBarDefaults.enterAlwaysScrollBehavior()
+    val topAppBarState = rememberTopAppBarState()
+    val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior(topAppBarState)
     val isLandscape = LocalConfiguration.current.orientation == Configuration.ORIENTATION_LANDSCAPE
 
     var isFilterExpanded by remember { mutableStateOf(isLandscape) }
@@ -126,279 +134,145 @@ fun WorkerHistoryScreen(
         }
     }
 
-    Scaffold(
-        modifier = Modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
-        topBar = {
-            TopAppBar(
-                title = { Text(stringResource(R.string.worker_view_history)) },
-                navigationIcon = {
-                    IconButton(onClick = dropUnlessResumed { navController.popBackStack() }) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.cd_back))
-                    }
-                },
-                scrollBehavior = scrollBehavior
-            )
-        },
-        containerColor = MaterialTheme.colorScheme.background
-    ) { innerPadding ->
-        if (isLandscape) {
-            Row(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(innerPadding)
-            ) {
-                // Filter Panel Side
-                Card(
-                    modifier = Modifier
-                        .weight(0.45f)
-                        .fillMaxSize()
-                        .padding(start = Dimensions.SpaceL, top = Dimensions.SpaceL, bottom = Dimensions.SpaceL, end = Dimensions.SpaceS),
-                    shape = RoundedCornerShape(Dimensions.Radius.M),
-                    elevation = CardDefaults.cardElevation(defaultElevation = Dimensions.Elevation.Low)
-                ) {
-                    Column(
-                        modifier = Modifier
-                            .padding(Dimensions.SpaceL)
-                            .fillMaxSize()
-                    ) {
-                        Text(
-                            text = stringResource(R.string.admin_advanced_search),
-                            style = MaterialTheme.typography.titleMedium,
-                            color = MaterialTheme.colorScheme.primary,
-                            modifier = Modifier.padding(bottom = Dimensions.SpaceS)
-                        )
+    val hazeState = remember { HazeState() }
 
-                        Column(
-                            modifier = Modifier
-                                .weight(1f)
-                                .verticalScroll(rememberScrollState()),
-                            verticalArrangement = Arrangement.spacedBy(Dimensions.SpaceM)
-                        ) {
-                            OutlinedTextField(
-                                value = orderIdQuery,
-                                onValueChange = { orderIdQuery = it },
-                                label = { Text(stringResource(R.string.admin_log_search_order_id)) },
-                                modifier = Modifier.fillMaxWidth(),
-                                singleLine = true
-                            )
-                            Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                                OutlinedTextField(
-                                    value = uidHexQuery,
-                                    onValueChange = { uidHexQuery = it },
-                                    label = { Text(stringResource(R.string.admin_order_nfc_hint_optional)) },
-                                    modifier = Modifier.weight(1f),
-                                    singleLine = true
-                                )
-                                IconButton(onClick = { showNfcDialog = true }) {
-                                    Icon(Icons.Default.Nfc, contentDescription = "Scan NFC")
-                                }
-                            }
-
-                            Text(stringResource(R.string.worker_history_filter_action_title), style = MaterialTheme.typography.bodySmall)
-                            FlowRow(horizontalArrangement = Arrangement.spacedBy(Dimensions.SpaceS)) {
-                                actionOptions.forEach { action ->
-                                    val isSelected = selectedActions.contains(action)
-                                    val localizedAct = if (action == "scan") stringResource(R.string.admin_log_action_scan) else getLocalizedStatus(action)
-                                    FilterChip(
-                                        selected = isSelected,
-                                        onClick = dropUnlessResumed {
-                                            if (isSelected) selectedActions.remove(action)
-                                            else selectedActions.add(action)
-                                        },
-                                        label = { Text(localizedAct) }
-                                    )
-                                }
-                            }
-
-                            Text(stringResource(R.string.worker_history_filter_result_title), style = MaterialTheme.typography.bodySmall)
-                            FlowRow(horizontalArrangement = Arrangement.spacedBy(Dimensions.SpaceS)) {
-                                resultOptions.forEach { result ->
-                                    val isSelected = selectedResults.contains(result)
-                                    val localizedRes = when (result) {
-                                        "standard_matched" -> stringResource(R.string.worker_history_result_matched)
-                                        "sequence_step_completed" -> stringResource(R.string.worker_history_result_step_completed)
-                                        "mismatch" -> stringResource(R.string.worker_history_result_mismatch)
-                                        "out_of_order" -> stringResource(R.string.worker_history_result_out_of_order)
-                                        "duplicate" -> stringResource(R.string.worker_history_result_duplicate)
-                                        else -> result
-                                    }
-                                    FilterChip(
-                                        selected = isSelected,
-                                        onClick = dropUnlessResumed {
-                                            if (isSelected) selectedResults.remove(result)
-                                            else selectedResults.add(result)
-                                        },
-                                        label = { Text(localizedRes) }
-                                    )
-                                }
-                            }
-
-                            DateTimeSelectorField(
-                                label = stringResource(R.string.admin_log_search_start_time),
-                                value = startTime,
-                                onDateTimeSelected = { startTime = it },
-                                modifier = Modifier.fillMaxWidth()
-                            )
-                            DateTimeSelectorField(
-                                label = stringResource(R.string.admin_log_search_end_time),
-                                value = endTime,
-                                onDateTimeSelected = { endTime = it },
-                                modifier = Modifier.fillMaxWidth()
-                            )
+    CompositionLocalProvider(LocalHazeState provides hazeState) {
+        Scaffold(
+            modifier = Modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
+            containerColor = Color.Transparent,
+            topBar = {
+                LargeTopAppBar(
+                    title = { Text(stringResource(R.string.worker_view_history)) },
+                    navigationIcon = {
+                        IconButton(onClick = dropUnlessResumed { navController.popBackStack() }) {
+                            Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.cd_back))
                         }
-
-                        Row(
-                            modifier = Modifier.fillMaxWidth().padding(top = Dimensions.SpaceS),
-                            horizontalArrangement = Arrangement.End,
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            TextButton(onClick = dropUnlessResumed {
-                                orderIdQuery = ""
-                                uidHexQuery = ""
-                                selectedActions.clear()
-                                selectedResults.clear()
-                                startTime = ""
-                                endTime = ""
-                                viewModel.fetchHistory(context, null)
-                            }) {
-                                Text(stringResource(R.string.admin_search_clear_btn))
-                            }
-                            Spacer(modifier = Modifier.width(Dimensions.SpaceS))
-                            Button(onClick = dropUnlessResumed {
-                                viewModel.fetchHistory(context, getCurrentQuery())
-                            }) {
-                                Text(stringResource(R.string.admin_search_btn))
-                            }
-                        }
-                    }
-                }
-
-                // Results Panel
-                Box(modifier = Modifier.weight(0.55f).fillMaxSize()) {
-                    HistoryResultsList(uiState = uiState, onLoadMore = {
-                        viewModel.fetchHistory(context, getCurrentQuery(), isAppend = true)
-                    })
-                }
+                    },
+                    colors = TopAppBarDefaults.topAppBarColors(
+                        containerColor = Color.Transparent,
+                        scrolledContainerColor = Color.Transparent
+                    ),
+                    scrollBehavior = scrollBehavior,
+                    modifier = Modifier.haze(alpha = scrollBehavior.state.collapsedFraction)
+                )
             }
-        } else {
-            Column(
+        ) { innerPadding ->
+            Box(
                 modifier = Modifier
                     .fillMaxSize()
-                    .padding(innerPadding)
+                    .hazeSource()
             ) {
-                // Filter Panel Portrait
-                Card(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(Dimensions.SpaceL),
-                    shape = RoundedCornerShape(Dimensions.Radius.M),
-                    elevation = CardDefaults.cardElevation(defaultElevation = Dimensions.Elevation.Low)
-                ) {
-                    Column(modifier = Modifier.padding(Dimensions.SpaceL)) {
-                        Row(
+                if (isLandscape) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .padding(
+                                top = innerPadding.calculateTopPadding(),
+                                bottom = innerPadding.calculateBottomPadding()
+                            )
+                    ) {
+                        // Filter Panel Side
+                        Card(
                             modifier = Modifier
-                                .fillMaxWidth()
-                                .clickable(onClick = dropUnlessResumed { isFilterExpanded = !isFilterExpanded })
-                                .padding(vertical = Dimensions.SpaceS),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically
+                                .weight(0.45f)
+                                .fillMaxSize()
+                                .padding(start = Dimensions.SpaceL, top = Dimensions.SpaceL, bottom = Dimensions.SpaceL, end = Dimensions.SpaceS),
+                            shape = RoundedCornerShape(Dimensions.Radius.M),
+                            elevation = CardDefaults.cardElevation(defaultElevation = Dimensions.Elevation.Low)
                         ) {
-                            Text(
-                                text = stringResource(R.string.admin_advanced_search),
-                                style = MaterialTheme.typography.titleMedium,
-                                color = MaterialTheme.colorScheme.primary
-                            )
-                            Icon(
-                                imageVector = if (isFilterExpanded) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
-                                contentDescription = stringResource(R.string.cd_toggle_filters),
-                                tint = MaterialTheme.colorScheme.primary
-                            )
-                        }
-
-                        AnimatedVisibility(visible = isFilterExpanded) {
                             Column(
                                 modifier = Modifier
-                                    .padding(top = Dimensions.SpaceL)
-                                    .weight(weight = 1f, fill = false)
-                                    .verticalScroll(rememberScrollState()),
-                                verticalArrangement = Arrangement.spacedBy(Dimensions.SpaceM)
+                                    .padding(Dimensions.SpaceL)
+                                    .fillMaxSize()
                             ) {
-                                OutlinedTextField(
-                                    value = orderIdQuery,
-                                    onValueChange = { orderIdQuery = it },
-                                    label = { Text(stringResource(R.string.admin_log_search_order_id)) },
-                                    modifier = Modifier.fillMaxWidth(),
-                                    singleLine = true
+                                Text(
+                                    text = stringResource(R.string.admin_advanced_search),
+                                    style = MaterialTheme.typography.titleMedium,
+                                    color = MaterialTheme.colorScheme.primary,
+                                    modifier = Modifier.padding(bottom = Dimensions.SpaceS)
                                 )
-                                Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+
+                                Column(
+                                    modifier = Modifier
+                                        .weight(1f)
+                                        .verticalScroll(rememberScrollState()),
+                                    verticalArrangement = Arrangement.spacedBy(Dimensions.SpaceM)
+                                ) {
                                     OutlinedTextField(
-                                        value = uidHexQuery,
-                                        onValueChange = { uidHexQuery = it },
-                                        label = { Text(stringResource(R.string.admin_order_nfc_hint_optional)) },
-                                        modifier = Modifier.weight(1f),
+                                        value = orderIdQuery,
+                                        onValueChange = { orderIdQuery = it },
+                                        label = { Text(stringResource(R.string.admin_log_search_order_id)) },
+                                        modifier = Modifier.fillMaxWidth(),
                                         singleLine = true
                                     )
-                                    IconButton(onClick = { showNfcDialog = true }) {
-                                        Icon(Icons.Default.Nfc, contentDescription = "Scan NFC")
-                                    }
-                                }
-
-                                Text(stringResource(R.string.worker_history_filter_action_title), style = MaterialTheme.typography.bodySmall)
-                                FlowRow(horizontalArrangement = Arrangement.spacedBy(Dimensions.SpaceS)) {
-                                    actionOptions.forEach { action ->
-                                        val isSelected = selectedActions.contains(action)
-                                        val localizedAct = if (action == "scan") stringResource(R.string.admin_log_action_scan) else getLocalizedStatus(action)
-                                        FilterChip(
-                                            selected = isSelected,
-                                            onClick = dropUnlessResumed {
-                                                if (isSelected) selectedActions.remove(action)
-                                                else selectedActions.add(action)
-                                            },
-                                            label = { Text(localizedAct) }
+                                    Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                                        OutlinedTextField(
+                                            value = uidHexQuery,
+                                            onValueChange = { uidHexQuery = it },
+                                            label = { Text(stringResource(R.string.admin_order_nfc_hint_optional)) },
+                                            modifier = Modifier.weight(1f),
+                                            singleLine = true
                                         )
-                                    }
-                                }
-
-                                Text(stringResource(R.string.worker_history_filter_result_title), style = MaterialTheme.typography.bodySmall)
-                                FlowRow(horizontalArrangement = Arrangement.spacedBy(Dimensions.SpaceS)) {
-                                    resultOptions.forEach { result ->
-                                        val isSelected = selectedResults.contains(result)
-                                        val localizedRes = when (result) {
-                                            "standard_matched" -> stringResource(R.string.worker_history_result_matched)
-                                            "sequence_step_completed" -> stringResource(R.string.worker_history_result_step_completed)
-                                            "mismatch" -> stringResource(R.string.worker_history_result_mismatch)
-                                            "out_of_order" -> stringResource(R.string.worker_history_result_out_of_order)
-                                            "duplicate" -> stringResource(R.string.worker_history_result_duplicate)
-                                            else -> result
+                                        IconButton(onClick = { showNfcDialog = true }) {
+                                            Icon(Icons.Default.Nfc, contentDescription = "Scan NFC")
                                         }
-                                        FilterChip(
-                                            selected = isSelected,
-                                            onClick = dropUnlessResumed {
-                                                if (isSelected) selectedResults.remove(result)
-                                                else selectedResults.add(result)
-                                            },
-                                            label = { Text(localizedRes) }
-                                        )
                                     }
-                                }
 
-                                Row(horizontalArrangement = Arrangement.spacedBy(Dimensions.SpaceS)) {
+                                    Text(stringResource(R.string.worker_history_filter_action_title), style = MaterialTheme.typography.bodySmall)
+                                    FlowRow(horizontalArrangement = Arrangement.spacedBy(Dimensions.SpaceS)) {
+                                        actionOptions.forEach { action ->
+                                            val isSelected = selectedActions.contains(action)
+                                            val localizedAct = if (action == "scan") stringResource(R.string.admin_log_action_scan) else getLocalizedStatus(action)
+                                            FilterChip(
+                                                selected = isSelected,
+                                                onClick = dropUnlessResumed {
+                                                    if (isSelected) selectedActions.remove(action)
+                                                    else selectedActions.add(action)
+                                                },
+                                                label = { Text(localizedAct) }
+                                            )
+                                        }
+                                    }
+
+                                    Text(stringResource(R.string.worker_history_filter_result_title), style = MaterialTheme.typography.bodySmall)
+                                    FlowRow(horizontalArrangement = Arrangement.spacedBy(Dimensions.SpaceS)) {
+                                        resultOptions.forEach { result ->
+                                            val isSelected = selectedResults.contains(result)
+                                            val localizedRes = when (result) {
+                                                "standard_matched" -> stringResource(R.string.worker_history_result_matched)
+                                                "sequence_step_completed" -> stringResource(R.string.worker_history_result_step_completed)
+                                                "mismatch" -> stringResource(R.string.worker_history_result_mismatch)
+                                                "out_of_order" -> stringResource(R.string.worker_history_result_out_of_order)
+                                                "duplicate" -> stringResource(R.string.worker_history_result_duplicate)
+                                                else -> result
+                                            }
+                                            FilterChip(
+                                                selected = isSelected,
+                                                onClick = dropUnlessResumed {
+                                                    if (isSelected) selectedResults.remove(result)
+                                                    else selectedResults.add(result)
+                                                },
+                                                label = { Text(localizedRes) }
+                                            )
+                                        }
+                                    }
+
                                     DateTimeSelectorField(
                                         label = stringResource(R.string.admin_log_search_start_time),
                                         value = startTime,
                                         onDateTimeSelected = { startTime = it },
-                                        modifier = Modifier.weight(1f)
+                                        modifier = Modifier.fillMaxWidth()
                                     )
                                     DateTimeSelectorField(
                                         label = stringResource(R.string.admin_log_search_end_time),
                                         value = endTime,
                                         onDateTimeSelected = { endTime = it },
-                                        modifier = Modifier.weight(1f)
+                                        modifier = Modifier.fillMaxWidth()
                                     )
                                 }
 
                                 Row(
-                                    modifier = Modifier.fillMaxWidth(),
+                                    modifier = Modifier.fillMaxWidth().padding(top = Dimensions.SpaceS),
                                     horizontalArrangement = Arrangement.End,
                                     verticalAlignment = Alignment.CenterVertically
                                 ) {
@@ -415,7 +289,6 @@ fun WorkerHistoryScreen(
                                     }
                                     Spacer(modifier = Modifier.width(Dimensions.SpaceS))
                                     Button(onClick = dropUnlessResumed {
-                                        isFilterExpanded = false
                                         viewModel.fetchHistory(context, getCurrentQuery())
                                     }) {
                                         Text(stringResource(R.string.admin_search_btn))
@@ -423,13 +296,170 @@ fun WorkerHistoryScreen(
                                 }
                             }
                         }
+
+                        // Results Panel
+                        Box(modifier = Modifier.weight(0.55f).fillMaxSize()) {
+                            HistoryResultsList(uiState = uiState, onLoadMore = {
+                                viewModel.fetchHistory(context, getCurrentQuery(), isAppend = true)
+                            }, contentPadding = PaddingValues(bottom = Dimensions.SpaceL))
+                        }
+                    }
+                } else {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxSize()
+                    ) {
+                        // Filter Panel Portrait
+                        Card(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(
+                                    top = innerPadding.calculateTopPadding() + Dimensions.SpaceS,
+                                    start = Dimensions.SpaceL,
+                                    end = Dimensions.SpaceL,
+                                    bottom = Dimensions.SpaceL
+                                ),
+                            shape = RoundedCornerShape(Dimensions.Radius.M),
+                            elevation = CardDefaults.cardElevation(defaultElevation = Dimensions.Elevation.Low)
+                        ) {
+                            Column(modifier = Modifier.padding(Dimensions.SpaceL)) {
+                                Row(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .clickable(onClick = dropUnlessResumed { isFilterExpanded = !isFilterExpanded })
+                                        .padding(vertical = Dimensions.SpaceS),
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Text(
+                                        text = stringResource(R.string.admin_advanced_search),
+                                        style = MaterialTheme.typography.titleMedium,
+                                        color = MaterialTheme.colorScheme.primary
+                                    )
+                                    Icon(
+                                        imageVector = if (isFilterExpanded) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
+                                        contentDescription = stringResource(R.string.cd_toggle_filters),
+                                        tint = MaterialTheme.colorScheme.primary
+                                    )
+                                }
+
+                                AnimatedVisibility(visible = isFilterExpanded) {
+                                    Column(
+                                        modifier = Modifier
+                                            .padding(top = Dimensions.SpaceL)
+                                            .weight(weight = 1f, fill = false)
+                                            .verticalScroll(rememberScrollState()),
+                                        verticalArrangement = Arrangement.spacedBy(Dimensions.SpaceM)
+                                    ) {
+                                        OutlinedTextField(
+                                            value = orderIdQuery,
+                                            onValueChange = { orderIdQuery = it },
+                                            label = { Text(stringResource(R.string.admin_log_search_order_id)) },
+                                            modifier = Modifier.fillMaxWidth(),
+                                            singleLine = true
+                                        )
+                                        Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                                            OutlinedTextField(
+                                                value = uidHexQuery,
+                                                onValueChange = { uidHexQuery = it },
+                                                label = { Text(stringResource(R.string.admin_order_nfc_hint_optional)) },
+                                                modifier = Modifier.weight(1f),
+                                                singleLine = true
+                                            )
+                                            IconButton(onClick = { showNfcDialog = true }) {
+                                                Icon(Icons.Default.Nfc, contentDescription = "Scan NFC")
+                                            }
+                                        }
+
+                                        Text(stringResource(R.string.worker_history_filter_action_title), style = MaterialTheme.typography.bodySmall)
+                                        FlowRow(horizontalArrangement = Arrangement.spacedBy(Dimensions.SpaceS)) {
+                                            actionOptions.forEach { action ->
+                                                val isSelected = selectedActions.contains(action)
+                                                val localizedAct = if (action == "scan") stringResource(R.string.admin_log_action_scan) else getLocalizedStatus(action)
+                                                FilterChip(
+                                                    selected = isSelected,
+                                                    onClick = dropUnlessResumed {
+                                                        if (isSelected) selectedActions.remove(action)
+                                                        else selectedActions.add(action)
+                                                    },
+                                                    label = { Text(localizedAct) }
+                                                )
+                                            }
+                                        }
+
+                                        Text(stringResource(R.string.worker_history_filter_result_title), style = MaterialTheme.typography.bodySmall)
+                                        FlowRow(horizontalArrangement = Arrangement.spacedBy(Dimensions.SpaceS)) {
+                                            resultOptions.forEach { result ->
+                                                val isSelected = selectedResults.contains(result)
+                                                val localizedRes = when (result) {
+                                                    "standard_matched" -> stringResource(R.string.worker_history_result_matched)
+                                                    "sequence_step_completed" -> stringResource(R.string.worker_history_result_step_completed)
+                                                    "mismatch" -> stringResource(R.string.worker_history_result_mismatch)
+                                                    "out_of_order" -> stringResource(R.string.worker_history_result_out_of_order)
+                                                    "duplicate" -> stringResource(R.string.worker_history_result_duplicate)
+                                                    else -> result
+                                                }
+                                                FilterChip(
+                                                    selected = isSelected,
+                                                    onClick = dropUnlessResumed {
+                                                        if (isSelected) selectedResults.remove(result)
+                                                        else selectedResults.add(result)
+                                                    },
+                                                    label = { Text(localizedRes) }
+                                                )
+                                            }
+                                        }
+
+                                        Row(horizontalArrangement = Arrangement.spacedBy(Dimensions.SpaceS)) {
+                                            DateTimeSelectorField(
+                                                label = stringResource(R.string.admin_log_search_start_time),
+                                                value = startTime,
+                                                onDateTimeSelected = { startTime = it },
+                                                modifier = Modifier.weight(1f)
+                                            )
+                                            DateTimeSelectorField(
+                                                label = stringResource(R.string.admin_log_search_end_time),
+                                                value = endTime,
+                                                onDateTimeSelected = { endTime = it },
+                                                modifier = Modifier.weight(1f)
+                                            )
+                                        }
+
+                                        Row(
+                                            modifier = Modifier.fillMaxWidth(),
+                                            horizontalArrangement = Arrangement.End,
+                                            verticalAlignment = Alignment.CenterVertically
+                                        ) {
+                                            TextButton(onClick = dropUnlessResumed {
+                                                orderIdQuery = ""
+                                                uidHexQuery = ""
+                                                selectedActions.clear()
+                                                selectedResults.clear()
+                                                startTime = ""
+                                                endTime = ""
+                                                viewModel.fetchHistory(context, null)
+                                            }) {
+                                                Text(stringResource(R.string.admin_search_clear_btn))
+                                            }
+                                            Spacer(modifier = Modifier.width(Dimensions.SpaceS))
+                                            Button(onClick = dropUnlessResumed {
+                                                isFilterExpanded = false
+                                                viewModel.fetchHistory(context, getCurrentQuery())
+                                            }) {
+                                                Text(stringResource(R.string.admin_search_btn))
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+
+                        // Results List
+                        HistoryResultsList(uiState = uiState, onLoadMore = {
+                            viewModel.fetchHistory(context, getCurrentQuery(), isAppend = true)
+                        }, contentPadding = PaddingValues(bottom = innerPadding.calculateBottomPadding() + Dimensions.SpaceL))
                     }
                 }
-
-                // Results List
-                HistoryResultsList(uiState = uiState, onLoadMore = {
-                    viewModel.fetchHistory(context, getCurrentQuery(), isAppend = true)
-                })
             }
         }
         
@@ -446,7 +476,7 @@ fun WorkerHistoryScreen(
 }
 
 @Composable
-fun HistoryResultsList(uiState: WorkerUiState, onLoadMore: () -> Unit) {
+fun HistoryResultsList(uiState: WorkerUiState, onLoadMore: () -> Unit, contentPadding: PaddingValues) {
     if (uiState.isLoading && uiState.history.isEmpty()) {
         Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
             CircularProgressIndicator()
@@ -476,7 +506,7 @@ fun HistoryResultsList(uiState: WorkerUiState, onLoadMore: () -> Unit) {
         LazyColumn(
             state = listState,
             modifier = Modifier.fillMaxSize(),
-            contentPadding = PaddingValues(bottom = Dimensions.SpaceL)
+            contentPadding = contentPadding
         ) {
             // Worker Summary Card
             uiState.historySummary?.let { summary ->

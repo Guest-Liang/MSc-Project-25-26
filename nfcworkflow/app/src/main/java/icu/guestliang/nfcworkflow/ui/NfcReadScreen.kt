@@ -11,6 +11,8 @@ import icu.guestliang.nfcworkflow.ui.components.SplicedJumpPageWidget
 import icu.guestliang.nfcworkflow.ui.components.SplicedSwitchWidget
 import icu.guestliang.nfcworkflow.ui.theme.Dimensions
 import icu.guestliang.nfcworkflow.utils.findActivity
+import icu.guestliang.nfcworkflow.utils.haze
+import icu.guestliang.nfcworkflow.utils.hazeSource
 import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -63,11 +65,14 @@ import androidx.compose.material3.Checkbox
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.LargeTopAppBar
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.TopAppBarDefaults
+import androidx.compose.material3.rememberTopAppBarState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
@@ -80,6 +85,8 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
@@ -87,6 +94,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun NfcReadScreen(navController: NavController, viewModel: NfcViewModel = viewModel()) {
     val context = LocalContext.current
@@ -104,58 +112,78 @@ fun NfcReadScreen(navController: NavController, viewModel: NfcViewModel = viewMo
     val nfcNotSupportedStr = stringResource(id = R.string.nfc_not_supported)
     val nfcDisabledStr = stringResource(id = R.string.nfc_disabled_prompt)
 
+    val topAppBarState = rememberTopAppBarState()
+    val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior(topAppBarState)
+
     Scaffold(
-        modifier = Modifier.fillMaxSize(),
-        containerColor = MaterialTheme.colorScheme.background
+        modifier = Modifier
+            .fillMaxSize()
+            .nestedScroll(scrollBehavior.nestedScrollConnection),
+        containerColor = Color.Transparent,
+        topBar = {
+            LargeTopAppBar(
+                title = { Text(stringResource(id = R.string.tab_nfc_read)) },
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = Color.Transparent,
+                    scrolledContainerColor = Color.Transparent
+                ),
+                scrollBehavior = scrollBehavior,
+                modifier = Modifier.haze(alpha = scrollBehavior.state.collapsedFraction)
+            )
+        }
     ) { innerPadding ->
-        LazyColumn(
+        Box(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(innerPadding),
-            state = rememberLazyListState(),
-            contentPadding = PaddingValues(
-                top = Dimensions.SpaceS,
-                bottom = Dimensions.SpaceL
-            ),
-            verticalArrangement = Arrangement.spacedBy(Dimensions.SpaceS)
+                .hazeSource()
         ) {
-            item {
-                SplicedColumnGroup(title = stringResource(id = R.string.nfc_read_group_switch)) {
-                    item {
-                        SplicedSwitchWidget(
-                            icon = Icons.Default.Nfc,
-                            title = stringResource(id = R.string.nfc_read_title),
-                            description = stringResource(id = R.string.nfc_read_desc),
-                            checked = uiState.showReadNfcDialog,
-                            onCheckedChange = { isChecked ->
-                                if (isChecked) {
-                                    val nfcAdapter = NfcAdapter.getDefaultAdapter(context)
-                                    if (nfcAdapter == null) {
-                                        Toast.makeText(context, nfcNotSupportedStr, Toast.LENGTH_SHORT).show()
-                                    } else if (!nfcAdapter.isEnabled) {
-                                        Toast.makeText(context, nfcDisabledStr, Toast.LENGTH_SHORT).show()
-                                        context.startActivity(Intent(Settings.ACTION_NFC_SETTINGS))
+            LazyColumn(
+                modifier = Modifier.fillMaxSize(),
+                state = rememberLazyListState(),
+                contentPadding = PaddingValues(
+                    top = innerPadding.calculateTopPadding() + Dimensions.SpaceS,
+                    bottom = innerPadding.calculateBottomPadding() + Dimensions.SpaceL
+                ),
+                verticalArrangement = Arrangement.spacedBy(Dimensions.SpaceS)
+            ) {
+                item {
+                    SplicedColumnGroup(title = stringResource(id = R.string.nfc_read_group_switch)) {
+                        item {
+                            SplicedSwitchWidget(
+                                icon = Icons.Default.Nfc,
+                                title = stringResource(id = R.string.nfc_read_title),
+                                description = stringResource(id = R.string.nfc_read_desc),
+                                checked = uiState.showReadNfcDialog,
+                                onCheckedChange = { isChecked ->
+                                    if (isChecked) {
+                                        val nfcAdapter = NfcAdapter.getDefaultAdapter(context)
+                                        if (nfcAdapter == null) {
+                                            Toast.makeText(context, nfcNotSupportedStr, Toast.LENGTH_SHORT).show()
+                                        } else if (!nfcAdapter.isEnabled) {
+                                            Toast.makeText(context, nfcDisabledStr, Toast.LENGTH_SHORT).show()
+                                            context.startActivity(Intent(Settings.ACTION_NFC_SETTINGS))
+                                        } else {
+                                            viewModel.updateState { it.copy(showReadNfcDialog = true) }
+                                        }
                                     } else {
-                                        viewModel.updateState { it.copy(showReadNfcDialog = true) }
+                                        viewModel.updateState { it.copy(showReadNfcDialog = false, readNfcResult = null) }
                                     }
-                                } else {
-                                    viewModel.updateState { it.copy(showReadNfcDialog = false, readNfcResult = null) }
                                 }
-                            }
-                        )
+                            )
+                        }
                     }
                 }
-            }
 
-            item {
-                SplicedColumnGroup(title = stringResource(id = R.string.nfc_read_group_history)) {
-                    item {
-                        SplicedJumpPageWidget(
-                            icon = Icons.Default.History,
-                            title = stringResource(id = R.string.nfc_read_history_title, historyList.size),
-                            description = stringResource(id = R.string.nfc_read_history_desc),
-                            onClick = { navController.navigate(Screen.NfcReadHistory.route) }
-                        )
+                item {
+                    SplicedColumnGroup(title = stringResource(id = R.string.nfc_read_group_history)) {
+                        item {
+                            SplicedJumpPageWidget(
+                                icon = Icons.Default.History,
+                                title = stringResource(id = R.string.nfc_read_history_title, historyList.size),
+                                description = stringResource(id = R.string.nfc_read_history_desc),
+                                onClick = { navController.navigate(Screen.NfcReadHistory.route) }
+                            )
+                        }
                     }
                 }
             }

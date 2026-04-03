@@ -137,7 +137,7 @@ dependencies {
     debugImplementation(libs.androidx.ui.tooling)
     implementation(libs.androidx.navigation.compose)
     implementation(libs.androidx.compose.material.icons.extended)
-
+    implementation(libs.haze)
 
     // DataStore
     implementation(libs.androidx.datastore.preferences)

@@ -7,6 +7,8 @@ import icu.guestliang.nfcworkflow.ui.components.SplicedJumpPageWidget
 import icu.guestliang.nfcworkflow.ui.components.SplicedSwitchWidget
 import icu.guestliang.nfcworkflow.ui.theme.Dimensions
 import icu.guestliang.nfcworkflow.utils.findActivity
+import icu.guestliang.nfcworkflow.utils.haze
+import icu.guestliang.nfcworkflow.utils.hazeSource
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -24,12 +26,12 @@ import android.nfc.tech.NdefFormatable
 import android.provider.Settings
 import android.widget.Toast
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.text.KeyboardOptions
@@ -40,17 +42,23 @@ import androidx.compose.material.icons.filled.Email
 import androidx.compose.material.icons.filled.Nfc
 import androidx.compose.material.icons.filled.TextFields
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.LargeTopAppBar
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.material3.TopAppBarDefaults
+import androidx.compose.material3.rememberTopAppBarState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.KeyboardType
@@ -58,6 +66,7 @@ import androidx.core.net.toUri
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun NfcWriteScreen(navController: NavController, viewModel: NfcViewModel = viewModel()) {
     val context = LocalContext.current
@@ -69,115 +78,135 @@ fun NfcWriteScreen(navController: NavController, viewModel: NfcViewModel = viewM
     val nfcDisabledStr = stringResource(id = R.string.nfc_disabled_prompt)
     val toastEmptyStr = stringResource(id = R.string.nfc_write_buffer_toast_empty)
 
+    val topAppBarState = rememberTopAppBarState()
+    val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior(topAppBarState)
+
     Scaffold(
-        modifier = Modifier.fillMaxSize(),
-        containerColor = MaterialTheme.colorScheme.background
+        modifier = Modifier
+            .fillMaxSize()
+            .nestedScroll(scrollBehavior.nestedScrollConnection),
+        containerColor = Color.Transparent,
+        topBar = {
+            LargeTopAppBar(
+                title = { Text(stringResource(id = R.string.tab_nfc_write)) },
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = Color.Transparent,
+                    scrolledContainerColor = Color.Transparent
+                ),
+                scrollBehavior = scrollBehavior,
+                modifier = Modifier.haze(alpha = scrollBehavior.state.collapsedFraction)
+            )
+        }
     ) { innerPadding ->
-        LazyColumn(
+        Box(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(innerPadding),
-            state = rememberLazyListState(),
-            contentPadding = PaddingValues(
-                top = Dimensions.SpaceS,
-                bottom = Dimensions.SpaceL
-            ),
-            verticalArrangement = Arrangement.spacedBy(Dimensions.SpaceS)
+                .hazeSource()
         ) {
-            item {
-                SplicedColumnGroup(title = stringResource(id = R.string.nfc_write_group_switch)) {
-                    item {
-                        SplicedSwitchWidget(
-                            icon = Icons.Default.Edit,
-                            title = stringResource(id = R.string.nfc_write_title),
-                            description = if (uiState.writeBuffer.isEmpty()) stringResource(R.string.nfc_write_empty_buffer_desc) else stringResource(R.string.nfc_write_filled_buffer_desc, uiState.writeBuffer.size),
-                            checked = uiState.isWriteSwitchChecked,
-                            onCheckedChange = { isChecked ->
-                                if (isChecked) {
-                                    if (uiState.writeBuffer.isEmpty()) {
-                                        Toast.makeText(context, toastEmptyStr, Toast.LENGTH_LONG).show()
-                                        return@SplicedSwitchWidget
-                                    }
-                                    val nfcAdapter = NfcAdapter.getDefaultAdapter(context)
-                                    if (nfcAdapter == null) {
-                                        Toast.makeText(context, nfcNotSupportedStr, Toast.LENGTH_SHORT).show()
-                                    } else if (!nfcAdapter.isEnabled) {
-                                        Toast.makeText(context, nfcDisabledStr, Toast.LENGTH_SHORT).show()
-                                        context.startActivity(Intent(Settings.ACTION_NFC_SETTINGS))
-                                    } else {
-                                        viewModel.updateState { it.copy(isWriteSwitchChecked = true, showWriteConfirmDialog = true) }
-                                    }
-                                } else {
-                                    viewModel.updateState { 
-                                        it.copy(isWriteSwitchChecked = false, showWriteDialog = false, writeResult = null) 
-                                    }
-                                }
-                            }
-                        )
-                    }
-                }
-            }
-
-            item {
-                SplicedColumnGroup(title = stringResource(id = R.string.nfc_write_buffer_title)) {
-                    item {
-                        SplicedJumpPageWidget(
-                            icon = Icons.Default.TextFields,
-                            title = stringResource(id = R.string.nfc_write_type_text),
-                            onClick = {
-                                viewModel.updateState { 
-                                    it.copy(showWriteInputDialog = true, writeInputDialogType = WriteType.TEXT, writeInputText1 = "") 
-                                }
-                            }
-                        )
-                    }
-                    item {
-                        SplicedJumpPageWidget(
-                            icon = Icons.Default.Email,
-                            title = stringResource(id = R.string.nfc_write_type_email),
-                            onClick = {
-                                viewModel.updateState { 
-                                    it.copy(showWriteInputDialog = true, writeInputDialogType = WriteType.EMAIL, writeInputText1 = "") 
-                                }
-                            }
-                        )
-                    }
-                    item {
-                        SplicedJumpPageWidget(
-                            icon = Icons.Default.Call,
-                            title = stringResource(id = R.string.nfc_write_type_phone),
-                            onClick = {
-                                viewModel.updateState { 
-                                    it.copy(showWriteInputDialog = true, writeInputDialogType = WriteType.PHONE, writeInputText1 = "") 
-                                }
-                            }
-                        )
-                    }
-                }
-            }
-
-            if (uiState.writeBuffer.isNotEmpty()) {
+            LazyColumn(
+                modifier = Modifier.fillMaxSize(),
+                state = rememberLazyListState(),
+                contentPadding = PaddingValues(
+                    top = innerPadding.calculateTopPadding() + Dimensions.SpaceS,
+                    bottom = innerPadding.calculateBottomPadding() + Dimensions.SpaceL
+                ),
+                verticalArrangement = Arrangement.spacedBy(Dimensions.SpaceS)
+            ) {
                 item {
-                    SplicedColumnGroup(title = stringResource(id = R.string.nfc_write_current_content_title)) {
-                        uiState.writeBuffer.forEachIndexed { index, data ->
-                            item {
-                                val display = when (data) {
-                                    is WriteData.Text -> data.text
-                                    is WriteData.UriRecord -> data.display
-                                }
-                                SplicedJumpPageWidget(
-                                    icon = Icons.Default.Nfc,
-                                    title = "${data.typeName}: $display",
-                                    onClick = {
-                                        viewModel.removeWriteData(index)
-                                        // If empty after removal, ensure we reset switch status
-                                        if (uiState.writeBuffer.size == 1) { // 1 before removal means 0 after
-                                            viewModel.updateState { 
-                                                it.copy(isWriteSwitchChecked = false, showWriteDialog = false) 
-                                            }
+                    SplicedColumnGroup(title = stringResource(id = R.string.nfc_write_group_switch)) {
+                        item {
+                            SplicedSwitchWidget(
+                                icon = Icons.Default.Edit,
+                                title = stringResource(id = R.string.nfc_write_title),
+                                description = if (uiState.writeBuffer.isEmpty()) stringResource(R.string.nfc_write_empty_buffer_desc) else stringResource(R.string.nfc_write_filled_buffer_desc, uiState.writeBuffer.size),
+                                checked = uiState.isWriteSwitchChecked,
+                                onCheckedChange = { isChecked ->
+                                    if (isChecked) {
+                                        if (uiState.writeBuffer.isEmpty()) {
+                                            Toast.makeText(context, toastEmptyStr, Toast.LENGTH_LONG).show()
+                                            return@SplicedSwitchWidget
+                                        }
+                                        val nfcAdapter = NfcAdapter.getDefaultAdapter(context)
+                                        if (nfcAdapter == null) {
+                                            Toast.makeText(context, nfcNotSupportedStr, Toast.LENGTH_SHORT).show()
+                                        } else if (!nfcAdapter.isEnabled) {
+                                            Toast.makeText(context, nfcDisabledStr, Toast.LENGTH_SHORT).show()
+                                            context.startActivity(Intent(Settings.ACTION_NFC_SETTINGS))
+                                        } else {
+                                            viewModel.updateState { it.copy(isWriteSwitchChecked = true, showWriteConfirmDialog = true) }
+                                        }
+                                    } else {
+                                        viewModel.updateState { 
+                                            it.copy(isWriteSwitchChecked = false, showWriteDialog = false, writeResult = null) 
                                         }
                                     }
-                                )
+                                }
+                            )
+                        }
+                    }
+                }
+
+                item {
+                    SplicedColumnGroup(title = stringResource(id = R.string.nfc_write_buffer_title)) {
+                        item {
+                            SplicedJumpPageWidget(
+                                icon = Icons.Default.TextFields,
+                                title = stringResource(id = R.string.nfc_write_type_text),
+                                onClick = {
+                                    viewModel.updateState { 
+                                        it.copy(showWriteInputDialog = true, writeInputDialogType = WriteType.TEXT, writeInputText1 = "") 
+                                    }
+                                }
+                            )
+                        }
+                        item {
+                            SplicedJumpPageWidget(
+                                icon = Icons.Default.Email,
+                                title = stringResource(id = R.string.nfc_write_type_email),
+                                onClick = {
+                                    viewModel.updateState { 
+                                        it.copy(showWriteInputDialog = true, writeInputDialogType = WriteType.EMAIL, writeInputText1 = "") 
+                                    }
+                                }
+                            )
+                        }
+                        item {
+                            SplicedJumpPageWidget(
+                                icon = Icons.Default.Call,
+                                title = stringResource(id = R.string.nfc_write_type_phone),
+                                onClick = {
+                                    viewModel.updateState { 
+                                        it.copy(showWriteInputDialog = true, writeInputDialogType = WriteType.PHONE, writeInputText1 = "") 
+                                    }
+                                }
+                            )
+                        }
+                    }
+                }
+
+                if (uiState.writeBuffer.isNotEmpty()) {
+                    item {
+                        SplicedColumnGroup(title = stringResource(id = R.string.nfc_write_current_content_title)) {
+                            uiState.writeBuffer.forEachIndexed { index, data ->
+                                item {
+                                    val display = when (data) {
+                                        is WriteData.Text -> data.text
+                                        is WriteData.UriRecord -> data.display
+                                    }
+                                    SplicedJumpPageWidget(
+                                        icon = Icons.Default.Nfc,
+                                        title = "${data.typeName}: $display",
+                                        onClick = {
+                                            viewModel.removeWriteData(index)
+                                            // If empty after removal, ensure we reset switch status
+                                            if (uiState.writeBuffer.size == 1) { // 1 before removal means 0 after
+                                                viewModel.updateState { 
+                                                    it.copy(isWriteSwitchChecked = false, showWriteDialog = false) 
+                                                }
+                                            }
+                                        }
+                                    )
+                                }
                             }
                         }
                     }

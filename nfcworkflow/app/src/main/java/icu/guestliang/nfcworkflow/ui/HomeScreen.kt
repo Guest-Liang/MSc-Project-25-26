@@ -7,10 +7,12 @@ import icu.guestliang.nfcworkflow.navigation.Screen
 import icu.guestliang.nfcworkflow.ui.components.SplicedColumnGroup
 import icu.guestliang.nfcworkflow.ui.components.SplicedJumpPageWidget
 import icu.guestliang.nfcworkflow.ui.theme.Dimensions
+import icu.guestliang.nfcworkflow.utils.haze
+import icu.guestliang.nfcworkflow.utils.hazeSource
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.icons.Icons
@@ -22,17 +24,24 @@ import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.filled.PersonAdd
 import androidx.compose.material.icons.filled.Search
-import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.LargeTopAppBar
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Text
+import androidx.compose.material3.TopAppBarDefaults
+import androidx.compose.material3.rememberTopAppBarState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.lifecycle.compose.dropUnlessResumed
 import androidx.navigation.NavController
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HomeScreen(navController: NavController) {
     val context = LocalContext.current
@@ -41,26 +50,46 @@ fun HomeScreen(navController: NavController) {
     val prefs by PrefsDataStore.flow(context).collectAsState(initial = null)
     val isWorker = prefs?.isWorker ?: false
 
+    val topAppBarState = rememberTopAppBarState()
+    val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior(topAppBarState)
+
     Scaffold(
-        modifier = Modifier.fillMaxSize(),
-        containerColor = MaterialTheme.colorScheme.background
+        modifier = Modifier
+            .fillMaxSize()
+            .nestedScroll(scrollBehavior.nestedScrollConnection),
+        containerColor = Color.Transparent,
+        topBar = {
+            LargeTopAppBar(
+                title = { Text(stringResource(id = R.string.tab_home)) },
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = Color.Transparent,
+                    scrolledContainerColor = Color.Transparent
+                ),
+                scrollBehavior = scrollBehavior,
+                modifier = Modifier.haze(alpha = scrollBehavior.state.collapsedFraction)
+            )
+        }
     ) { innerPadding ->
-        LazyColumn(
+        Box(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(innerPadding),
-            state = rememberLazyListState(),
-            contentPadding = PaddingValues(
-                top = Dimensions.SpaceS,
-                bottom = Dimensions.SpaceL
-            ),
-            verticalArrangement = Arrangement.spacedBy(Dimensions.SpaceL)
+                .hazeSource()
         ) {
-            item {
-                if (isWorker) {
-                    WorkerFunctionsSection(navController = navController)
-                } else {
-                    AdminFunctionsSection(navController = navController)
+            LazyColumn(
+                modifier = Modifier.fillMaxSize(),
+                state = rememberLazyListState(),
+                contentPadding = PaddingValues(
+                    top = innerPadding.calculateTopPadding() + Dimensions.SpaceS,
+                    bottom = innerPadding.calculateBottomPadding() + Dimensions.SpaceL
+                ),
+                verticalArrangement = Arrangement.spacedBy(Dimensions.SpaceL)
+            ) {
+                item {
+                    if (isWorker) {
+                        WorkerFunctionsSection(navController = navController)
+                    } else {
+                        AdminFunctionsSection(navController = navController)
+                    }
                 }
             }
         }
