@@ -3,6 +3,9 @@ package icu.guestliang.nfcworkflow.ui.login
 import icu.guestliang.nfcworkflow.R
 import icu.guestliang.nfcworkflow.data.PrefsDataStore
 import icu.guestliang.nfcworkflow.ui.theme.Dimensions
+import icu.guestliang.nfcworkflow.utils.LocalHazeState
+import icu.guestliang.nfcworkflow.utils.haze
+import icu.guestliang.nfcworkflow.utils.hazeSource
 import android.content.res.Configuration
 import android.widget.Toast
 import androidx.compose.foundation.background
@@ -23,25 +26,36 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.LargeTopAppBar
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.material3.TopAppBarDefaults
+import androidx.compose.material3.rememberTopAppBarState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.lifecycle.viewmodel.compose.viewModel
+import dev.chrisbanes.haze.HazeState
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun LoginScreen(
     viewModel: LoginViewModel = viewModel(),
@@ -59,6 +73,10 @@ fun LoginScreen(
     var password by rememberSaveable { mutableStateOf("") }
     var showNetworkError by rememberSaveable { mutableStateOf(true) }
 
+    val topAppBarState = rememberTopAppBarState()
+    val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior(topAppBarState)
+    val hazeState = remember { HazeState() }
+
     LaunchedEffect(healthStatus) {
         if (healthStatus is HealthStatus.Checking) {
             showNetworkError = true
@@ -75,76 +93,96 @@ fun LoginScreen(
         }
     }
 
-    Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(MaterialTheme.colorScheme.background)
-            .safeDrawingPadding()
-    ) {
-        if (isLandscape) {
-            Row(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(horizontal = Dimensions.SpaceXXXL, vertical = Dimensions.SpaceL),
-                horizontalArrangement = Arrangement.spacedBy(Dimensions.SpaceXXXL),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                // Left Side (Inputs)
-                LoginHeaderAndInputs(
-                    username = username,
-                    onUsernameChange = { username = it },
-                    password = password,
-                    onPasswordChange = { password = it },
-                    modifier = Modifier
-                        .weight(1f)
-                        .verticalScroll(rememberScrollState())
+    CompositionLocalProvider(LocalHazeState provides hazeState) {
+        Scaffold(
+            modifier = Modifier
+                .fillMaxSize()
+                .nestedScroll(scrollBehavior.nestedScrollConnection),
+            containerColor = MaterialTheme.colorScheme.background,
+            topBar = {
+                LargeTopAppBar(
+                    title = { Text(stringResource(id = R.string.login_title)) },
+                    colors = TopAppBarDefaults.topAppBarColors(
+                        containerColor = Color.Transparent,
+                        scrolledContainerColor = Color.Transparent
+                    ),
+                    scrollBehavior = scrollBehavior,
+                    modifier = Modifier.haze(alpha = scrollBehavior.state.collapsedFraction)
                 )
-
-                // Right Side (Buttons)
-                Column(
-                    modifier = Modifier
-                        .weight(1f)
-                        .verticalScroll(rememberScrollState()),
-                    verticalArrangement = Arrangement.Center,
-                    horizontalAlignment = Alignment.CenterHorizontally
-                ) {
-                    NetworkCheckingIndicator(healthStatus)
-                    LoginActions(
-                        loginState = loginState,
-                        onLoginClick = { viewModel.login(username, password) },
-                        onRegisterClick = onRegister,
-                        onResetPasswordClick = onResetPassword,
-                        onSkipClick = onSkip
-                    )
-                }
             }
-        } else {
-            Column(
+        ) { innerPadding ->
+            Box(
                 modifier = Modifier
                     .fillMaxSize()
-                    .padding(Dimensions.SpaceL)
-                    .verticalScroll(rememberScrollState()),
-                verticalArrangement = Arrangement.Center,
-                horizontalAlignment = Alignment.CenterHorizontally
+                    .padding(innerPadding)
+                    .hazeSource()
             ) {
-                NetworkCheckingIndicator(healthStatus)
-                
-                LoginHeaderAndInputs(
-                    username = username,
-                    onUsernameChange = { username = it },
-                    password = password,
-                    onPasswordChange = { password = it }
-                )
-                
-                Spacer(Modifier.height(Dimensions.SpaceXXXL))
-                
-                LoginActions(
-                    loginState = loginState,
-                    onLoginClick = { viewModel.login(username, password) },
-                    onRegisterClick = onRegister,
-                    onResetPasswordClick = onResetPassword,
-                    onSkipClick = onSkip
-                )
+                if (isLandscape) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .padding(horizontal = Dimensions.SpaceXXXL, vertical = Dimensions.SpaceL),
+                        horizontalArrangement = Arrangement.spacedBy(Dimensions.SpaceXXXL),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        // Left Side (Inputs)
+                        LoginHeaderAndInputs(
+                            username = username,
+                            onUsernameChange = { username = it },
+                            password = password,
+                            onPasswordChange = { password = it },
+                            modifier = Modifier
+                                .weight(1f)
+                                .verticalScroll(rememberScrollState())
+                        )
+
+                        // Right Side (Buttons)
+                        Column(
+                            modifier = Modifier
+                                .weight(1f)
+                                .verticalScroll(rememberScrollState()),
+                            verticalArrangement = Arrangement.Center,
+                            horizontalAlignment = Alignment.CenterHorizontally
+                        ) {
+                            NetworkCheckingIndicator(healthStatus)
+                            LoginActions(
+                                loginState = loginState,
+                                onLoginClick = { viewModel.login(username, password) },
+                                onRegisterClick = onRegister,
+                                onResetPasswordClick = onResetPassword,
+                                onSkipClick = onSkip
+                            )
+                        }
+                    }
+                } else {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .padding(Dimensions.SpaceL)
+                            .verticalScroll(rememberScrollState()),
+                        verticalArrangement = Arrangement.Center,
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+                        NetworkCheckingIndicator(healthStatus)
+                        
+                        LoginHeaderAndInputs(
+                            username = username,
+                            onUsernameChange = { username = it },
+                            password = password,
+                            onPasswordChange = { password = it }
+                        )
+                        
+                        Spacer(Modifier.height(Dimensions.SpaceXXXL))
+                        
+                        LoginActions(
+                            loginState = loginState,
+                            onLoginClick = { viewModel.login(username, password) },
+                            onRegisterClick = onRegister,
+                            onResetPasswordClick = onResetPassword,
+                            onSkipClick = onSkip
+                        )
+                    }
+                }
             }
         }
     }
@@ -264,13 +302,6 @@ private fun LoginHeaderAndInputs(
         verticalArrangement = Arrangement.Center,
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        Text(
-            stringResource(id = R.string.login_title),
-            style = MaterialTheme.typography.headlineMedium,
-            color = MaterialTheme.colorScheme.onBackground
-        )
-        Spacer(Modifier.height(Dimensions.SpaceXXXL))
-
         OutlinedTextField(
             value = username,
             onValueChange = onUsernameChange,

@@ -5,7 +5,10 @@ import icu.guestliang.nfcworkflow.logging.AppLogger
 import icu.guestliang.nfcworkflow.ui.components.CustomDateTimePickerDialog
 import icu.guestliang.nfcworkflow.ui.components.NfcScannerDialog
 import icu.guestliang.nfcworkflow.ui.theme.Dimensions
+import icu.guestliang.nfcworkflow.utils.LocalHazeState
 import icu.guestliang.nfcworkflow.utils.getLocalizedStatus
+import icu.guestliang.nfcworkflow.utils.haze
+import icu.guestliang.nfcworkflow.utils.hazeSource
 import kotlinx.coroutines.launch
 import android.content.res.Configuration
 import android.widget.Toast
@@ -49,6 +52,7 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.LargeTopAppBar
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
@@ -56,9 +60,10 @@ import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
+import androidx.compose.material3.rememberTopAppBarState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.derivedStateOf
@@ -70,6 +75,7 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
@@ -78,6 +84,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.lifecycle.compose.dropUnlessResumed
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
+import dev.chrisbanes.haze.HazeState
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
@@ -111,7 +118,9 @@ fun AdminQueryLogsScreen(
     val orderTypeOptions = listOf("standard", "sequence")
     val actionOptions = listOf("created", "assigned", "unassigned", "scan", "completed", "steps_saved", "complete")
     val resultOptions = listOf("standard_matched", "sequence_step_completed", "sequence_steps_saved", "mismatch", "out_of_order", "duplicate", "standard_completed", "sequence_completed", "deprecated_complete_api")
-    val scrollBehavior = TopAppBarDefaults.enterAlwaysScrollBehavior()
+    val topAppBarState = rememberTopAppBarState()
+    val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior(topAppBarState)
+    val hazeState = remember { HazeState() }
 
     fun getCurrentQuery(): LogSearchQuery? {
         val orderIds = orderIdQuery.split(",").map { it.trim() }.filter { it.isNotEmpty() }
@@ -149,384 +158,187 @@ fun AdminQueryLogsScreen(
         }
     }
 
-    Scaffold(
-        modifier = Modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
-        topBar = {
-            TopAppBar(
-                title = { Text(stringResource(R.string.admin_query_logs)) },
-                navigationIcon = {
-                    IconButton(onClick = dropUnlessResumed { navController.popBackStack() }) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.cd_back))
-                    }
-                },
-                scrollBehavior = scrollBehavior
-            )
-        },
-        containerColor = MaterialTheme.colorScheme.background
-    ) { innerPadding ->
-        if (isLandscape) {
-            Row(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(innerPadding)
-            ) {
-                // Side Panel for Filter
-                Card(
-                    modifier = Modifier
-                        .weight(0.45f)
-                        .fillMaxSize()
-                        .padding(start = Dimensions.SpaceL, top = Dimensions.SpaceL, bottom = Dimensions.SpaceL, end = Dimensions.SpaceS),
-                    shape = RoundedCornerShape(Dimensions.Radius.M),
-                    elevation = CardDefaults.cardElevation(defaultElevation = Dimensions.Elevation.Low)
-                ) {
-                    Column(
-                        modifier = Modifier
-                            .padding(Dimensions.SpaceL)
-                            .fillMaxSize()
-                    ) {
-                        Text(
-                            text = stringResource(R.string.admin_advanced_search),
-                            style = MaterialTheme.typography.titleMedium,
-                            color = MaterialTheme.colorScheme.primary,
-                            modifier = Modifier.padding(bottom = Dimensions.SpaceS)
-                        )
-
-                        Column(
-                            modifier = Modifier
-                                .weight(1f)
-                                .verticalScroll(rememberScrollState()),
-                            verticalArrangement = Arrangement.spacedBy(Dimensions.SpaceM)
-                        ) {
-                            OutlinedTextField(
-                                value = orderIdQuery,
-                                onValueChange = { orderIdQuery = it },
-                                label = { Text(stringResource(R.string.admin_log_search_order_id)) },
-                                modifier = Modifier.fillMaxWidth(),
-                                singleLine = true
-                            )
-                            Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                                OutlinedTextField(
-                                    value = uidHexQuery,
-                                    onValueChange = { uidHexQuery = it },
-                                    label = { Text(stringResource(R.string.admin_log_search_uid_hex)) },
-                                    modifier = Modifier.weight(1f),
-                                    singleLine = true
-                                )
-                                IconButton(onClick = { showNfcDialog = true }) {
-                                    Icon(Icons.Default.Nfc, contentDescription = "Scan NFC")
-                                }
-                            }
-                            
-                            // Worker Filters
-                            Text(stringResource(R.string.admin_search_worker_title), style = MaterialTheme.typography.bodySmall)
-                            FlowRow(horizontalArrangement = Arrangement.spacedBy(Dimensions.SpaceS)) {
-                                OutlinedButton(onClick = dropUnlessResumed { showWorkerDialog = true }) {
-                                    val workerText = if (selectedWorkers.isEmpty()) 
-                                        stringResource(R.string.admin_select_worker) 
-                                    else
-                                        stringResource(R.string.admin_workers_selected, selectedWorkers.size)
-                                    Text(workerText)
-                                }
-                            }
-                            
-                            // Order Type Filters
-                            Text(stringResource(R.string.admin_log_search_order_type_title), style = MaterialTheme.typography.bodySmall)
-                            FlowRow(horizontalArrangement = Arrangement.spacedBy(Dimensions.SpaceS)) {
-                                orderTypeOptions.forEach { type ->
-                                    val isSelected = selectedOrderTypes.contains(type)
-                                    val localizedLabel = if (type == "standard") stringResource(R.string.worker_order_type_standard) else stringResource(R.string.worker_order_type_sequence)
-                                    FilterChip(
-                                        selected = isSelected,
-                                        onClick = dropUnlessResumed {
-                                            if (isSelected) selectedOrderTypes.remove(type)
-                                            else selectedOrderTypes.add(type)
-                                        },
-                                        label = { Text(localizedLabel) }
-                                    )
-                                }
-                            }
-
-                            // Action Filters
-                            Text(stringResource(R.string.admin_log_search_action_title), style = MaterialTheme.typography.bodySmall)
-                            FlowRow(horizontalArrangement = Arrangement.spacedBy(Dimensions.SpaceS)) {
-                                actionOptions.forEach { action ->
-                                    val isSelected = selectedActions.contains(action)
-                                    val localizedAct = when(action) {
-                                        "scan" -> stringResource(R.string.admin_log_action_scan)
-                                        "complete" -> stringResource(R.string.admin_log_action_complete_deprecated)
-                                        "steps_saved" -> stringResource(R.string.admin_log_action_steps_saved)
-                                        else -> getLocalizedStatus(action)
-                                    }
-                                    FilterChip(
-                                        selected = isSelected,
-                                        onClick = dropUnlessResumed {
-                                            if (isSelected) selectedActions.remove(action)
-                                            else selectedActions.add(action)
-                                        },
-                                        label = { Text(localizedAct) }
-                                    )
-                                }
-                            }
-                            
-                            // Result Filters
-                            Text(stringResource(R.string.admin_log_search_result_title), style = MaterialTheme.typography.bodySmall)
-                            FlowRow(horizontalArrangement = Arrangement.spacedBy(Dimensions.SpaceS)) {
-                                resultOptions.forEach { res ->
-                                    val isSelected = selectedResults.contains(res)
-                                    val localizedRes = when (res) {
-                                        "standard_matched" -> stringResource(R.string.worker_history_result_matched)
-                                        "sequence_step_completed" -> stringResource(R.string.worker_history_result_step_completed)
-                                        "mismatch" -> stringResource(R.string.worker_history_result_mismatch)
-                                        "out_of_order" -> stringResource(R.string.worker_history_result_out_of_order)
-                                        "duplicate" -> stringResource(R.string.worker_history_result_duplicate)
-                                        "sequence_steps_saved" -> stringResource(R.string.admin_log_result_steps_saved)
-                                        "standard_completed" -> stringResource(R.string.admin_log_result_standard_completed)
-                                        "sequence_completed" -> stringResource(R.string.admin_log_result_sequence_completed)
-                                        "deprecated_complete_api" -> stringResource(R.string.admin_log_result_deprecated)
-                                        else -> res
-                                    }
-                                    FilterChip(
-                                        selected = isSelected,
-                                        onClick = dropUnlessResumed {
-                                            if (isSelected) selectedResults.remove(res)
-                                            else selectedResults.add(res)
-                                        },
-                                        label = { Text(localizedRes) }
-                                    )
-                                }
-                            }
-
-                            // Time Filters (Vertical in Landscape)
-                            DateTimeSelectorField(
-                                label = stringResource(R.string.admin_log_search_start_time),
-                                value = startTime,
-                                onDateTimeSelected = { startTime = it },
-                                modifier = Modifier.fillMaxWidth()
-                            )
-                            DateTimeSelectorField(
-                                label = stringResource(R.string.admin_log_search_end_time),
-                                value = endTime,
-                                onDateTimeSelected = { endTime = it },
-                                modifier = Modifier.fillMaxWidth()
-                            )
-                            
-                            Spacer(modifier = Modifier.height(Dimensions.SpaceS))
+    CompositionLocalProvider(LocalHazeState provides hazeState) {
+        Scaffold(
+            modifier = Modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
+            containerColor = Color.Transparent,
+            topBar = {
+                LargeTopAppBar(
+                    title = { Text(stringResource(R.string.admin_query_logs)) },
+                    navigationIcon = {
+                        IconButton(onClick = dropUnlessResumed { navController.popBackStack() }) {
+                            Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.cd_back))
                         }
-
-                        // Search Buttons
-                        Row(
-                            modifier = Modifier.fillMaxWidth().padding(top = Dimensions.SpaceS),
-                            horizontalArrangement = Arrangement.End,
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            TextButton(onClick = dropUnlessResumed {
-                                orderIdQuery = ""
-                                selectedWorkers.clear()
-                                uidHexQuery = ""
-                                selectedOrderTypes.clear()
-                                selectedActions.clear()
-                                selectedResults.clear()
-                                startTime = ""
-                                endTime = ""
-                                viewModel.fetchLogs(context, null)
-                            }) {
-                                Text(stringResource(R.string.admin_search_clear_btn))
-                            }
-                            Spacer(modifier = Modifier.width(Dimensions.SpaceS))
-                            Button(onClick = dropUnlessResumed {
-                                val query = LogSearchQuery(
-                                    orderId = orderIdQuery.takeIf { it.isNotBlank() }?.split(",")?.map { it.trim() },
-                                    action = selectedActions.toList().takeIf { it.isNotEmpty() },
-                                    result = selectedResults.toList().takeIf { it.isNotEmpty() },
-                                    operator = selectedWorkers.toList().takeIf { it.isNotEmpty() },
-                                    uidHex = uidHexQuery.takeIf { it.isNotBlank() },
-                                    orderType = selectedOrderTypes.toList().takeIf { it.isNotEmpty() },
-                                    startTime = startTime.takeIf { it.isNotBlank() },
-                                    endTime = endTime.takeIf { it.isNotBlank() }
-                                )
-                                viewModel.fetchLogs(context, query)
-                            }) {
-                                Text(stringResource(R.string.admin_search_btn))
-                            }
-                        }
-                    }
-                }
-
-                // Results Panel
-                Box(modifier = Modifier.weight(0.55f).fillMaxSize()) {
-                    LogResultsList(
-                        isInitialLoad = isInitialLoad,
-                        uiState = uiState,
-                        viewModel = viewModel,
-                        coroutineScope = coroutineScope,
-                        showEmptyDialog = showEmptyDialog,
-                        onShowEmptyDialogChange = { showEmptyDialog = it },
-                        onLoadMore = {
-                            viewModel.fetchLogs(context, getCurrentQuery(), isAppend = true)
-                        }
-                    )
-                }
+                    },
+                    colors = TopAppBarDefaults.topAppBarColors(
+                        containerColor = Color.Transparent,
+                        scrolledContainerColor = Color.Transparent
+                    ),
+                    scrollBehavior = scrollBehavior,
+                    modifier = Modifier.haze(alpha = scrollBehavior.state.collapsedFraction)
+                )
             }
-        } else {
-            Column(
+        ) { innerPadding ->
+            Box(
                 modifier = Modifier
                     .fillMaxSize()
-                    .padding(innerPadding)
+                    .hazeSource()
             ) {
-                // Filter Panel
-                Card(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(Dimensions.SpaceL),
-                    shape = RoundedCornerShape(Dimensions.Radius.M),
-                    elevation = CardDefaults.cardElevation(defaultElevation = Dimensions.Elevation.Low)
-                ) {
-                    Column(modifier = Modifier.padding(Dimensions.SpaceL)) {
-                        Row(
+                if (isLandscape) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .padding(
+                                top = innerPadding.calculateTopPadding(),
+                                bottom = innerPadding.calculateBottomPadding()
+                            )
+                    ) {
+                        // Side Panel for Filter
+                        Card(
                             modifier = Modifier
-                                .fillMaxWidth()
-                                .clickable(onClick = dropUnlessResumed { isFilterExpanded = !isFilterExpanded })
-                                .padding(vertical = Dimensions.SpaceS),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically
+                                .weight(0.45f)
+                                .fillMaxSize()
+                                .padding(start = Dimensions.SpaceL, top = Dimensions.SpaceL, bottom = Dimensions.SpaceL, end = Dimensions.SpaceS),
+                            shape = RoundedCornerShape(Dimensions.Radius.M),
+                            elevation = CardDefaults.cardElevation(defaultElevation = Dimensions.Elevation.Low)
                         ) {
-                            Text(
-                                text = stringResource(R.string.admin_advanced_search),
-                                style = MaterialTheme.typography.titleMedium,
-                                color = MaterialTheme.colorScheme.primary
-                            )
-                            Icon(
-                                imageVector = if (isFilterExpanded) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
-                                contentDescription = stringResource(R.string.cd_toggle_filters),
-                                tint = MaterialTheme.colorScheme.primary
-                            )
-                        }
-
-                        AnimatedVisibility(visible = isFilterExpanded) {
                             Column(
                                 modifier = Modifier
-                                    .padding(top = Dimensions.SpaceL)
-                                    .weight(weight = 1f, fill = false)
-                                    .verticalScroll(rememberScrollState()),
-                                verticalArrangement = Arrangement.spacedBy(Dimensions.SpaceM)
+                                    .padding(Dimensions.SpaceL)
+                                    .fillMaxSize()
                             ) {
-                                OutlinedTextField(
-                                    value = orderIdQuery,
-                                    onValueChange = { orderIdQuery = it },
-                                    label = { Text(stringResource(R.string.admin_log_search_order_id)) },
-                                    modifier = Modifier.fillMaxWidth(),
-                                    singleLine = true
+                                Text(
+                                    text = stringResource(R.string.admin_advanced_search),
+                                    style = MaterialTheme.typography.titleMedium,
+                                    color = MaterialTheme.colorScheme.primary,
+                                    modifier = Modifier.padding(bottom = Dimensions.SpaceS)
                                 )
-                                Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+
+                                Column(
+                                    modifier = Modifier
+                                        .weight(1f)
+                                        .verticalScroll(rememberScrollState()),
+                                    verticalArrangement = Arrangement.spacedBy(Dimensions.SpaceM)
+                                ) {
                                     OutlinedTextField(
-                                        value = uidHexQuery,
-                                        onValueChange = { uidHexQuery = it },
-                                        label = { Text(stringResource(R.string.admin_log_search_uid_hex)) },
-                                        modifier = Modifier.weight(1f),
+                                        value = orderIdQuery,
+                                        onValueChange = { orderIdQuery = it },
+                                        label = { Text(stringResource(R.string.admin_log_search_order_id)) },
+                                        modifier = Modifier.fillMaxWidth(),
                                         singleLine = true
                                     )
-                                    IconButton(onClick = { showNfcDialog = true }) {
-                                        Icon(Icons.Default.Nfc, contentDescription = "Scan NFC")
-                                    }
-                                }
-
-                                // Worker Filters
-                                Text(stringResource(R.string.admin_search_worker_title), style = MaterialTheme.typography.bodySmall)
-                                FlowRow(horizontalArrangement = Arrangement.spacedBy(Dimensions.SpaceS)) {
-                                    OutlinedButton(onClick = dropUnlessResumed { showWorkerDialog = true }) {
-                                        val workerText = if (selectedWorkers.isEmpty()) 
-                                            stringResource(R.string.admin_select_worker) 
-                                        else
-                                            stringResource(R.string.admin_workers_selected, selectedWorkers.size)
-                                        Text(workerText)
-                                    }
-                                }
-                                
-                                // Order Type Filters
-                                Text(stringResource(R.string.admin_log_search_order_type_title), style = MaterialTheme.typography.bodySmall)
-                                FlowRow(horizontalArrangement = Arrangement.spacedBy(Dimensions.SpaceS)) {
-                                    orderTypeOptions.forEach { type ->
-                                        val isSelected = selectedOrderTypes.contains(type)
-                                        val localizedLabel = if (type == "standard") stringResource(R.string.worker_order_type_standard) else stringResource(R.string.worker_order_type_sequence)
-                                        FilterChip(
-                                            selected = isSelected,
-                                            onClick = dropUnlessResumed {
-                                                if (isSelected) selectedOrderTypes.remove(type)
-                                                else selectedOrderTypes.add(type)
-                                            },
-                                            label = { Text(localizedLabel) }
+                                    Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                                        OutlinedTextField(
+                                            value = uidHexQuery,
+                                            onValueChange = { uidHexQuery = it },
+                                            label = { Text(stringResource(R.string.admin_log_search_uid_hex)) },
+                                            modifier = Modifier.weight(1f),
+                                            singleLine = true
                                         )
-                                    }
-                                }
-
-                                // Action Filters
-                                Text(stringResource(R.string.admin_log_search_action_title), style = MaterialTheme.typography.bodySmall)
-                                FlowRow(horizontalArrangement = Arrangement.spacedBy(Dimensions.SpaceS)) {
-                                    actionOptions.forEach { action ->
-                                        val isSelected = selectedActions.contains(action)
-                                        val localizedAct = when(action) {
-                                            "scan" -> stringResource(R.string.admin_log_action_scan)
-                                            "complete" -> stringResource(R.string.admin_log_action_complete_deprecated)
-                                            "steps_saved" -> stringResource(R.string.admin_log_action_steps_saved)
-                                            else -> getLocalizedStatus(action)
+                                        IconButton(onClick = { showNfcDialog = true }) {
+                                            Icon(Icons.Default.Nfc, contentDescription = "Scan NFC")
                                         }
-                                        FilterChip(
-                                            selected = isSelected,
-                                            onClick = dropUnlessResumed {
-                                                if (isSelected) selectedActions.remove(action)
-                                                else selectedActions.add(action)
-                                            },
-                                            label = { Text(localizedAct) }
-                                        )
                                     }
-                                }
-                                
-                                // Result Filters
-                                Text(stringResource(R.string.admin_log_search_result_title), style = MaterialTheme.typography.bodySmall)
-                                FlowRow(horizontalArrangement = Arrangement.spacedBy(Dimensions.SpaceS)) {
-                                    resultOptions.forEach { res ->
-                                        val isSelected = selectedResults.contains(res)
-                                        val localizedRes = when (res) {
-                                            "standard_matched" -> stringResource(R.string.worker_history_result_matched)
-                                            "sequence_step_completed" -> stringResource(R.string.worker_history_result_step_completed)
-                                            "mismatch" -> stringResource(R.string.worker_history_result_mismatch)
-                                            "out_of_order" -> stringResource(R.string.worker_history_result_out_of_order)
-                                            "duplicate" -> stringResource(R.string.worker_history_result_duplicate)
-                                            "sequence_steps_saved" -> stringResource(R.string.admin_log_result_steps_saved)
-                                            "standard_completed" -> stringResource(R.string.admin_log_result_standard_completed)
-                                            "sequence_completed" -> stringResource(R.string.admin_log_result_sequence_completed)
-                                            "deprecated_complete_api" -> stringResource(R.string.admin_log_result_deprecated)
-                                            else -> res
+                                    
+                                    // Worker Filters
+                                    Text(stringResource(R.string.admin_search_worker_title), style = MaterialTheme.typography.bodySmall)
+                                    FlowRow(horizontalArrangement = Arrangement.spacedBy(Dimensions.SpaceS)) {
+                                        OutlinedButton(onClick = dropUnlessResumed { showWorkerDialog = true }) {
+                                            val workerText = if (selectedWorkers.isEmpty()) 
+                                                stringResource(R.string.admin_select_worker) 
+                                            else
+                                                stringResource(R.string.admin_workers_selected, selectedWorkers.size)
+                                            Text(workerText)
                                         }
-                                        FilterChip(
-                                            selected = isSelected,
-                                            onClick = dropUnlessResumed {
-                                                if (isSelected) selectedResults.remove(res)
-                                                else selectedResults.add(res)
-                                            },
-                                            label = { Text(localizedRes) }
-                                        )
                                     }
-                                }
+                                    
+                                    // Order Type Filters
+                                    Text(stringResource(R.string.admin_log_search_order_type_title), style = MaterialTheme.typography.bodySmall)
+                                    FlowRow(horizontalArrangement = Arrangement.spacedBy(Dimensions.SpaceS)) {
+                                        orderTypeOptions.forEach { type ->
+                                            val isSelected = selectedOrderTypes.contains(type)
+                                            val localizedLabel = if (type == "standard") stringResource(R.string.worker_order_type_standard) else stringResource(R.string.worker_order_type_sequence)
+                                            FilterChip(
+                                                selected = isSelected,
+                                                onClick = dropUnlessResumed {
+                                                    if (isSelected) selectedOrderTypes.remove(type)
+                                                    else selectedOrderTypes.add(type)
+                                                },
+                                                label = { Text(localizedLabel) }
+                                            )
+                                        }
+                                    }
 
-                                // Time Filters
-                                Row(horizontalArrangement = Arrangement.spacedBy(Dimensions.SpaceS)) {
+                                    // Action Filters
+                                    Text(stringResource(R.string.admin_log_search_action_title), style = MaterialTheme.typography.bodySmall)
+                                    FlowRow(horizontalArrangement = Arrangement.spacedBy(Dimensions.SpaceS)) {
+                                        actionOptions.forEach { action ->
+                                            val isSelected = selectedActions.contains(action)
+                                            val localizedAct = when(action) {
+                                                "scan" -> stringResource(R.string.admin_log_action_scan)
+                                                "complete" -> stringResource(R.string.admin_log_action_complete_deprecated)
+                                                "steps_saved" -> stringResource(R.string.admin_log_action_steps_saved)
+                                                else -> getLocalizedStatus(action)
+                                            }
+                                            FilterChip(
+                                                selected = isSelected,
+                                                onClick = dropUnlessResumed {
+                                                    if (isSelected) selectedActions.remove(action)
+                                                    else selectedActions.add(action)
+                                                },
+                                                label = { Text(localizedAct) }
+                                            )
+                                        }
+                                    }
+                                    
+                                    // Result Filters
+                                    Text(stringResource(R.string.admin_log_search_result_title), style = MaterialTheme.typography.bodySmall)
+                                    FlowRow(horizontalArrangement = Arrangement.spacedBy(Dimensions.SpaceS)) {
+                                        resultOptions.forEach { res ->
+                                            val isSelected = selectedResults.contains(res)
+                                            val localizedRes = when (res) {
+                                                "standard_matched" -> stringResource(R.string.worker_history_result_matched)
+                                                "sequence_step_completed" -> stringResource(R.string.worker_history_result_step_completed)
+                                                "mismatch" -> stringResource(R.string.worker_history_result_mismatch)
+                                                "out_of_order" -> stringResource(R.string.worker_history_result_out_of_order)
+                                                "duplicate" -> stringResource(R.string.worker_history_result_duplicate)
+                                                "sequence_steps_saved" -> stringResource(R.string.admin_log_result_steps_saved)
+                                                "standard_completed" -> stringResource(R.string.admin_log_result_standard_completed)
+                                                "sequence_completed" -> stringResource(R.string.admin_log_result_sequence_completed)
+                                                "deprecated_complete_api" -> stringResource(R.string.admin_log_result_deprecated)
+                                                else -> res
+                                            }
+                                            FilterChip(
+                                                selected = isSelected,
+                                                onClick = dropUnlessResumed {
+                                                    if (isSelected) selectedResults.remove(res)
+                                                    else selectedResults.add(res)
+                                                },
+                                                label = { Text(localizedRes) }
+                                            )
+                                        }
+                                    }
+
+                                    // Time Filters (Vertical in Landscape)
                                     DateTimeSelectorField(
                                         label = stringResource(R.string.admin_log_search_start_time),
                                         value = startTime,
                                         onDateTimeSelected = { startTime = it },
-                                        modifier = Modifier.weight(1f)
+                                        modifier = Modifier.fillMaxWidth()
                                     )
                                     DateTimeSelectorField(
                                         label = stringResource(R.string.admin_log_search_end_time),
                                         value = endTime,
                                         onDateTimeSelected = { endTime = it },
-                                        modifier = Modifier.weight(1f)
+                                        modifier = Modifier.fillMaxWidth()
                                     )
+                                    
+                                    Spacer(modifier = Modifier.height(Dimensions.SpaceS))
                                 }
 
+                                // Search Buttons
                                 Row(
-                                    modifier = Modifier.fillMaxWidth(),
+                                    modifier = Modifier.fillMaxWidth().padding(top = Dimensions.SpaceS),
                                     horizontalArrangement = Arrangement.End,
                                     verticalAlignment = Alignment.CenterVertically
                                 ) {
@@ -545,7 +357,6 @@ fun AdminQueryLogsScreen(
                                     }
                                     Spacer(modifier = Modifier.width(Dimensions.SpaceS))
                                     Button(onClick = dropUnlessResumed {
-                                        isFilterExpanded = false
                                         val query = LogSearchQuery(
                                             orderId = orderIdQuery.takeIf { it.isNotBlank() }?.split(",")?.map { it.trim() },
                                             action = selectedActions.toList().takeIf { it.isNotEmpty() },
@@ -563,71 +374,291 @@ fun AdminQueryLogsScreen(
                                 }
                             }
                         }
-                    }
-                }
 
-                // Results List Portrait
-                Box(modifier = Modifier.fillMaxSize()) {
-                    LogResultsList(
-                        isInitialLoad = isInitialLoad,
-                        uiState = uiState,
-                        viewModel = viewModel,
-                        coroutineScope = coroutineScope,
-                        showEmptyDialog = showEmptyDialog,
-                        onShowEmptyDialogChange = { showEmptyDialog = it },
-                        onLoadMore = {
-                            viewModel.fetchLogs(context, getCurrentQuery(), isAppend = true)
+                        // Results Panel
+                        Box(modifier = Modifier.weight(0.55f).fillMaxSize()) {
+                            LogResultsList(
+                                isInitialLoad = isInitialLoad,
+                                uiState = uiState,
+                                viewModel = viewModel,
+                                coroutineScope = coroutineScope,
+                                showEmptyDialog = showEmptyDialog,
+                                onShowEmptyDialogChange = { showEmptyDialog = it },
+                                onLoadMore = {
+                                    viewModel.fetchLogs(context, getCurrentQuery(), isAppend = true)
+                                },
+                                contentPadding = PaddingValues(bottom = Dimensions.SpaceL)
+                            )
                         }
-                    )
-                }
-            }
-        }
-        
-        // Common Dialogs
-        if (showWorkerDialog) {
-            AlertDialog(
-                onDismissRequest = { showWorkerDialog = false },
-                title = { Text(stringResource(R.string.admin_select_worker)) },
-                text = {
-                    LazyColumn {
-                        items(uiState.workers) { worker ->
-                            val isChecked = selectedWorkers.contains(worker.id.toString())
-                            Row(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .clickable(onClick = dropUnlessResumed {
-                                        if (isChecked) {
-                                            selectedWorkers.remove(worker.id.toString())
-                                        } else {
-                                            selectedWorkers.add(worker.id.toString())
+                    }
+                } else {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxSize()
+                    ) {
+                        // Filter Panel
+                        Card(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(
+                                    top = innerPadding.calculateTopPadding() + Dimensions.SpaceS,
+                                    start = Dimensions.SpaceL,
+                                    end = Dimensions.SpaceL,
+                                    bottom = Dimensions.SpaceL
+                                ),
+                            shape = RoundedCornerShape(Dimensions.Radius.M),
+                            elevation = CardDefaults.cardElevation(defaultElevation = Dimensions.Elevation.Low)
+                        ) {
+                            Column(modifier = Modifier.padding(Dimensions.SpaceL)) {
+                                Row(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .clickable(onClick = dropUnlessResumed { isFilterExpanded = !isFilterExpanded })
+                                        .padding(vertical = Dimensions.SpaceS),
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Text(
+                                        text = stringResource(R.string.admin_advanced_search),
+                                        style = MaterialTheme.typography.titleMedium,
+                                        color = MaterialTheme.colorScheme.primary
+                                    )
+                                    Icon(
+                                        imageVector = if (isFilterExpanded) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
+                                        contentDescription = stringResource(R.string.cd_toggle_filters),
+                                        tint = MaterialTheme.colorScheme.primary
+                                    )
+                                }
+
+                                AnimatedVisibility(visible = isFilterExpanded) {
+                                    Column(
+                                        modifier = Modifier
+                                            .padding(top = Dimensions.SpaceL)
+                                            .weight(weight = 1f, fill = false)
+                                            .verticalScroll(rememberScrollState()),
+                                        verticalArrangement = Arrangement.spacedBy(Dimensions.SpaceM)
+                                    ) {
+                                        OutlinedTextField(
+                                            value = orderIdQuery,
+                                            onValueChange = { orderIdQuery = it },
+                                            label = { Text(stringResource(R.string.admin_log_search_order_id)) },
+                                            modifier = Modifier.fillMaxWidth(),
+                                            singleLine = true
+                                        )
+                                        Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                                            OutlinedTextField(
+                                                value = uidHexQuery,
+                                                onValueChange = { uidHexQuery = it },
+                                                label = { Text(stringResource(R.string.admin_log_search_uid_hex)) },
+                                                modifier = Modifier.weight(1f),
+                                                singleLine = true
+                                            )
+                                            IconButton(onClick = { showNfcDialog = true }) {
+                                                Icon(Icons.Default.Nfc, contentDescription = "Scan NFC")
+                                            }
                                         }
-                                    })
-                                    .padding(Dimensions.SpaceS),
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                Checkbox(checked = isChecked, onCheckedChange = null)
-                                Spacer(modifier = Modifier.width(Dimensions.SpaceS))
-                                Text(worker.username)
+
+                                        // Worker Filters
+                                        Text(stringResource(R.string.admin_search_worker_title), style = MaterialTheme.typography.bodySmall)
+                                        FlowRow(horizontalArrangement = Arrangement.spacedBy(Dimensions.SpaceS)) {
+                                            OutlinedButton(onClick = dropUnlessResumed { showWorkerDialog = true }) {
+                                                val workerText = if (selectedWorkers.isEmpty()) 
+                                                    stringResource(R.string.admin_select_worker) 
+                                                else
+                                                    stringResource(R.string.admin_workers_selected, selectedWorkers.size)
+                                                Text(workerText)
+                                            }
+                                        }
+                                        
+                                        // Order Type Filters
+                                        Text(stringResource(R.string.admin_log_search_order_type_title), style = MaterialTheme.typography.bodySmall)
+                                        FlowRow(horizontalArrangement = Arrangement.spacedBy(Dimensions.SpaceS)) {
+                                            orderTypeOptions.forEach { type ->
+                                                val isSelected = selectedOrderTypes.contains(type)
+                                                val localizedLabel = if (type == "standard") stringResource(R.string.worker_order_type_standard) else stringResource(R.string.worker_order_type_sequence)
+                                                FilterChip(
+                                                    selected = isSelected,
+                                                    onClick = dropUnlessResumed {
+                                                        if (isSelected) selectedOrderTypes.remove(type)
+                                                        else selectedOrderTypes.add(type)
+                                                    },
+                                                    label = { Text(localizedLabel) }
+                                                )
+                                            }
+                                        }
+
+                                        // Action Filters
+                                        Text(stringResource(R.string.admin_log_search_action_title), style = MaterialTheme.typography.bodySmall)
+                                        FlowRow(horizontalArrangement = Arrangement.spacedBy(Dimensions.SpaceS)) {
+                                            actionOptions.forEach { action ->
+                                                val isSelected = selectedActions.contains(action)
+                                                val localizedAct = when(action) {
+                                                    "scan" -> stringResource(R.string.admin_log_action_scan)
+                                                    "complete" -> stringResource(R.string.admin_log_action_complete_deprecated)
+                                                    "steps_saved" -> stringResource(R.string.admin_log_action_steps_saved)
+                                                    else -> getLocalizedStatus(action)
+                                                }
+                                                FilterChip(
+                                                    selected = isSelected,
+                                                    onClick = dropUnlessResumed {
+                                                        if (isSelected) selectedActions.remove(action)
+                                                        else selectedActions.add(action)
+                                                    },
+                                                    label = { Text(localizedAct) }
+                                                )
+                                            }
+                                        }
+                                        
+                                        // Result Filters
+                                        Text(stringResource(R.string.admin_log_search_result_title), style = MaterialTheme.typography.bodySmall)
+                                        FlowRow(horizontalArrangement = Arrangement.spacedBy(Dimensions.SpaceS)) {
+                                            resultOptions.forEach { res ->
+                                                val isSelected = selectedResults.contains(res)
+                                                val localizedRes = when (res) {
+                                                    "standard_matched" -> stringResource(R.string.worker_history_result_matched)
+                                                    "sequence_step_completed" -> stringResource(R.string.worker_history_result_step_completed)
+                                                    "mismatch" -> stringResource(R.string.worker_history_result_mismatch)
+                                                    "out_of_order" -> stringResource(R.string.worker_history_result_out_of_order)
+                                                    "duplicate" -> stringResource(R.string.worker_history_result_duplicate)
+                                                    "sequence_steps_saved" -> stringResource(R.string.admin_log_result_steps_saved)
+                                                    "standard_completed" -> stringResource(R.string.admin_log_result_standard_completed)
+                                                    "sequence_completed" -> stringResource(R.string.admin_log_result_sequence_completed)
+                                                    "deprecated_complete_api" -> stringResource(R.string.admin_log_result_deprecated)
+                                                    else -> res
+                                                }
+                                                FilterChip(
+                                                    selected = isSelected,
+                                                    onClick = dropUnlessResumed {
+                                                        if (isSelected) selectedResults.remove(res)
+                                                        else selectedResults.add(res)
+                                                    },
+                                                    label = { Text(localizedRes) }
+                                                )
+                                            }
+                                        }
+
+                                        // Time Filters
+                                        Row(horizontalArrangement = Arrangement.spacedBy(Dimensions.SpaceS)) {
+                                            DateTimeSelectorField(
+                                                label = stringResource(R.string.admin_log_search_start_time),
+                                                value = startTime,
+                                                onDateTimeSelected = { startTime = it },
+                                                modifier = Modifier.weight(1f)
+                                            )
+                                            DateTimeSelectorField(
+                                                label = stringResource(R.string.admin_log_search_end_time),
+                                                value = endTime,
+                                                onDateTimeSelected = { endTime = it },
+                                                modifier = Modifier.weight(1f)
+                                            )
+                                        }
+
+                                        Row(
+                                            modifier = Modifier.fillMaxWidth(),
+                                            horizontalArrangement = Arrangement.End,
+                                            verticalAlignment = Alignment.CenterVertically
+                                        ) {
+                                            TextButton(onClick = dropUnlessResumed {
+                                                orderIdQuery = ""
+                                                selectedWorkers.clear()
+                                                uidHexQuery = ""
+                                                selectedOrderTypes.clear()
+                                                selectedActions.clear()
+                                                selectedResults.clear()
+                                                startTime = ""
+                                                endTime = ""
+                                                viewModel.fetchLogs(context, null)
+                                            }) {
+                                                Text(stringResource(R.string.admin_search_clear_btn))
+                                            }
+                                            Spacer(modifier = Modifier.width(Dimensions.SpaceS))
+                                            Button(onClick = dropUnlessResumed {
+                                                isFilterExpanded = false
+                                                val query = LogSearchQuery(
+                                                    orderId = orderIdQuery.takeIf { it.isNotBlank() }?.split(",")?.map { it.trim() },
+                                                    action = selectedActions.toList().takeIf { it.isNotEmpty() },
+                                                    result = selectedResults.toList().takeIf { it.isNotEmpty() },
+                                                    operator = selectedWorkers.toList().takeIf { it.isNotEmpty() },
+                                                    uidHex = uidHexQuery.takeIf { it.isNotBlank() },
+                                                    orderType = selectedOrderTypes.toList().takeIf { it.isNotEmpty() },
+                                                    startTime = startTime.takeIf { it.isNotBlank() },
+                                                    endTime = endTime.takeIf { it.isNotBlank() }
+                                                )
+                                                viewModel.fetchLogs(context, query)
+                                            }) {
+                                                Text(stringResource(R.string.admin_search_btn))
+                                            }
+                                        }
+                                    }
+                                }
                             }
                         }
-                    }
-                },
-                confirmButton = {
-                    TextButton(onClick = dropUnlessResumed { showWorkerDialog = false }) {
-                        Text(stringResource(R.string.ok))
+
+                        // Results List Portrait
+                        Box(modifier = Modifier.fillMaxSize()) {
+                            LogResultsList(
+                                isInitialLoad = isInitialLoad,
+                                uiState = uiState,
+                                viewModel = viewModel,
+                                coroutineScope = coroutineScope,
+                                showEmptyDialog = showEmptyDialog,
+                                onShowEmptyDialogChange = { showEmptyDialog = it },
+                                onLoadMore = {
+                                    viewModel.fetchLogs(context, getCurrentQuery(), isAppend = true)
+                                },
+                                contentPadding = PaddingValues(bottom = innerPadding.calculateBottomPadding() + Dimensions.SpaceL)
+                            )
+                        }
                     }
                 }
-            )
-        }
-        
-        if (showNfcDialog) {
-            NfcScannerDialog(
-                onDismiss = { showNfcDialog = false },
-                onScanned = { uidHex, _ ->
-                    uidHexQuery = uidHex
-                    showNfcDialog = false
-                }
-            )
+            }
+            
+            // Common Dialogs
+            if (showWorkerDialog) {
+                AlertDialog(
+                    onDismissRequest = { showWorkerDialog = false },
+                    title = { Text(stringResource(R.string.admin_select_worker)) },
+                    text = {
+                        LazyColumn {
+                            items(uiState.workers) { worker ->
+                                val isChecked = selectedWorkers.contains(worker.id.toString())
+                                Row(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .clickable(onClick = dropUnlessResumed {
+                                            if (isChecked) {
+                                                selectedWorkers.remove(worker.id.toString())
+                                            } else {
+                                                selectedWorkers.add(worker.id.toString())
+                                            }
+                                        })
+                                        .padding(Dimensions.SpaceS),
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Checkbox(checked = isChecked, onCheckedChange = null)
+                                    Spacer(modifier = Modifier.width(Dimensions.SpaceS))
+                                    Text(worker.username)
+                                }
+                            }
+                        }
+                    },
+                    confirmButton = {
+                        TextButton(onClick = dropUnlessResumed { showWorkerDialog = false }) {
+                            Text(stringResource(R.string.ok))
+                        }
+                    }
+                )
+            }
+            
+            if (showNfcDialog) {
+                NfcScannerDialog(
+                    onDismiss = { showNfcDialog = false },
+                    onScanned = { uidHex, _ ->
+                        uidHexQuery = uidHex
+                        showNfcDialog = false
+                    }
+                )
+            }
         }
     }
 }
@@ -640,7 +671,8 @@ fun LogResultsList(
     coroutineScope: kotlinx.coroutines.CoroutineScope,
     showEmptyDialog: Boolean,
     onShowEmptyDialogChange: (Boolean) -> Unit,
-    onLoadMore: () -> Unit
+    onLoadMore: () -> Unit,
+    contentPadding: PaddingValues
 ) {
     val context = LocalContext.current
     when {
@@ -742,7 +774,7 @@ fun LogResultsList(
             LazyColumn(
                 state = listState,
                 modifier = Modifier.fillMaxSize(),
-                contentPadding = PaddingValues(bottom = Dimensions.SpaceL)
+                contentPadding = contentPadding
             ) {
                 // Show Global Analysis Summary
                 uiState.analysisSummary?.let { summary ->

@@ -10,6 +10,7 @@ import icu.guestliang.nfcworkflow.ui.components.SplicedColumnGroup
 import icu.guestliang.nfcworkflow.ui.components.SplicedJumpPageWidget
 import icu.guestliang.nfcworkflow.ui.components.SplicedSwitchWidget
 import icu.guestliang.nfcworkflow.ui.theme.Dimensions
+import icu.guestliang.nfcworkflow.utils.LocalHazeState
 import icu.guestliang.nfcworkflow.utils.findActivity
 import icu.guestliang.nfcworkflow.utils.haze
 import icu.guestliang.nfcworkflow.utils.hazeSource
@@ -70,10 +71,10 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.rememberTopAppBarState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -93,6 +94,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
+import dev.chrisbanes.haze.HazeState
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -254,115 +256,134 @@ fun NfcReadHistoryScreen(
     val isLandscape = configuration.orientation == Configuration.ORIENTATION_LANDSCAPE
     
     val df = remember { SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault()) }
+    val topAppBarState = rememberTopAppBarState()
+    val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior(topAppBarState)
+    val hazeState = remember { HazeState() }
 
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                title = { Text(stringResource(id = R.string.nfc_read_history_page_title) + " (${historyList.size})") },
-                navigationIcon = {
-                    IconButton(onClick = { 
-                        onBack() 
-                        viewModel.clearSelection()
-                    }) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(id = R.string.cd_back))
-                    }
-                },
-                actions = {
-                    if (uiState.readSelectionMode) {
+    CompositionLocalProvider(LocalHazeState provides hazeState) {
+        Scaffold(
+            modifier = Modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
+            containerColor = Color.Transparent,
+            topBar = {
+                LargeTopAppBar(
+                    title = { Text(stringResource(id = R.string.nfc_read_history_page_title) + " (${historyList.size})") },
+                    navigationIcon = {
                         IconButton(onClick = { 
-                            viewModel.updateState { it.copy(showReadDeleteConfirm = true) } 
+                            onBack() 
+                            viewModel.clearSelection()
                         }) {
-                            Icon(Icons.Default.Delete, contentDescription = "Delete")
+                            Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(id = R.string.cd_back))
                         }
-                    }
-                }
-            )
-        }
-    ) { innerPadding ->
-        if (historyList.isEmpty()) {
+                    },
+                    actions = {
+                        if (uiState.readSelectionMode) {
+                            IconButton(onClick = { 
+                                viewModel.updateState { it.copy(showReadDeleteConfirm = true) } 
+                            }) {
+                                Icon(Icons.Default.Delete, contentDescription = "Delete")
+                            }
+                        }
+                    },
+                    colors = TopAppBarDefaults.topAppBarColors(
+                        containerColor = Color.Transparent,
+                        scrolledContainerColor = Color.Transparent
+                    ),
+                    scrollBehavior = scrollBehavior,
+                    modifier = Modifier.haze(alpha = scrollBehavior.state.collapsedFraction)
+                )
+            }
+        ) { innerPadding ->
             Box(
                 modifier = Modifier
                     .fillMaxSize()
-                    .padding(innerPadding),
-                contentAlignment = Alignment.Center
+                    .hazeSource()
             ) {
-                Text(
-                    text = stringResource(id = R.string.nfc_read_history_empty_hint),
-                    style = MaterialTheme.typography.bodyLarge,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            }
-        } else {
-            if (isLandscape) {
-                LazyVerticalGrid(
-                    columns = GridCells.Fixed(2),
-                    contentPadding = PaddingValues(
-                        start = Dimensions.SpaceM,
-                        end = Dimensions.SpaceM,
-                        top = innerPadding.calculateTopPadding() + Dimensions.SpaceM,
-                        bottom = innerPadding.calculateBottomPadding() + Dimensions.SpaceM
-                    ),
-                    horizontalArrangement = Arrangement.spacedBy(Dimensions.SpaceM),
-                    verticalArrangement = Arrangement.spacedBy(Dimensions.SpaceM),
-                    modifier = Modifier.fillMaxSize()
-                ) {
-                    item(span = { GridItemSpan(maxLineSpan) }) {
-                        LongPressHintCard()
-                    }
-                    items(items = historyList, key = { it.id }) { record ->
-                        HistoryCard(
-                            record = record,
-                            selectionMode = uiState.readSelectionMode,
-                            isSelected = uiState.readSelectedIds.contains(record.id),
-                            onLongClick = {
-                                if (!uiState.readSelectionMode) {
-                                    viewModel.updateState { 
-                                        it.copy(readSelectionMode = true, readSelectedIds = setOf(record.id)) 
-                                    }
-                                }
-                            },
-                            onClick = {
-                                if (uiState.readSelectionMode) {
-                                    viewModel.toggleSelection(record.id)
-                                }
-                            },
-                            dateString = df.format(Date(record.timestamp))
+                if (historyList.isEmpty()) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .padding(innerPadding),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            text = stringResource(id = R.string.nfc_read_history_empty_hint),
+                            style = MaterialTheme.typography.bodyLarge,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     }
-                }
-            } else {
-                LazyColumn(
-                    contentPadding = PaddingValues(
-                        start = Dimensions.SpaceM,
-                        end = Dimensions.SpaceM,
-                        top = innerPadding.calculateTopPadding() + Dimensions.SpaceM,
-                        bottom = innerPadding.calculateBottomPadding() + Dimensions.SpaceL
-                    ),
-                    verticalArrangement = Arrangement.spacedBy(Dimensions.SpaceM),
-                    modifier = Modifier.fillMaxSize()
-                ) {
-                    item {
-                        LongPressHintCard()
-                    }
-                    items(items = historyList, key = { it.id }) { record ->
-                        HistoryCard(
-                            record = record,
-                            selectionMode = uiState.readSelectionMode,
-                            isSelected = uiState.readSelectedIds.contains(record.id),
-                            onLongClick = {
-                                if (!uiState.readSelectionMode) {
-                                    viewModel.updateState { 
-                                        it.copy(readSelectionMode = true, readSelectedIds = setOf(record.id)) 
-                                    }
-                                }
-                            },
-                            onClick = {
-                                if (uiState.readSelectionMode) {
-                                    viewModel.toggleSelection(record.id)
-                                }
-                            },
-                            dateString = df.format(Date(record.timestamp))
-                        )
+                } else {
+                    if (isLandscape) {
+                        LazyVerticalGrid(
+                            columns = GridCells.Fixed(2),
+                            contentPadding = PaddingValues(
+                                start = Dimensions.SpaceM,
+                                end = Dimensions.SpaceM,
+                                top = innerPadding.calculateTopPadding() + Dimensions.SpaceM,
+                                bottom = innerPadding.calculateBottomPadding() + Dimensions.SpaceM
+                            ),
+                            horizontalArrangement = Arrangement.spacedBy(Dimensions.SpaceM),
+                            verticalArrangement = Arrangement.spacedBy(Dimensions.SpaceM),
+                            modifier = Modifier.fillMaxSize()
+                        ) {
+                            item(span = { GridItemSpan(maxLineSpan) }) {
+                                LongPressHintCard()
+                            }
+                            items(items = historyList, key = { it.id }) { record ->
+                                HistoryCard(
+                                    record = record,
+                                    selectionMode = uiState.readSelectionMode,
+                                    isSelected = uiState.readSelectedIds.contains(record.id),
+                                    onLongClick = {
+                                        if (!uiState.readSelectionMode) {
+                                            viewModel.updateState { 
+                                                it.copy(readSelectionMode = true, readSelectedIds = setOf(record.id)) 
+                                            }
+                                        }
+                                    },
+                                    onClick = {
+                                        if (uiState.readSelectionMode) {
+                                            viewModel.toggleSelection(record.id)
+                                        }
+                                    },
+                                    dateString = df.format(Date(record.timestamp))
+                                )
+                            }
+                        }
+                    } else {
+                        LazyColumn(
+                            contentPadding = PaddingValues(
+                                start = Dimensions.SpaceM,
+                                end = Dimensions.SpaceM,
+                                top = innerPadding.calculateTopPadding() + Dimensions.SpaceM,
+                                bottom = innerPadding.calculateBottomPadding() + Dimensions.SpaceL
+                            ),
+                            verticalArrangement = Arrangement.spacedBy(Dimensions.SpaceM),
+                            modifier = Modifier.fillMaxSize()
+                        ) {
+                            item {
+                                LongPressHintCard()
+                            }
+                            items(items = historyList, key = { it.id }) { record ->
+                                HistoryCard(
+                                    record = record,
+                                    selectionMode = uiState.readSelectionMode,
+                                    isSelected = uiState.readSelectedIds.contains(record.id),
+                                    onLongClick = {
+                                        if (!uiState.readSelectionMode) {
+                                            viewModel.updateState { 
+                                                it.copy(readSelectionMode = true, readSelectedIds = setOf(record.id)) 
+                                            }
+                                        }
+                                    },
+                                    onClick = {
+                                        if (uiState.readSelectionMode) {
+                                            viewModel.toggleSelection(record.id)
+                                        }
+                                    },
+                                    dateString = df.format(Date(record.timestamp))
+                                )
+                            }
+                        }
                     }
                 }
             }

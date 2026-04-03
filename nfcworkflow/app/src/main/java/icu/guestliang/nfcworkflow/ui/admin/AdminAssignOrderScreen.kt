@@ -3,6 +3,9 @@ package icu.guestliang.nfcworkflow.ui.admin
 import icu.guestliang.nfcworkflow.R
 import icu.guestliang.nfcworkflow.logging.AppLogger
 import icu.guestliang.nfcworkflow.ui.theme.Dimensions
+import icu.guestliang.nfcworkflow.utils.LocalHazeState
+import icu.guestliang.nfcworkflow.utils.haze
+import icu.guestliang.nfcworkflow.utils.hazeSource
 import kotlinx.coroutines.joinAll
 import android.content.res.Configuration
 import androidx.compose.foundation.layout.Arrangement
@@ -29,14 +32,16 @@ import androidx.compose.material3.ExposedDropdownMenuBox
 import androidx.compose.material3.ExposedDropdownMenuDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.LargeTopAppBar
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
+import androidx.compose.material3.rememberTopAppBarState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -45,6 +50,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
@@ -52,6 +58,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.lifecycle.compose.dropUnlessResumed
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
+import dev.chrisbanes.haze.HazeState
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -66,7 +73,9 @@ fun AdminAssignOrderScreen(
     var isInitialLoad by remember { mutableStateOf(true) }
     var showAssignResultDialog by remember { mutableStateOf<String?>(null) }
     val isLandscape = LocalConfiguration.current.orientation == Configuration.ORIENTATION_LANDSCAPE
-    val scrollBehavior = TopAppBarDefaults.enterAlwaysScrollBehavior()
+    val topAppBarState = rememberTopAppBarState()
+    val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior(topAppBarState)
+    val hazeState = remember { HazeState() }
 
     LaunchedEffect(Unit) {
         val ordersJob = viewModel.fetchOrders(context)
@@ -102,114 +111,126 @@ fun AdminAssignOrderScreen(
         )
     }
 
-    Scaffold(
-        modifier = Modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
-        topBar = {
-            TopAppBar(
-                title = { Text(stringResource(R.string.admin_assign_order)) },
-                navigationIcon = {
-                    IconButton(onClick = dropUnlessResumed { navController.popBackStack() }) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.cd_back))
-                    }
-                },
-                scrollBehavior = scrollBehavior
-            )
-        },
-        containerColor = MaterialTheme.colorScheme.background
-    ) { innerPadding ->
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(innerPadding)
-        ) {
-            when {
-                isInitialLoad || (uiState.isLoading && uiState.orders.isEmpty()) -> {
-                    CircularProgressIndicator(modifier = Modifier.align(Alignment.Center))
-                }
-                else -> {
-                    val displayableOrders = uiState.orders.filter { it.status == "created" || it.status == "assigned" || it.status == "unassigned" }
-                    
-                    if (displayableOrders.isEmpty() && !uiState.isLoading && !isInitialLoad) {
-                        Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
-                            Text(
-                                text = stringResource(R.string.admin_all_orders_assigned),
-                                style = MaterialTheme.typography.bodyLarge,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                modifier = Modifier.padding(Dimensions.SpaceXXXL)
-                            )
+    CompositionLocalProvider(LocalHazeState provides hazeState) {
+        Scaffold(
+            modifier = Modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
+            containerColor = Color.Transparent,
+            topBar = {
+                LargeTopAppBar(
+                    title = { Text(stringResource(R.string.admin_assign_order)) },
+                    navigationIcon = {
+                        IconButton(onClick = dropUnlessResumed { navController.popBackStack() }) {
+                            Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.cd_back))
                         }
-                    } else {
-                        val columns = if (isLandscape) 2 else 1
-                        LazyVerticalStaggeredGrid(
-                            columns = StaggeredGridCells.Fixed(columns),
-                            modifier = Modifier.fillMaxSize(),
-                            contentPadding = PaddingValues(Dimensions.SpaceL),
-                            horizontalArrangement = Arrangement.spacedBy(Dimensions.SpaceL),
-                            verticalItemSpacing = Dimensions.SpaceL
-                        ) {
-                            items(displayableOrders) { order ->
-                                Card(
-                                    modifier = Modifier.fillMaxWidth(),
-                                    elevation = CardDefaults.cardElevation(defaultElevation = Dimensions.Elevation.Low)
-                                ) {
-                                    Column(
-                                        modifier = Modifier.padding(Dimensions.SpaceL),
-                                        verticalArrangement = Arrangement.spacedBy(Dimensions.SpaceS)
+                    },
+                    colors = TopAppBarDefaults.topAppBarColors(
+                        containerColor = Color.Transparent,
+                        scrolledContainerColor = Color.Transparent
+                    ),
+                    scrollBehavior = scrollBehavior,
+                    modifier = Modifier.haze(alpha = scrollBehavior.state.collapsedFraction)
+                )
+            }
+        ) { innerPadding ->
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .hazeSource()
+            ) {
+                when {
+                    isInitialLoad || (uiState.isLoading && uiState.orders.isEmpty()) -> {
+                        CircularProgressIndicator(modifier = Modifier.align(Alignment.Center))
+                    }
+                    else -> {
+                        val displayableOrders = uiState.orders.filter { it.status == "created" || it.status == "assigned" || it.status == "unassigned" }
+                        
+                        if (displayableOrders.isEmpty() && !uiState.isLoading && !isInitialLoad) {
+                            Box(modifier = Modifier.fillMaxWidth().padding(innerPadding), contentAlignment = Alignment.Center) {
+                                Text(
+                                    text = stringResource(R.string.admin_all_orders_assigned),
+                                    style = MaterialTheme.typography.bodyLarge,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    modifier = Modifier.padding(Dimensions.SpaceXXXL)
+                                )
+                            }
+                        } else {
+                            val columns = if (isLandscape) 2 else 1
+                            LazyVerticalStaggeredGrid(
+                                columns = StaggeredGridCells.Fixed(columns),
+                                modifier = Modifier.fillMaxSize(),
+                                contentPadding = PaddingValues(
+                                    top = innerPadding.calculateTopPadding() + Dimensions.SpaceL,
+                                    bottom = innerPadding.calculateBottomPadding() + Dimensions.SpaceL,
+                                    start = Dimensions.SpaceL,
+                                    end = Dimensions.SpaceL
+                                ),
+                                horizontalArrangement = Arrangement.spacedBy(Dimensions.SpaceL),
+                                verticalItemSpacing = Dimensions.SpaceL
+                            ) {
+                                items(displayableOrders) { order ->
+                                    Card(
+                                        modifier = Modifier.fillMaxWidth(),
+                                        elevation = CardDefaults.cardElevation(defaultElevation = Dimensions.Elevation.Low)
                                     ) {
-                                        Text(
-                                            text = stringResource(R.string.admin_order_item_title, order.id ?: 0, order.title),
-                                            style = MaterialTheme.typography.titleMedium
-                                        )
-                                        Text(text = stringResource(R.string.admin_order_description, order.description))
-
-                                        var expanded by remember { mutableStateOf(false) }
-                                        val finalAssignedTo = order.assignedTo ?: order.assigned_to
-                                        var selectedWorkerId by remember(finalAssignedTo) { mutableStateOf(finalAssignedTo) }
-
-                                        ExposedDropdownMenuBox(
-                                            expanded = expanded,
-                                            onExpandedChange = { expanded = it }
+                                        Column(
+                                            modifier = Modifier.padding(Dimensions.SpaceL),
+                                            verticalArrangement = Arrangement.spacedBy(Dimensions.SpaceS)
                                         ) {
-                                            OutlinedTextField(
-                                                value = selectedWorkerId?.let { id -> uiState.workers.find { it.id == id }?.username } ?: stringResource(R.string.admin_select_worker),
-                                                onValueChange = {},
-                                                readOnly = true,
-                                                trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
-                                                modifier = Modifier.menuAnchor(ExposedDropdownMenuAnchorType.PrimaryNotEditable)
+                                            Text(
+                                                text = stringResource(R.string.admin_order_item_title, order.id ?: 0, order.title),
+                                                style = MaterialTheme.typography.titleMedium
                                             )
+                                            Text(text = stringResource(R.string.admin_order_description, order.description))
 
-                                            ExposedDropdownMenu(
+                                            var expanded by remember { mutableStateOf(false) }
+                                            val finalAssignedTo = order.assignedTo ?: order.assigned_to
+                                            var selectedWorkerId by remember(finalAssignedTo) { mutableStateOf(finalAssignedTo) }
+
+                                            ExposedDropdownMenuBox(
                                                 expanded = expanded,
-                                                onDismissRequest = { expanded = false }
+                                                onExpandedChange = { expanded = it }
                                             ) {
-                                                DropdownMenuItem(
-                                                    text = { Text(stringResource(R.string.admin_assign_unassign_btn)) },
-                                                    onClick = dropUnlessResumed {
-                                                        selectedWorkerId = null
-                                                        expanded = false
-                                                    }
+                                                OutlinedTextField(
+                                                    value = selectedWorkerId?.let { id -> uiState.workers.find { it.id == id }?.username } ?: stringResource(R.string.admin_select_worker),
+                                                    onValueChange = {},
+                                                    readOnly = true,
+                                                    trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
+                                                    modifier = Modifier.menuAnchor(ExposedDropdownMenuAnchorType.PrimaryNotEditable)
                                                 )
-                                                uiState.workers.forEach { worker ->
+
+                                                ExposedDropdownMenu(
+                                                    expanded = expanded,
+                                                    onDismissRequest = { expanded = false }
+                                                ) {
                                                     DropdownMenuItem(
-                                                        text = { Text(worker.username) },
+                                                        text = { Text(stringResource(R.string.admin_assign_unassign_btn)) },
                                                         onClick = dropUnlessResumed {
-                                                            selectedWorkerId = worker.id
+                                                            selectedWorkerId = null
                                                             expanded = false
                                                         }
                                                     )
+                                                    uiState.workers.forEach { worker ->
+                                                        DropdownMenuItem(
+                                                            text = { Text(worker.username) },
+                                                            onClick = dropUnlessResumed {
+                                                                selectedWorkerId = worker.id
+                                                                expanded = false
+                                                            }
+                                                        )
+                                                    }
                                                 }
                                             }
-                                        }
 
-                                        Button(
-                                            onClick = dropUnlessResumed {
-                                                if (order.id != null) {
-                                                    viewModel.assignOrder(context, order.id, selectedWorkerId)
-                                                }
-                                            },
-                                            modifier = Modifier.align(Alignment.End)
-                                        ) {
-                                            Text(stringResource(R.string.admin_assign_btn))
+                                            Button(
+                                                onClick = dropUnlessResumed {
+                                                    if (order.id != null) {
+                                                        viewModel.assignOrder(context, order.id, selectedWorkerId)
+                                                    }
+                                                },
+                                                modifier = Modifier.align(Alignment.End)
+                                            ) {
+                                                Text(stringResource(R.string.admin_assign_btn))
+                                            }
                                         }
                                     }
                                 }

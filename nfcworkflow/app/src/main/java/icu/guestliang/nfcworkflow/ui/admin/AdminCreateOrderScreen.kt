@@ -6,6 +6,9 @@ import icu.guestliang.nfcworkflow.network.OrderStep
 import icu.guestliang.nfcworkflow.ui.components.NfcScannerDialog
 import icu.guestliang.nfcworkflow.ui.components.SplicedColumnGroup
 import icu.guestliang.nfcworkflow.ui.theme.Dimensions
+import icu.guestliang.nfcworkflow.utils.LocalHazeState
+import icu.guestliang.nfcworkflow.utils.haze
+import icu.guestliang.nfcworkflow.utils.hazeSource
 import android.content.res.Configuration
 import android.widget.Toast
 import androidx.compose.foundation.clickable
@@ -32,15 +35,17 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.LargeTopAppBar
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
+import androidx.compose.material3.rememberTopAppBarState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -49,6 +54,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
@@ -56,6 +62,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.lifecycle.compose.dropUnlessResumed
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
+import dev.chrisbanes.haze.HazeState
 
 data class DraftStep(
     var targetUidHex: String = "",
@@ -88,7 +95,9 @@ fun AdminCreateOrderScreen(
     var showNfcDialog by remember { mutableStateOf(false) }
     var scanningForStepIndex by remember { mutableStateOf<Int?>(null) }
 
-    val scrollBehavior = TopAppBarDefaults.enterAlwaysScrollBehavior()
+    val topAppBarState = rememberTopAppBarState()
+    val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior(topAppBarState)
+    val hazeState = remember { HazeState() }
 
     LaunchedEffect(uiState.successMessage, uiState.error) {
         uiState.successMessage?.let {
@@ -102,127 +111,146 @@ fun AdminCreateOrderScreen(
         }
     }
 
-    Scaffold(
-        modifier = Modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
-        topBar = {
-            TopAppBar(
-                title = { Text(stringResource(R.string.admin_create_order)) },
-                navigationIcon = {
-                    IconButton(onClick = dropUnlessResumed { navController.popBackStack() }) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.cd_back))
-                    }
-                },
-                scrollBehavior = scrollBehavior
-            )
-        },
-        containerColor = MaterialTheme.colorScheme.background
-    ) { innerPadding ->
-        if (isLandscape) {
-            Row(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(innerPadding)
-                    .padding(horizontal = Dimensions.SpaceL)
-                    .imePadding(),
-                horizontalArrangement = Arrangement.spacedBy(Dimensions.SpaceL)
-            ) {
-                Column(
-                    modifier = Modifier
-                        .weight(1f)
-                        .verticalScroll(rememberScrollState())
-                        .padding(vertical = Dimensions.SpaceL)
-                ) {
-                    CreateOrderFormFields(
-                        title = title,
-                        onTitleChange = { title = it },
-                        description = description,
-                        onDescriptionChange = { description = it },
-                        orderType = orderType,
-                        onOrderTypeChange = { orderType = it },
-                        nfcTag = nfcTag,
-                        onNfcTagChange = { nfcTag = it },
-                        locationCode = locationCode,
-                        onLocationCodeChange = { locationCode = it },
-                        steps = steps,
-                        onStepsChange = { steps = it },
-                        onScanClick = { stepIndex -> 
-                            scanningForStepIndex = stepIndex
-                            showNfcDialog = true
+    CompositionLocalProvider(LocalHazeState provides hazeState) {
+        Scaffold(
+            modifier = Modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
+            containerColor = Color.Transparent,
+            topBar = {
+                LargeTopAppBar(
+                    title = { Text(stringResource(R.string.admin_create_order)) },
+                    navigationIcon = {
+                        IconButton(onClick = dropUnlessResumed { navController.popBackStack() }) {
+                            Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.cd_back))
                         }
-                    )
-                }
-
-                Box(
-                    modifier = Modifier.weight(0.4f).padding(vertical = Dimensions.SpaceL),
-                    contentAlignment = Alignment.BottomCenter
-                ) {
-                    SubmitButton(
-                        isLoading = uiState.isLoading,
-                        onClick = dropUnlessResumed {
-                            val finalTag = nfcTag.trim().ifEmpty { null }
-                            val orderSteps = steps.mapIndexed { index, draftStep -> 
-                                OrderStep(
-                                    stepIndex = index + 1,
-                                    targetUidHex = draftStep.targetUidHex.trim(),
-                                    locationCode = draftStep.locationCode.trim().ifEmpty { null },
-                                    displayName = draftStep.displayName.trim()
-                                )
-                            }.filter { it.targetUidHex.isNotEmpty() }
-                            
-                            viewModel.createOrder(context, title, description, orderType, finalTag, orderSteps)
-                        }
-                    )
-                }
+                    },
+                    colors = TopAppBarDefaults.topAppBarColors(
+                        containerColor = Color.Transparent,
+                        scrolledContainerColor = Color.Transparent
+                    ),
+                    scrollBehavior = scrollBehavior,
+                    modifier = Modifier.haze(alpha = scrollBehavior.state.collapsedFraction)
+                )
             }
-        } else {
-            Column(
+        ) { innerPadding ->
+            Box(
                 modifier = Modifier
                     .fillMaxSize()
-                    .padding(innerPadding)
-                    .padding(horizontal = Dimensions.SpaceL)
-                    .imePadding()
-                    .verticalScroll(rememberScrollState()),
-                verticalArrangement = Arrangement.spacedBy(Dimensions.SpaceL)
+                    .hazeSource()
             ) {
-                Spacer(modifier = Modifier.height(Dimensions.SpaceXS))
-                CreateOrderFormFields(
-                    title = title,
-                    onTitleChange = { title = it },
-                    description = description,
-                    onDescriptionChange = { description = it },
-                    orderType = orderType,
-                    onOrderTypeChange = { orderType = it },
-                    nfcTag = nfcTag,
-                    onNfcTagChange = { nfcTag = it },
-                    locationCode = locationCode,
-                    onLocationCodeChange = { locationCode = it },
-                    steps = steps,
-                    onStepsChange = { steps = it },
-                    onScanClick = { stepIndex -> 
-                        scanningForStepIndex = stepIndex
-                        showNfcDialog = true
-                    }
-                )
-
-                Spacer(modifier = Modifier.height(Dimensions.SpaceS))
-
-                SubmitButton(
-                    isLoading = uiState.isLoading,
-                    onClick = dropUnlessResumed {
-                        val finalTag = nfcTag.trim().ifEmpty { null }
-                        val orderSteps = steps.mapIndexed { index, draftStep -> 
-                            OrderStep(
-                                stepIndex = index + 1,
-                                targetUidHex = draftStep.targetUidHex.trim(),
-                                locationCode = draftStep.locationCode.trim().ifEmpty { null },
-                                displayName = draftStep.displayName.trim()
+                if (isLandscape) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .padding(
+                                top = innerPadding.calculateTopPadding(),
+                                bottom = innerPadding.calculateBottomPadding()
                             )
-                        }.filter { it.targetUidHex.isNotEmpty() }
-                        
-                        viewModel.createOrder(context, title, description, orderType, finalTag, orderSteps)
+                            .padding(horizontal = Dimensions.SpaceL)
+                            .imePadding(),
+                        horizontalArrangement = Arrangement.spacedBy(Dimensions.SpaceL)
+                    ) {
+                        Column(
+                            modifier = Modifier
+                                .weight(1f)
+                                .verticalScroll(rememberScrollState())
+                                .padding(vertical = Dimensions.SpaceL)
+                        ) {
+                            CreateOrderFormFields(
+                                title = title,
+                                onTitleChange = { title = it },
+                                description = description,
+                                onDescriptionChange = { description = it },
+                                orderType = orderType,
+                                onOrderTypeChange = { orderType = it },
+                                nfcTag = nfcTag,
+                                onNfcTagChange = { nfcTag = it },
+                                locationCode = locationCode,
+                                onLocationCodeChange = { locationCode = it },
+                                steps = steps,
+                                onStepsChange = { steps = it },
+                                onScanClick = { stepIndex -> 
+                                    scanningForStepIndex = stepIndex
+                                    showNfcDialog = true
+                                }
+                            )
+                        }
+
+                        Box(
+                            modifier = Modifier.weight(0.4f).padding(vertical = Dimensions.SpaceL),
+                            contentAlignment = Alignment.BottomCenter
+                        ) {
+                            SubmitButton(
+                                isLoading = uiState.isLoading,
+                                onClick = dropUnlessResumed {
+                                    val finalTag = nfcTag.trim().ifEmpty { null }
+                                    val orderSteps = steps.mapIndexed { index, draftStep -> 
+                                        OrderStep(
+                                            stepIndex = index + 1,
+                                            targetUidHex = draftStep.targetUidHex.trim(),
+                                            locationCode = draftStep.locationCode.trim().ifEmpty { null },
+                                            displayName = draftStep.displayName.trim()
+                                        )
+                                    }.filter { it.targetUidHex.isNotEmpty() }
+                                    
+                                    viewModel.createOrder(context, title, description, orderType, finalTag, orderSteps)
+                                }
+                            )
+                        }
                     }
-                )
-                Spacer(modifier = Modifier.height(Dimensions.SpaceL))
+                } else {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .padding(
+                                top = innerPadding.calculateTopPadding(),
+                                bottom = innerPadding.calculateBottomPadding()
+                            )
+                            .padding(horizontal = Dimensions.SpaceL)
+                            .imePadding()
+                            .verticalScroll(rememberScrollState()),
+                        verticalArrangement = Arrangement.spacedBy(Dimensions.SpaceL)
+                    ) {
+                        Spacer(modifier = Modifier.height(Dimensions.SpaceXS))
+                        CreateOrderFormFields(
+                            title = title,
+                            onTitleChange = { title = it },
+                            description = description,
+                            onDescriptionChange = { description = it },
+                            orderType = orderType,
+                            onOrderTypeChange = { orderType = it },
+                            nfcTag = nfcTag,
+                            onNfcTagChange = { nfcTag = it },
+                            locationCode = locationCode,
+                            onLocationCodeChange = { locationCode = it },
+                            steps = steps,
+                            onStepsChange = { steps = it },
+                            onScanClick = { stepIndex -> 
+                                scanningForStepIndex = stepIndex
+                                showNfcDialog = true
+                            }
+                        )
+
+                        Spacer(modifier = Modifier.height(Dimensions.SpaceS))
+
+                        SubmitButton(
+                            isLoading = uiState.isLoading,
+                            onClick = dropUnlessResumed {
+                                val finalTag = nfcTag.trim().ifEmpty { null }
+                                val orderSteps = steps.mapIndexed { index, draftStep -> 
+                                    OrderStep(
+                                        stepIndex = index + 1,
+                                        targetUidHex = draftStep.targetUidHex.trim(),
+                                        locationCode = draftStep.locationCode.trim().ifEmpty { null },
+                                        displayName = draftStep.displayName.trim()
+                                    )
+                                }.filter { it.targetUidHex.isNotEmpty() }
+                                
+                                viewModel.createOrder(context, title, description, orderType, finalTag, orderSteps)
+                            }
+                        )
+                        Spacer(modifier = Modifier.height(Dimensions.SpaceL))
+                    }
+                }
             }
         }
     }

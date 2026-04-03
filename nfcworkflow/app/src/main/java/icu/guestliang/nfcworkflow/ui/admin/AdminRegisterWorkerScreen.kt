@@ -12,7 +12,7 @@ fun AdminRegisterWorkerScreen(navController: NavController) {
     AppLogger.debug(context, "AdminRegisterWorkerScreen recomposed", "UI")
     
     // We can reuse the existing RegisterScreen.
-    // Assuming RegisterScreen allows creating new accounts.
+    // The RegisterScreen uses Scaffold/LargeTopAppBar inside already.
     RegisterScreen(
         isResetPassword = false,
         onSuccess = {

@@ -5,7 +5,11 @@ import icu.guestliang.nfcworkflow.logging.AppLogger
 import icu.guestliang.nfcworkflow.ui.components.SplicedColumnGroup
 import icu.guestliang.nfcworkflow.ui.components.SplicedTextFieldWidget
 import icu.guestliang.nfcworkflow.ui.theme.Dimensions
+import icu.guestliang.nfcworkflow.utils.LocalHazeState
+import icu.guestliang.nfcworkflow.utils.haze
+import icu.guestliang.nfcworkflow.utils.hazeSource
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.imePadding
@@ -22,13 +26,15 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.LargeTopAppBar
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
+import androidx.compose.material3.rememberTopAppBarState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -37,12 +43,14 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.lifecycle.compose.dropUnlessResumed
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
+import dev.chrisbanes.haze.HazeState
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -61,7 +69,9 @@ fun CompleteOrderScreen(
     var dialogMessage by remember { mutableStateOf("") }
     var navigateBackOnDismiss by remember { mutableStateOf(false) }
 
-    val scrollBehavior = TopAppBarDefaults.enterAlwaysScrollBehavior()
+    val topAppBarState = rememberTopAppBarState()
+    val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior(topAppBarState)
+    val hazeState = remember { HazeState() }
 
     val successTitle = stringResource(R.string.worker_complete_result_title)
     val successMessage = stringResource(R.string.worker_order_complete_success)
@@ -114,76 +124,87 @@ fun CompleteOrderScreen(
         )
     }
 
-    Scaffold(
-        modifier = Modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
-        topBar = {
-            TopAppBar(
-                title = { Text(stringResource(R.string.worker_complete_order)) },
-                navigationIcon = {
-                    IconButton(onClick = dropUnlessResumed { navController.popBackStack() }) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.cd_back))
-                    }
-                },
-                scrollBehavior = scrollBehavior
-            )
-        },
-        containerColor = MaterialTheme.colorScheme.background
-    ) { innerPadding ->
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(innerPadding)
-                .imePadding()
-        ) {
-            LazyColumn(
-                state = rememberLazyListState(),
-                modifier = Modifier.fillMaxSize()
+    CompositionLocalProvider(LocalHazeState provides hazeState) {
+        Scaffold(
+            modifier = Modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
+            containerColor = Color.Transparent,
+            topBar = {
+                LargeTopAppBar(
+                    title = { Text(stringResource(R.string.worker_complete_order)) },
+                    navigationIcon = {
+                        IconButton(onClick = dropUnlessResumed { navController.popBackStack() }) {
+                            Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.cd_back))
+                        }
+                    },
+                    colors = TopAppBarDefaults.topAppBarColors(
+                        containerColor = Color.Transparent,
+                        scrolledContainerColor = Color.Transparent
+                    ),
+                    scrollBehavior = scrollBehavior,
+                    modifier = Modifier.haze(alpha = scrollBehavior.state.collapsedFraction)
+                )
+            }
+        ) { innerPadding ->
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .hazeSource()
+                    .imePadding()
             ) {
-                item {
-                    SplicedColumnGroup(title = stringResource(R.string.worker_complete_order_desc)) {
-                        item {
-                            SplicedTextFieldWidget(
-                                state = orderIdState,
-                                title = stringResource(R.string.worker_order_id),
-                                useLabelAsPlaceholder = true,
-                                leadingIcon = {
-                                    Icon(
-                                        Icons.Default.Numbers,
-                                        contentDescription = null,
-                                        tint = MaterialTheme.colorScheme.onSurfaceVariant
-                                    )
+                LazyColumn(
+                    state = rememberLazyListState(),
+                    modifier = Modifier.fillMaxSize(),
+                    contentPadding = PaddingValues(
+                        top = innerPadding.calculateTopPadding(),
+                        bottom = innerPadding.calculateBottomPadding() + Dimensions.SpaceL
+                    )
+                ) {
+                    item {
+                        SplicedColumnGroup(title = stringResource(R.string.worker_complete_order_desc)) {
+                            item {
+                                SplicedTextFieldWidget(
+                                    state = orderIdState,
+                                    title = stringResource(R.string.worker_order_id),
+                                    useLabelAsPlaceholder = true,
+                                    leadingIcon = {
+                                        Icon(
+                                            Icons.Default.Numbers,
+                                            contentDescription = null,
+                                            tint = MaterialTheme.colorScheme.onSurfaceVariant
+                                        )
+                                    }
+                                )
+                            }
+                        }
+                    }
+
+                    item {
+                        val invalidIdMessage = stringResource(R.string.worker_invalid_order_id)
+                        Button(
+                            onClick = dropUnlessResumed {
+                                val orderId = orderIdState.text.toString().toIntOrNull()
+                                if (orderId != null) {
+                                    viewModel.completeOrder(context, orderId)
+                                } else {
+                                    dialogTitle = errorTitle
+                                    dialogMessage = invalidIdMessage
+                                    navigateBackOnDismiss = false
+                                    showDialog = true
                                 }
-                            )
+                            },
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(Dimensions.SpaceL),
+                            enabled = !uiState.isLoading && orderIdState.text.isNotBlank()
+                        ) {
+                            Text(stringResource(R.string.worker_complete_order))
                         }
                     }
                 }
 
-                item {
-                    val invalidIdMessage = stringResource(R.string.worker_invalid_order_id)
-                    Button(
-                        onClick = dropUnlessResumed {
-                            val orderId = orderIdState.text.toString().toIntOrNull()
-                            if (orderId != null) {
-                                viewModel.completeOrder(context, orderId)
-                            } else {
-                                dialogTitle = errorTitle
-                                dialogMessage = invalidIdMessage
-                                navigateBackOnDismiss = false
-                                showDialog = true
-                            }
-                        },
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(Dimensions.SpaceL),
-                        enabled = !uiState.isLoading && orderIdState.text.isNotBlank()
-                    ) {
-                        Text(stringResource(R.string.worker_complete_order))
-                    }
+                if (uiState.isLoading) {
+                    CircularProgressIndicator(modifier = Modifier.align(Alignment.Center))
                 }
-            }
-
-            if (uiState.isLoading) {
-                CircularProgressIndicator(modifier = Modifier.align(Alignment.Center))
             }
         }
     }
