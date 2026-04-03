@@ -22,6 +22,7 @@ import io.ktor.client.request.setBody
 import io.ktor.http.ContentType
 import io.ktor.http.HttpHeaders
 import io.ktor.http.contentType
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.async
 import kotlinx.coroutines.delay
@@ -152,6 +153,7 @@ class WorkerViewModel : ViewModel() {
                     else _uiState.update { it.copy(isLoading = false, error = response.message) }
                 }
             } catch (e: Exception) {
+                if (e is CancellationException) throw e
                 AppLogger.error(context, e, "Failed to fetch orders", "WorkerViewModel")
                 val msg = e.message ?: context.getString(R.string.err_worker_fetch_orders_failed)
                 if (isAppend) _uiState.update { it.copy(isAppendingOrders = false, appendError = msg) }
@@ -268,6 +270,7 @@ class WorkerViewModel : ViewModel() {
                     else _uiState.update { it.copy(isLoading = false, error = errorMsg) }
                 }
             } catch (e: Exception) {
+                if (e is CancellationException) throw e
                 AppLogger.error(context, e, "Failed to fetch history", "WorkerViewModel")
                 val msg = e.message ?: context.getString(R.string.err_worker_fetch_history_failed)
                 if (isAppend) _uiState.update { it.copy(isAppendingHistory = false, appendError = msg) }

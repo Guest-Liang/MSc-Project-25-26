@@ -23,6 +23,7 @@ import io.ktor.client.request.setBody
 import io.ktor.http.ContentType
 import io.ktor.http.HttpHeaders
 import io.ktor.http.contentType
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -183,6 +184,7 @@ class AdminViewModel : ViewModel() {
                     _uiState.update { it.copy(isLoading = false, error = response.message) }
                 }
             } catch (e: Exception) {
+                if (e is CancellationException) throw e
                 AppLogger.error(context, e, "Failed to create order", "AdminViewModel")
                 _uiState.update { it.copy(isLoading = false, error = e.message ?: context.getString(R.string.err_unknown)) }
             }
@@ -281,6 +283,7 @@ class AdminViewModel : ViewModel() {
                     else _uiState.update { it.copy(isLoading = false, error = response.message) }
                 }
             } catch (e: Exception) {
+                if (e is CancellationException) throw e
                 AppLogger.error(context, e, "Failed to fetch orders", "AdminViewModel")
                 val msg = e.message ?: context.getString(R.string.err_unknown)
                 if (isAppend) _uiState.update { it.copy(isAppendingOrders = false, appendError = msg) }
@@ -320,6 +323,7 @@ class AdminViewModel : ViewModel() {
                     _uiState.update { it.copy(isLoading = false, error = response.message) }
                 }
             } catch (e: Exception) {
+                if (e is CancellationException) throw e
                 AppLogger.error(context, e, "Failed to fetch workers", "AdminViewModel")
                 _uiState.update { it.copy(isLoading = false, error = e.message ?: context.getString(R.string.err_unknown)) }
             }
@@ -355,6 +359,7 @@ class AdminViewModel : ViewModel() {
                     _uiState.update { it.copy(isLoading = false, error = response.message) }
                 }
             } catch (e: Exception) {
+                if (e is CancellationException) throw e
                 AppLogger.error(context, e, "Failed to assign order", "AdminViewModel")
                 _uiState.update { it.copy(isLoading = false, error = e.message ?: context.getString(R.string.err_unknown)) }
             }
@@ -450,6 +455,7 @@ class AdminViewModel : ViewModel() {
                     else _uiState.update { it.copy(isLoading = false, error = response.message) }
                 }
             } catch (e: Exception) {
+                if (e is CancellationException) throw e
                 AppLogger.error(context, e, "Failed to fetch logs", "AdminViewModel")
                 val msg = e.message ?: context.getString(R.string.err_unknown)
                 if (isAppend) _uiState.update { it.copy(isAppendingLogs = false, appendError = msg) }
@@ -472,6 +478,7 @@ class AdminViewModel : ViewModel() {
                     _uiState.update { it.copy(analysisSummary = summary) }
                 }
             } catch (e: Exception) {
+                if (e is CancellationException) throw e
                 AppLogger.error(context, e, "Failed to fetch analysis summary", "AdminViewModel")
             }
         }
