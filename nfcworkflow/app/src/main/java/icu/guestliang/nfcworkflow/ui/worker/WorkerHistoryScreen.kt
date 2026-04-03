@@ -497,7 +497,7 @@ fun HistoryResultsList(uiState: WorkerUiState, onLoadMore: () -> Unit, contentPa
             }
         }
 
-        LaunchedEffect(isAtBottom) {
+        LaunchedEffect(isAtBottom, uiState.history.size) {
             if (isAtBottom && uiState.hasMoreHistory && !uiState.isAppendingHistory && !uiState.isLoading) {
                 onLoadMore()
             }

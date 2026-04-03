@@ -96,6 +96,10 @@ class AdminViewModel : ViewModel() {
 
     private val json = Json { ignoreUnknownKeys = true; isLenient = true }
 
+    // Track active requests to avoid mixing old paging requests with new ones
+    private var fetchOrdersJob: Job? = null
+    private var fetchLogsJob: Job? = null
+
     companion object {
         const val MIN_APPEND_DELAY_MS = 500L
     }
@@ -185,9 +189,12 @@ class AdminViewModel : ViewModel() {
     }
 
     fun fetchOrders(context: Context, query: OrderSearchQuery? = null, isAppend: Boolean = false): Job {
-        return viewModelScope.launch {
-            if (isAppend && (_uiState.value.isAppendingOrders || !_uiState.value.hasMoreOrders)) return@launch
-            
+        if (isAppend && (_uiState.value.isAppendingOrders || !_uiState.value.hasMoreOrders)) return Job()
+        
+        // Cancel previous fetch if we are performing a fresh request
+        if (!isAppend) fetchOrdersJob?.cancel()
+        
+        fetchOrdersJob = viewModelScope.launch {
             val effectiveQuery = if (isAppend) _uiState.value.currentOrderQuery else query
             
             if (isAppend) {
@@ -279,6 +286,7 @@ class AdminViewModel : ViewModel() {
                 else _uiState.update { it.copy(isLoading = false, error = msg) }
             }
         }
+        return fetchOrdersJob!!
     }
 
     fun fetchWorkers(context: Context): Job {
@@ -353,9 +361,12 @@ class AdminViewModel : ViewModel() {
     }
 
     fun fetchLogs(context: Context, query: LogSearchQuery? = null, isAppend: Boolean = false): Job {
-        return viewModelScope.launch {
-            if (isAppend && (_uiState.value.isAppendingLogs || !_uiState.value.hasMoreLogs)) return@launch
-            
+        if (isAppend && (_uiState.value.isAppendingLogs || !_uiState.value.hasMoreLogs)) return Job()
+        
+        // Cancel previous fetch if we are performing a fresh request
+        if (!isAppend) fetchLogsJob?.cancel()
+        
+        fetchLogsJob = viewModelScope.launch {
             val effectiveQuery = if (isAppend) _uiState.value.currentLogQuery else query
             
             if (isAppend) {
@@ -444,6 +455,7 @@ class AdminViewModel : ViewModel() {
                 else _uiState.update { it.copy(isLoading = false, error = msg) }
             }
         }
+        return fetchLogsJob!!
     }
     
     fun fetchAnalysisSummary(context: Context): Job {

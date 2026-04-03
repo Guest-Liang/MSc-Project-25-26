@@ -22,6 +22,7 @@ import io.ktor.client.request.setBody
 import io.ktor.http.ContentType
 import io.ktor.http.HttpHeaders
 import io.ktor.http.contentType
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.async
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -73,6 +74,10 @@ class WorkerViewModel : ViewModel() {
 
     private val json = Json { ignoreUnknownKeys = true; isLenient = true }
 
+    // Track active requests to avoid mixing old paging requests with new ones
+    private var fetchOrdersJob: Job? = null
+    private var fetchHistoryJob: Job? = null
+
     companion object {
         const val MIN_APPEND_DELAY_MS = 500L
     }
@@ -84,7 +89,10 @@ class WorkerViewModel : ViewModel() {
     fun fetchMyOrders(context: Context, isAppend: Boolean = false) {
         if (isAppend && (_uiState.value.isAppendingOrders || !_uiState.value.hasMoreOrders)) return
         
-        viewModelScope.launch {
+        // Cancel previous fetch if we are performing a fresh request
+        if (!isAppend) fetchOrdersJob?.cancel()
+        
+        fetchOrdersJob = viewModelScope.launch {
             if (isAppend) {
                 _uiState.update { it.copy(isAppendingOrders = true, appendError = null) }
             } else {
@@ -153,7 +161,10 @@ class WorkerViewModel : ViewModel() {
     fun fetchHistory(context: Context, query: WorkerHistoryQuery? = null, isAppend: Boolean = false) {
         if (isAppend && (_uiState.value.isAppendingHistory || !_uiState.value.hasMoreHistory)) return
         
-        viewModelScope.launch {
+        // Cancel previous fetch if we are performing a fresh request
+        if (!isAppend) fetchHistoryJob?.cancel()
+
+        fetchHistoryJob = viewModelScope.launch {
             val effectiveQuery = if (isAppend) _uiState.value.currentHistoryQuery else query
 
             if (isAppend) {
