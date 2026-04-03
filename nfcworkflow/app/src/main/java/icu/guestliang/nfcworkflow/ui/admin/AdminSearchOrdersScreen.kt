@@ -412,7 +412,7 @@ fun AdminSearchOrdersScreen(
                                 coroutineScope = coroutineScope,
                                 onOrderSelected = { selectedOrder = it },
                                 onLoadMore = {
-                                    viewModel.fetchOrders(context, getCurrentQuery(), isAppend = true)
+                                    viewModel.fetchOrders(context, isAppend = true)
                                 },
                                 contentPadding = PaddingValues(bottom = Dimensions.SpaceL)
                             )
@@ -649,7 +649,7 @@ fun AdminSearchOrdersScreen(
                                 coroutineScope = coroutineScope,
                                 onOrderSelected = { selectedOrder = it },
                                 onLoadMore = {
-                                    viewModel.fetchOrders(context, getCurrentQuery(), isAppend = true)
+                                    viewModel.fetchOrders(context, isAppend = true)
                                 },
                                 contentPadding = PaddingValues(bottom = innerPadding.calculateBottomPadding() + Dimensions.SpaceL)
                             )
@@ -821,7 +821,7 @@ fun OrderResultsList(
                 }
             }
 
-            LaunchedEffect(isAtBottom) {
+            LaunchedEffect(isAtBottom, uiState.orders.size) {
                 if (isAtBottom && uiState.hasMoreOrders && !uiState.isAppendingOrders && !uiState.isLoading) {
                     onLoadMore()
                 }

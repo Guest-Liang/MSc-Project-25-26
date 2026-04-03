@@ -336,7 +336,7 @@ fun AdminQueryLogsScreen(
                                     Spacer(modifier = Modifier.height(Dimensions.SpaceS))
                                 }
 
-                                // Search Buttons
+                                // Search Buttons fixed at bottom of the side panel
                                 Row(
                                     modifier = Modifier.fillMaxWidth().padding(top = Dimensions.SpaceS),
                                     horizontalArrangement = Arrangement.End,
@@ -357,17 +357,7 @@ fun AdminQueryLogsScreen(
                                     }
                                     Spacer(modifier = Modifier.width(Dimensions.SpaceS))
                                     Button(onClick = dropUnlessResumed {
-                                        val query = LogSearchQuery(
-                                            orderId = orderIdQuery.takeIf { it.isNotBlank() }?.split(",")?.map { it.trim() },
-                                            action = selectedActions.toList().takeIf { it.isNotEmpty() },
-                                            result = selectedResults.toList().takeIf { it.isNotEmpty() },
-                                            operator = selectedWorkers.toList().takeIf { it.isNotEmpty() },
-                                            uidHex = uidHexQuery.takeIf { it.isNotBlank() },
-                                            orderType = selectedOrderTypes.toList().takeIf { it.isNotEmpty() },
-                                            startTime = startTime.takeIf { it.isNotBlank() },
-                                            endTime = endTime.takeIf { it.isNotBlank() }
-                                        )
-                                        viewModel.fetchLogs(context, query)
+                                        viewModel.fetchLogs(context, getCurrentQuery())
                                     }) {
                                         Text(stringResource(R.string.admin_search_btn))
                                     }
@@ -377,7 +367,7 @@ fun AdminQueryLogsScreen(
 
                         // Results Panel
                         Box(modifier = Modifier.weight(0.55f).fillMaxSize()) {
-                            LogResultsList(
+                            AdminLogResultsList(
                                 isInitialLoad = isInitialLoad,
                                 uiState = uiState,
                                 viewModel = viewModel,
@@ -596,7 +586,7 @@ fun AdminQueryLogsScreen(
 
                         // Results List Portrait
                         Box(modifier = Modifier.fillMaxSize()) {
-                            LogResultsList(
+                            AdminLogResultsList(
                                 isInitialLoad = isInitialLoad,
                                 uiState = uiState,
                                 viewModel = viewModel,
@@ -664,7 +654,7 @@ fun AdminQueryLogsScreen(
 }
 
 @Composable
-fun LogResultsList(
+fun AdminLogResultsList(
     isInitialLoad: Boolean,
     uiState: AdminUiState,
     viewModel: AdminViewModel,
@@ -765,7 +755,7 @@ fun LogResultsList(
                 }
             }
 
-            LaunchedEffect(isAtBottom) {
+            LaunchedEffect(isAtBottom, uiState.logs.size) {
                 if (isAtBottom && uiState.hasMoreLogs && !uiState.isAppendingLogs && !uiState.isLoading) {
                     onLoadMore()
                 }
@@ -852,10 +842,10 @@ fun LogResultsList(
                                     val localizedRes = when (log.result) {
                                         "standard_matched" -> stringResource(R.string.worker_history_result_matched)
                                         "sequence_step_completed" -> stringResource(R.string.worker_history_result_step_completed)
-                                        "sequence_steps_saved" -> stringResource(R.string.admin_log_result_steps_saved)
                                         "mismatch" -> stringResource(R.string.worker_history_result_mismatch)
                                         "out_of_order" -> stringResource(R.string.worker_history_result_out_of_order)
                                         "duplicate" -> stringResource(R.string.worker_history_result_duplicate)
+                                        "sequence_steps_saved" -> stringResource(R.string.admin_log_result_steps_saved)
                                         "standard_completed" -> stringResource(R.string.admin_log_result_standard_completed)
                                         "sequence_completed" -> stringResource(R.string.admin_log_result_sequence_completed)
                                         "deprecated_complete_api" -> stringResource(R.string.admin_log_result_deprecated)

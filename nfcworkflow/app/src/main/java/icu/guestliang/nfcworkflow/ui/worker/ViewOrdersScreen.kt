@@ -86,7 +86,7 @@ fun ViewOrdersScreen(
         }
     }
 
-    LaunchedEffect(isAtBottom) {
+    LaunchedEffect(isAtBottom, uiState.orders.size) {
         if (isAtBottom && uiState.hasMoreOrders && !uiState.isAppendingOrders && !uiState.isLoading) {
             viewModel.fetchMyOrders(context, isAppend = true)
         }
