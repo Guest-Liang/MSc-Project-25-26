@@ -7,6 +7,9 @@
     <string name="cd_back">Back</string>
     <string name="cd_toggle_filters">Expand/Collapse Filters</string>
     <string name="cd_toggle_order_details">Expand/Collapse Work Order Details</string>
+    <string name="cd_delete">delete</string>
+    <string name="cd_network_error">Network error</string>
+    <string name="cd_select_date_time">Select date and time</string>
     <!-- nav -->
     <string name="tab_home">Home</string>
     <string name="tab_nfc">NFC</string>
@@ -116,6 +119,7 @@
     <string name="nfc_write_current_content_title">Current content (click to delete)</string>
     <string name="nfc_write_confirm_dialog_title">Confirm write</string>
     <string name="nfc_write_confirm_dialog_desc">Should the following %1$d records be written to the NFC tag?</string>
+    <string name="nfc_write_item_summary">%1$s: %2$s</string>
     <string name="nfc_write_result_no_content">Write failed: The buffer contains no valid content.</string>
     <string name="nfc_write_result_read_only">Write failed: NFC tag is read-only</string>
     <string name="nfc_write_result_not_enough_space">Write failed: Insufficient capacity</string>
@@ -152,6 +156,8 @@
     <string name="nfc_no_ndef_data">No NDEF data</string>
     <string name="nfc_read_ndef_fail">NDEF data read failed</string>
     <string name="nfc_support_ndef_format">This tag supports formatting as NDEF</string>
+    <string name="nfc_type_text">text</string>
+    <string name="nfc_type_uri">URI</string>
     <!-- login -->
     <string name="login_checking_network">Check the network for...</string>
     <string name="login_network_unavailable">Network unavailable</string>
