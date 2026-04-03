@@ -192,7 +192,9 @@ class AdminViewModel : ViewModel() {
     }
 
     fun fetchOrders(context: Context, query: OrderSearchQuery? = null, isAppend: Boolean = false): Job {
-        if (isAppend && (_uiState.value.isAppendingOrders || !_uiState.value.hasMoreOrders)) return Job()
+        if (isAppend && (_uiState.value.isAppendingOrders || !_uiState.value.hasMoreOrders)) {
+            return viewModelScope.launch { }
+        }
         
         // Cancel previous fetch if we are performing a fresh request
         if (!isAppend) fetchOrdersJob?.cancel()
@@ -363,7 +365,9 @@ class AdminViewModel : ViewModel() {
     }
 
     fun fetchLogs(context: Context, query: LogSearchQuery? = null, isAppend: Boolean = false): Job {
-        if (isAppend && (_uiState.value.isAppendingLogs || !_uiState.value.hasMoreLogs)) return Job()
+        if (isAppend && (_uiState.value.isAppendingLogs || !_uiState.value.hasMoreLogs)) {
+            return viewModelScope.launch { }
+        }
         
         // Cancel previous fetch if we are performing a fresh request
         if (!isAppend) fetchLogsJob?.cancel()
