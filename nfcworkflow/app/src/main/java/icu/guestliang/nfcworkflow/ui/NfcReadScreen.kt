@@ -280,7 +280,7 @@ fun NfcReadHistoryScreen(
                             IconButton(onClick = { 
                                 viewModel.updateState { it.copy(showReadDeleteConfirm = true) } 
                             }) {
-                                Icon(Icons.Default.Delete, contentDescription = "Delete")
+                                Icon(Icons.Default.Delete, contentDescription = stringResource(R.string.cd_delete))
                             }
                         }
                     },
@@ -497,7 +497,7 @@ fun HistoryCard(
                     verticalArrangement = Arrangement.Center
                 ) {
                     Text(
-                        text = "UID: ${record.uid}",
+                        text = stringResource(R.string.nfc_id, record.uid),
                         style = MaterialTheme.typography.titleMedium,
                         color = MaterialTheme.colorScheme.onSurface
                     )

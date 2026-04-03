@@ -5,6 +5,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
+import androidx.annotation.StringRes
 import androidx.lifecycle.ViewModel
 
 enum class WriteType(val labelRes: Int) {
@@ -13,10 +14,10 @@ enum class WriteType(val labelRes: Int) {
     PHONE(R.string.nfc_write_type_phone)
 }
 
-// Moved from NfcWriteScreen
-sealed class WriteData(val typeName: String) {
-    data class Text(val text: String) : WriteData("Text")
-    data class UriRecord(val uri: String, val display: String) : WriteData("URI")
+// Updated to use StringRes for type identification
+sealed class WriteData(@StringRes val typeRes: Int) {
+    data class Text(val text: String) : WriteData(R.string.nfc_type_text)
+    data class UriRecord(val uri: String, val display: String) : WriteData(R.string.nfc_type_uri)
 }
 
 data class NfcUiState(

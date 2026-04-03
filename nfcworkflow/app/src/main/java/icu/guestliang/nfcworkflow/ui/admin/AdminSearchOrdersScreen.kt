@@ -256,7 +256,7 @@ fun AdminSearchOrdersScreen(
                                             singleLine = true
                                         )
                                         IconButton(onClick = { showNfcDialog = true }) {
-                                            Icon(Icons.Default.Nfc, contentDescription = "Scan NFC", tint = MaterialTheme.colorScheme.onSurface)
+                                            Icon(Icons.Default.Nfc, contentDescription = stringResource(R.string.admin_order_scan_nfc_btn), tint = MaterialTheme.colorScheme.onSurface)
                                         }
                                     }
 
@@ -488,7 +488,7 @@ fun AdminSearchOrdersScreen(
                                                 singleLine = true
                                             )
                                             IconButton(onClick = { showNfcDialog = true }) {
-                                                Icon(Icons.Default.Nfc, contentDescription = "Scan NFC", tint = MaterialTheme.colorScheme.onSurface)
+                                                Icon(Icons.Default.Nfc, contentDescription = stringResource(R.string.admin_order_scan_nfc_btn), tint = MaterialTheme.colorScheme.onSurface)
                                             }
                                         }
                                         
@@ -569,7 +569,7 @@ fun AdminSearchOrdersScreen(
                                                 val workerText = if (selectedAssigned.isEmpty() || isNullSelected) 
                                                     stringResource(R.string.admin_select_worker) 
                                                 else 
-                                                    "Workers Selected (${selectedAssigned.size})"
+                                                    stringResource(R.string.admin_workers_selected, selectedAssigned.size)
                                                 Text(workerText)
                                             }
                                         }
@@ -761,7 +761,7 @@ fun OrderResultsList(
         ) {
             Icon(
                 imageVector = Icons.Default.CloudOff,
-                contentDescription = "Network Error",
+                contentDescription = stringResource(R.string.cd_network_error),
                 modifier = Modifier.size(Dimensions.IconSize.XL),
                 tint = MaterialTheme.colorScheme.error
             )
@@ -966,7 +966,7 @@ private fun DateTimeSelectorField(label: String, value: String, onDateTimeSelect
             onValueChange = { },
             label = { Text(label) },
             readOnly = true,
-            trailingIcon = { Icon(Icons.Default.DateRange, contentDescription = "Select Date and Time") },
+            trailingIcon = { Icon(Icons.Default.DateRange, contentDescription = stringResource(R.string.cd_select_date_time)) },
             modifier = Modifier.fillMaxWidth(),
             enabled = false, // disabled to enforce clicking the Box instead of typing
             colors = OutlinedTextFieldDefaults.colors(

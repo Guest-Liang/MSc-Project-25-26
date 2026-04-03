@@ -8,6 +8,9 @@
     <string name="cd_back">返回</string>
     <string name="cd_toggle_filters">展开/收起筛选条件</string>
     <string name="cd_toggle_order_details">展开/收起工单详情</string>
+    <string name="cd_delete">删除</string>
+    <string name="cd_network_error">网络错误</string>
+    <string name="cd_select_date_time">选择日期和时间</string>
 
     <!-- nav -->
     <string name="tab_home">主页</string>
@@ -132,6 +135,7 @@
     <string name="nfc_write_current_content_title">当前内容 (点击删除)</string>
     <string name="nfc_write_confirm_dialog_title">确认写入</string>
     <string name="nfc_write_confirm_dialog_desc">是否将以下 %1$d 条记录写入NFC标签？</string>
+    <string name="nfc_write_item_summary">%1$s: %2$s</string>
 
     <string name="nfc_write_result_no_content">写入失败: 缓冲区无有效内容</string>
     <string name="nfc_write_result_read_only">写入失败: NFC标签为只读</string>
@@ -171,6 +175,9 @@
     <string name="nfc_no_ndef_data">无 NDEF 数据</string>
     <string name="nfc_read_ndef_fail">NDEF 数据读取失败</string>
     <string name="nfc_support_ndef_format">此标签支持格式化为 NDEF</string>
+    <string name="nfc_type_text">文本</string>
+    <string name="nfc_type_uri">URI</string>
+
     <!-- login -->
     <string name="login_checking_network">检查网络中…</string>
     <string name="login_network_unavailable">网络不可用</string>

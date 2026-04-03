@@ -195,7 +195,7 @@ fun NfcWriteScreen(navController: NavController, viewModel: NfcViewModel = viewM
                                     }
                                     SplicedJumpPageWidget(
                                         icon = Icons.Default.Nfc,
-                                        title = "${data.typeName}: $display",
+                                        title = stringResource(R.string.nfc_write_item_summary, stringResource(data.typeRes), display),
                                         onClick = {
                                             viewModel.removeWriteData(index)
                                             // If empty after removal, ensure we reset switch status
@@ -274,7 +274,7 @@ fun NfcWriteScreen(navController: NavController, viewModel: NfcViewModel = viewM
                             is WriteData.Text -> data.text
                             is WriteData.UriRecord -> data.display
                         }
-                        Text("- ${data.typeName}: $display", style = MaterialTheme.typography.bodySmall)
+                        Text("- " + stringResource(R.string.nfc_write_item_summary, stringResource(data.typeRes), display), style = MaterialTheme.typography.bodySmall)
                     }
                 }
             },

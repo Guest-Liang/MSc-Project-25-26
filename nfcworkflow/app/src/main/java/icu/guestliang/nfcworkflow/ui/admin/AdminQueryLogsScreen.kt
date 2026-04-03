@@ -236,7 +236,7 @@ fun AdminQueryLogsScreen(
                                             singleLine = true
                                         )
                                         IconButton(onClick = { showNfcDialog = true }) {
-                                            Icon(Icons.Default.Nfc, contentDescription = "Scan NFC", tint = MaterialTheme.colorScheme.onSurface)
+                                            Icon(Icons.Default.Nfc, contentDescription = stringResource(R.string.admin_order_scan_nfc_btn), tint = MaterialTheme.colorScheme.onSurface)
                                         }
                                     }
                                     
@@ -444,7 +444,7 @@ fun AdminQueryLogsScreen(
                                                 singleLine = true
                                             )
                                             IconButton(onClick = { showNfcDialog = true }) {
-                                                Icon(Icons.Default.Nfc, contentDescription = "Scan NFC", tint = MaterialTheme.colorScheme.onSurface)
+                                                Icon(Icons.Default.Nfc, contentDescription = stringResource(R.string.admin_order_scan_nfc_btn), tint = MaterialTheme.colorScheme.onSurface)
                                             }
                                         }
 
@@ -681,7 +681,7 @@ fun AdminLogResultsList(
             ) {
                 Icon(
                     imageVector = Icons.Default.CloudOff,
-                    contentDescription = "Network Error",
+                    contentDescription = stringResource(R.string.cd_network_error),
                     modifier = Modifier.size(Dimensions.IconSize.XL),
                     tint = MaterialTheme.colorScheme.error
                 )
@@ -896,7 +896,7 @@ private fun DateTimeSelectorField(label: String, value: String, onDateTimeSelect
             onValueChange = { },
             label = { Text(label) },
             readOnly = true,
-            trailingIcon = { Icon(Icons.Default.DateRange, contentDescription = "Select Date and Time") },
+            trailingIcon = { Icon(Icons.Default.DateRange, contentDescription = stringResource(R.string.cd_select_date_time)) },
             modifier = Modifier.fillMaxWidth(),
             enabled = false, // disabled to enforce clicking the Box instead of typing
             colors = OutlinedTextFieldDefaults.colors(

@@ -356,7 +356,7 @@ private fun CreateOrderFormFields(
                     singleLine = true
                 )
                 IconButton(onClick = { onScanClick(null) }, modifier = Modifier.padding(start = Dimensions.SpaceS)) {
-                    Icon(Icons.Default.Nfc, contentDescription = "Scan NFC", tint = MaterialTheme.colorScheme.onSurface)
+                    Icon(Icons.Default.Nfc, contentDescription = stringResource(R.string.admin_order_scan_nfc_btn), tint = MaterialTheme.colorScheme.onSurface)
                 }
             }
             OutlinedTextField(
