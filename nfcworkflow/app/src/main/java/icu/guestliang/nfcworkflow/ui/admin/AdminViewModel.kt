@@ -78,12 +78,14 @@ data class AdminUiState(
     val orders: List<Order> = emptyList(),
     val nextOrdersCursor: String? = null,
     val hasMoreOrders: Boolean = true,
+    val currentOrderQuery: OrderSearchQuery? = null,
     
     val workers: List<WorkerUser> = emptyList(),
     
     val logs: List<LogEntry> = emptyList(),
     val nextLogsCursor: String? = null,
     val hasMoreLogs: Boolean = true,
+    val currentLogQuery: LogSearchQuery? = null,
     
     val analysisSummary: AdminAnalysisSummary? = null
 )
@@ -182,10 +184,21 @@ class AdminViewModel : ViewModel() {
         return viewModelScope.launch {
             if (isAppend && (_uiState.value.isAppendingOrders || !_uiState.value.hasMoreOrders)) return@launch
             
+            val effectiveQuery = if (isAppend) _uiState.value.currentOrderQuery else query
+            
             if (isAppend) {
                 _uiState.update { it.copy(isAppendingOrders = true, appendError = null) }
             } else {
-                _uiState.update { it.copy(isLoading = true, error = null, orders = emptyList(), nextOrdersCursor = null, hasMoreOrders = true) }
+                _uiState.update { 
+                    it.copy(
+                        isLoading = true, 
+                        error = null, 
+                        orders = emptyList(), 
+                        nextOrdersCursor = null, 
+                        hasMoreOrders = true,
+                        currentOrderQuery = effectiveQuery
+                    ) 
+                }
             }
             
             val startTime = System.currentTimeMillis()
@@ -205,7 +218,7 @@ class AdminViewModel : ViewModel() {
                     if (isAppend) {
                         _uiState.value.nextOrdersCursor?.let { parameter("cursor", it) }
                     }
-                    query?.let { q ->
+                    effectiveQuery?.let { q ->
                         q.title?.takeIf { it.isNotBlank() }?.let { parameter("title", it) }
                         q.description?.takeIf { it.isNotBlank() }?.let { parameter("description", it) }
                         q.nfcTag?.takeIf { it.isNotBlank() }?.let { parameter("targetUidHex", it) }
@@ -323,7 +336,8 @@ class AdminViewModel : ViewModel() {
 
                 if (response.success) {
                     _uiState.update { it.copy(isLoading = false, successMessage = response.message) }
-                    fetchOrders(context).join()
+                    // When assigning an order, refresh with the current query so we don't lose filters
+                    fetchOrders(context, _uiState.value.currentOrderQuery).join()
                 } else {
                     _uiState.update { it.copy(isLoading = false, error = response.message) }
                 }
@@ -338,10 +352,21 @@ class AdminViewModel : ViewModel() {
         return viewModelScope.launch {
             if (isAppend && (_uiState.value.isAppendingLogs || !_uiState.value.hasMoreLogs)) return@launch
             
+            val effectiveQuery = if (isAppend) _uiState.value.currentLogQuery else query
+            
             if (isAppend) {
                 _uiState.update { it.copy(isAppendingLogs = true, appendError = null) }
             } else {
-                _uiState.update { it.copy(isLoading = true, error = null, logs = emptyList(), nextLogsCursor = null, hasMoreLogs = true) }
+                _uiState.update { 
+                    it.copy(
+                        isLoading = true, 
+                        error = null, 
+                        logs = emptyList(), 
+                        nextLogsCursor = null, 
+                        hasMoreLogs = true,
+                        currentLogQuery = effectiveQuery
+                    ) 
+                }
             }
             
             val startTime = System.currentTimeMillis()
@@ -361,7 +386,7 @@ class AdminViewModel : ViewModel() {
                     if (isAppend) {
                         _uiState.value.nextLogsCursor?.let { parameter("cursor", it) }
                     }
-                    query?.let { q ->
+                    effectiveQuery?.let { q ->
                         q.orderId?.takeIf { it.isNotEmpty() }?.let { parameter("orderId", it.joinToString(",")) }
                         q.action?.takeIf { it.isNotEmpty() }?.let { parameter("action", it.joinToString(",")) }
                         q.result?.takeIf { it.isNotEmpty() }?.let { parameter("result", it.joinToString(",")) }

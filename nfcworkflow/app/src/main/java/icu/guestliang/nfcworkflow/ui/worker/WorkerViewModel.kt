@@ -59,6 +59,7 @@ data class WorkerUiState(
     val history: List<LogEntry> = emptyList(),
     val nextHistoryCursor: String? = null,
     val hasMoreHistory: Boolean = true,
+    val currentHistoryQuery: WorkerHistoryQuery? = null,
     
     val historySummary: WorkerSummary? = null,
     val actionSuccess: Boolean = false,
@@ -149,10 +150,21 @@ class WorkerViewModel : ViewModel() {
         if (isAppend && (_uiState.value.isAppendingHistory || !_uiState.value.hasMoreHistory)) return
         
         viewModelScope.launch {
+            val effectiveQuery = if (isAppend) _uiState.value.currentHistoryQuery else query
+
             if (isAppend) {
                 _uiState.update { it.copy(isAppendingHistory = true, appendError = null) }
             } else {
-                _uiState.update { it.copy(isLoading = true, error = null, history = emptyList(), nextHistoryCursor = null, hasMoreHistory = true) }
+                _uiState.update { 
+                    it.copy(
+                        isLoading = true, 
+                        error = null, 
+                        history = emptyList(), 
+                        nextHistoryCursor = null, 
+                        hasMoreHistory = true,
+                        currentHistoryQuery = effectiveQuery
+                    ) 
+                }
             }
             
             val startTime = System.currentTimeMillis()
@@ -174,7 +186,7 @@ class WorkerViewModel : ViewModel() {
                         if (isAppend) {
                             _uiState.value.nextHistoryCursor?.let { parameter("cursor", it) }
                         }
-                        query?.let { q ->
+                        effectiveQuery?.let { q ->
                             q.orderId?.takeIf { it.isNotEmpty() }?.let { parameter("orderId", it.joinToString(",")) }
                             q.action?.takeIf { it.isNotEmpty() }?.let { parameter("action", it.joinToString(",")) }
                             q.result?.takeIf { it.isNotEmpty() }?.let { parameter("result", it.joinToString(",")) }

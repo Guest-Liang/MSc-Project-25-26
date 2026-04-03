@@ -299,10 +299,10 @@ fun AdminQueryLogsScreen(
                                             val localizedRes = when (res) {
                                                 "standard_matched" -> stringResource(R.string.worker_history_result_matched)
                                                 "sequence_step_completed" -> stringResource(R.string.worker_history_result_step_completed)
+                                                "sequence_steps_saved" -> stringResource(R.string.admin_log_result_steps_saved)
                                                 "mismatch" -> stringResource(R.string.worker_history_result_mismatch)
                                                 "out_of_order" -> stringResource(R.string.worker_history_result_out_of_order)
                                                 "duplicate" -> stringResource(R.string.worker_history_result_duplicate)
-                                                "sequence_steps_saved" -> stringResource(R.string.admin_log_result_steps_saved)
                                                 "standard_completed" -> stringResource(R.string.admin_log_result_standard_completed)
                                                 "sequence_completed" -> stringResource(R.string.admin_log_result_sequence_completed)
                                                 "deprecated_complete_api" -> stringResource(R.string.admin_log_result_deprecated)
@@ -385,7 +385,7 @@ fun AdminQueryLogsScreen(
                                 showEmptyDialog = showEmptyDialog,
                                 onShowEmptyDialogChange = { showEmptyDialog = it },
                                 onLoadMore = {
-                                    viewModel.fetchLogs(context, getCurrentQuery(), isAppend = true)
+                                    viewModel.fetchLogs(context, isAppend = true)
                                 },
                                 contentPadding = PaddingValues(bottom = Dimensions.SpaceL)
                             )
@@ -396,7 +396,7 @@ fun AdminQueryLogsScreen(
                         modifier = Modifier
                             .fillMaxSize()
                     ) {
-                        // Filter Panel
+                        // Filter Panel Portrait
                         Card(
                             modifier = Modifier
                                 .fillMaxWidth()
@@ -517,10 +517,10 @@ fun AdminQueryLogsScreen(
                                                 val localizedRes = when (res) {
                                                     "standard_matched" -> stringResource(R.string.worker_history_result_matched)
                                                     "sequence_step_completed" -> stringResource(R.string.worker_history_result_step_completed)
+                                                    "sequence_steps_saved" -> stringResource(R.string.admin_log_result_steps_saved)
                                                     "mismatch" -> stringResource(R.string.worker_history_result_mismatch)
                                                     "out_of_order" -> stringResource(R.string.worker_history_result_out_of_order)
                                                     "duplicate" -> stringResource(R.string.worker_history_result_duplicate)
-                                                    "sequence_steps_saved" -> stringResource(R.string.admin_log_result_steps_saved)
                                                     "standard_completed" -> stringResource(R.string.admin_log_result_standard_completed)
                                                     "sequence_completed" -> stringResource(R.string.admin_log_result_sequence_completed)
                                                     "deprecated_complete_api" -> stringResource(R.string.admin_log_result_deprecated)
@@ -604,7 +604,7 @@ fun AdminQueryLogsScreen(
                                 showEmptyDialog = showEmptyDialog,
                                 onShowEmptyDialogChange = { showEmptyDialog = it },
                                 onLoadMore = {
-                                    viewModel.fetchLogs(context, getCurrentQuery(), isAppend = true)
+                                    viewModel.fetchLogs(context, isAppend = true)
                                 },
                                 contentPadding = PaddingValues(bottom = innerPadding.calculateBottomPadding() + Dimensions.SpaceL)
                             )
@@ -837,43 +837,43 @@ fun LogResultsList(
                                     "steps_saved" -> stringResource(R.string.admin_log_action_steps_saved)
                                     else -> getLocalizedStatus(log.action)
                                 }
-                                Text(text = stringResource(R.string.admin_log_action, actStr))
+                                Text(text = stringResource(R.string.admin_log_action, actStr), color = MaterialTheme.colorScheme.onSurface)
                                 
                                 val orderId = log.orderId ?: log.order_id
                                 val orderTitle = log.orderTitle ?: "Order"
-                                Text(text = stringResource(R.string.admin_log_target, orderTitle, orderId?.toString() ?: "N/A"))
+                                Text(text = stringResource(R.string.admin_log_target, orderTitle, orderId?.toString() ?: "N/A"), color = MaterialTheme.colorScheme.onSurface)
                                 
                                 val opId = log.workerId ?: log.operator_id
                                 if (opId != null) {
-                                    Text(text = stringResource(R.string.admin_log_user, opId))
+                                    Text(text = stringResource(R.string.admin_log_user, opId), color = MaterialTheme.colorScheme.onSurface)
                                 }
                                 
                                 if (log.result != null) {
                                     val localizedRes = when (log.result) {
                                         "standard_matched" -> stringResource(R.string.worker_history_result_matched)
                                         "sequence_step_completed" -> stringResource(R.string.worker_history_result_step_completed)
+                                        "sequence_steps_saved" -> stringResource(R.string.admin_log_result_steps_saved)
                                         "mismatch" -> stringResource(R.string.worker_history_result_mismatch)
                                         "out_of_order" -> stringResource(R.string.worker_history_result_out_of_order)
                                         "duplicate" -> stringResource(R.string.worker_history_result_duplicate)
-                                        "sequence_steps_saved" -> stringResource(R.string.admin_log_result_steps_saved)
                                         "standard_completed" -> stringResource(R.string.admin_log_result_standard_completed)
                                         "sequence_completed" -> stringResource(R.string.admin_log_result_sequence_completed)
                                         "deprecated_complete_api" -> stringResource(R.string.admin_log_result_deprecated)
                                         else -> log.result
                                     }
-                                    Text(text = stringResource(R.string.admin_log_result, localizedRes))
+                                    Text(text = stringResource(R.string.admin_log_result, localizedRes), color = MaterialTheme.colorScheme.onSurface)
                                 }
                                 
                                 if (log.scanUidHex != null) {
-                                    Text(text = stringResource(R.string.admin_log_scan_uid, log.scanUidHex), style = MaterialTheme.typography.bodySmall)
+                                    Text(text = stringResource(R.string.admin_log_scan_uid, log.scanUidHex), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                                 }
 
                                 if (log.locationCode != null) {
                                     val locName = log.displayName ?: log.locationCode
-                                    Text(text = stringResource(R.string.admin_log_location, locName), style = MaterialTheme.typography.bodySmall)
+                                    Text(text = stringResource(R.string.admin_log_location, locName), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                                 }
 
-                                Text(text = stringResource(R.string.admin_log_time, log.timestamp ?: "N/A"), style = MaterialTheme.typography.bodySmall)
+                                Text(text = stringResource(R.string.admin_log_time, log.timestamp ?: "N/A"), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                             }
                         }
                     }

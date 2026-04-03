@@ -214,7 +214,7 @@ fun WorkerHistoryScreen(
                                             singleLine = true
                                         )
                                         IconButton(onClick = { showNfcDialog = true }) {
-                                            Icon(Icons.Default.Nfc, contentDescription = "Scan NFC")
+                                            Icon(Icons.Default.Nfc, contentDescription = "Scan NFC", tint = MaterialTheme.colorScheme.onSurface)
                                         }
                                     }
 
@@ -300,7 +300,7 @@ fun WorkerHistoryScreen(
                         // Results Panel
                         Box(modifier = Modifier.weight(0.55f).fillMaxSize()) {
                             HistoryResultsList(uiState = uiState, onLoadMore = {
-                                viewModel.fetchHistory(context, getCurrentQuery(), isAppend = true)
+                                viewModel.fetchHistory(context, isAppend = true)
                             }, contentPadding = PaddingValues(bottom = Dimensions.SpaceL))
                         }
                     }
@@ -367,7 +367,7 @@ fun WorkerHistoryScreen(
                                                 singleLine = true
                                             )
                                             IconButton(onClick = { showNfcDialog = true }) {
-                                                Icon(Icons.Default.Nfc, contentDescription = "Scan NFC")
+                                                Icon(Icons.Default.Nfc, contentDescription = "Scan NFC", tint = MaterialTheme.colorScheme.onSurface)
                                             }
                                         }
 
@@ -456,7 +456,7 @@ fun WorkerHistoryScreen(
 
                         // Results List
                         HistoryResultsList(uiState = uiState, onLoadMore = {
-                            viewModel.fetchHistory(context, getCurrentQuery(), isAppend = true)
+                            viewModel.fetchHistory(context, isAppend = true)
                         }, contentPadding = PaddingValues(bottom = innerPadding.calculateBottomPadding() + Dimensions.SpaceL))
                     }
                 }
