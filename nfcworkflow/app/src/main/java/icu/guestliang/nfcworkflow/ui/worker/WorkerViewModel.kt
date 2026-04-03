@@ -73,6 +73,10 @@ class WorkerViewModel : ViewModel() {
 
     private val json = Json { ignoreUnknownKeys = true; isLenient = true }
 
+    companion object {
+        const val MIN_APPEND_DELAY_MS = 500L
+    }
+
     fun clearAppendError() {
         _uiState.update { it.copy(appendError = null) }
     }
@@ -110,8 +114,8 @@ class WorkerViewModel : ViewModel() {
                     val paginatedData: PaginatedResponse<Order> = json.decodeFromJsonElement(response.data)
                     
                     val elapsed = System.currentTimeMillis() - startTime
-                    if (isAppend && elapsed < 500) {
-                        delay(500 - elapsed) // Wait to show spinner for at least 0.5s
+                    if (isAppend && elapsed < MIN_APPEND_DELAY_MS) {
+                        delay(MIN_APPEND_DELAY_MS - elapsed) // Wait to show spinner
                     }
                     
                     if (isAppend) {
@@ -221,8 +225,8 @@ class WorkerViewModel : ViewModel() {
                 }
                 
                 val elapsed = System.currentTimeMillis() - startTime
-                if (isAppend && elapsed < 500) {
-                    delay(500 - elapsed)
+                if (isAppend && elapsed < MIN_APPEND_DELAY_MS) {
+                    delay(MIN_APPEND_DELAY_MS - elapsed)
                 }
 
                 if (errorMsg == null && paginatedData != null) {

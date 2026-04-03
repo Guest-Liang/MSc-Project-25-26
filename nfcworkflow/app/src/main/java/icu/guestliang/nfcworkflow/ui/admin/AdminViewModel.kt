@@ -96,6 +96,10 @@ class AdminViewModel : ViewModel() {
 
     private val json = Json { ignoreUnknownKeys = true; isLenient = true }
 
+    companion object {
+        const val MIN_APPEND_DELAY_MS = 500L
+    }
+
     fun clearMessages() {
         _uiState.update { it.copy(error = null, successMessage = null) }
     }
@@ -241,8 +245,8 @@ class AdminViewModel : ViewModel() {
                     }
                     
                     val elapsed = System.currentTimeMillis() - startTime
-                    if (isAppend && elapsed < 1000) {
-                        delay(1000 - elapsed)
+                    if (isAppend && elapsed < MIN_APPEND_DELAY_MS) {
+                        delay(MIN_APPEND_DELAY_MS - elapsed)
                     }
                     
                     if (isAppend) {
@@ -406,8 +410,8 @@ class AdminViewModel : ViewModel() {
                     }
                     
                     val elapsed = System.currentTimeMillis() - startTime
-                    if (isAppend && elapsed < 1000) {
-                        delay(1000 - elapsed)
+                    if (isAppend && elapsed < MIN_APPEND_DELAY_MS) {
+                        delay(MIN_APPEND_DELAY_MS - elapsed)
                     }
                     
                     if (isAppend) {
