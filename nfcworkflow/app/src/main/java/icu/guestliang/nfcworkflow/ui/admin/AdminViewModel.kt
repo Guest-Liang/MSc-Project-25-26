@@ -102,6 +102,7 @@ class AdminViewModel : ViewModel() {
 
     companion object {
         const val MIN_APPEND_DELAY_MS = 500L
+        const val DEFAULT_PAGE_SIZE = 5
     }
 
     fun clearMessages() {
@@ -225,7 +226,7 @@ class AdminViewModel : ViewModel() {
 
                 val response: ApiResponse = ApiClient.client.get("orders/search") {
                     header(HttpHeaders.Authorization, "Bearer $token")
-                    parameter("limit", 5)
+                    parameter("limit", DEFAULT_PAGE_SIZE)
                     if (isAppend) {
                         _uiState.value.nextOrdersCursor?.let { parameter("cursor", it) }
                     }
@@ -397,7 +398,7 @@ class AdminViewModel : ViewModel() {
 
                 val response: ApiResponse = ApiClient.client.get("orders/logs") {
                     header(HttpHeaders.Authorization, "Bearer $token")
-                    parameter("limit", 5)
+                    parameter("limit", DEFAULT_PAGE_SIZE)
                     if (isAppend) {
                         _uiState.value.nextLogsCursor?.let { parameter("cursor", it) }
                     }

@@ -80,6 +80,8 @@ class WorkerViewModel : ViewModel() {
 
     companion object {
         const val MIN_APPEND_DELAY_MS = 500L
+        const val DEFAULT_PAGE_SIZE = 5
+        const val HISTORY_PAGE_SIZE = 3
     }
 
     fun clearAppendError() {
@@ -112,7 +114,7 @@ class WorkerViewModel : ViewModel() {
 
                 val response: ApiResponse = ApiClient.client.get("worker/orders") {
                     header(HttpHeaders.Authorization, "Bearer $token")
-                    parameter("limit", 6)
+                    parameter("limit", DEFAULT_PAGE_SIZE)
                     if (isAppend) {
                         _uiState.value.nextOrdersCursor?.let { parameter("cursor", it) }
                     }
@@ -197,7 +199,7 @@ class WorkerViewModel : ViewModel() {
                 val historyTask = async {
                     ApiClient.client.get("worker/history") {
                         header(HttpHeaders.Authorization, "Bearer $token")
-                        parameter("limit", 6)
+                        parameter("limit", HISTORY_PAGE_SIZE)
                         if (isAppend) {
                             _uiState.value.nextHistoryCursor?.let { parameter("cursor", it) }
                         }
