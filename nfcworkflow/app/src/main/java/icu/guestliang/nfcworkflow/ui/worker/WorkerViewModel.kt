@@ -227,7 +227,7 @@ class WorkerViewModel : ViewModel() {
 
                 var errorMsg: String? = null
                 var paginatedData: PaginatedResponse<LogEntry>? = null
-                var parsedSummary: WorkerSummary? = if (isAppend) _uiState.value.historySummary else null
+                var parsedSummary: WorkerSummary? = _uiState.value.historySummary
 
                 if (historyResponse.success && historyResponse.data != null) {
                     paginatedData = json.decodeFromJsonElement(historyResponse.data)
