@@ -169,7 +169,7 @@ fun AdminAssignOrderScreen(
                                 }
                             }
 
-                            LaunchedEffect(isAtBottom) {
+                            LaunchedEffect(isAtBottom, uiState.orders.size) {
                                 if (isAtBottom && uiState.hasMoreOrders && !uiState.isAppendingOrders && !uiState.isLoading) {
                                     viewModel.fetchOrders(context, isAppend = true)
                                 }
