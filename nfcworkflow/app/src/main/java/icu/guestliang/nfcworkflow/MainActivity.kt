@@ -3,6 +3,7 @@ package icu.guestliang.nfcworkflow
 import icu.guestliang.nfcworkflow.data.PrefsDataStore
 import icu.guestliang.nfcworkflow.logging.AppLogger
 import icu.guestliang.nfcworkflow.navigation.NavGraph
+import icu.guestliang.nfcworkflow.navigation.Screen
 import icu.guestliang.nfcworkflow.ui.theme.NFCWorkFlowTheme
 import android.os.Bundle
 import androidx.activity.ComponentActivity
@@ -26,9 +27,11 @@ class MainActivity : ComponentActivity() {
             prefs?.let { currentPrefs ->
                 NFCWorkFlowTheme(prefs = currentPrefs) {
                     val navController = rememberNavController()
+                    val startDest = if (!currentPrefs.token.isNullOrEmpty()) Screen.Main.route else Screen.Login.route
                     NavGraph(
                         navController = navController,
-                        modifier = Modifier.fillMaxSize()
+                        modifier = Modifier.fillMaxSize(),
+                        startDestination = startDest
                     )
                 }
             }

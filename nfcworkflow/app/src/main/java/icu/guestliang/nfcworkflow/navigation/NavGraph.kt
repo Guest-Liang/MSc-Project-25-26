@@ -1,6 +1,8 @@
 package icu.guestliang.nfcworkflow.navigation
 
 import icu.guestliang.nfcworkflow.R
+import icu.guestliang.nfcworkflow.data.PrefsDataStore
+import icu.guestliang.nfcworkflow.network.AuthManager
 import icu.guestliang.nfcworkflow.ui.NfcReadHistoryPage
 import icu.guestliang.nfcworkflow.ui.NfcViewModel
 import icu.guestliang.nfcworkflow.ui.admin.AdminAssignOrderScreen
@@ -14,6 +16,7 @@ import icu.guestliang.nfcworkflow.ui.worker.CompleteOrderScreen
 import icu.guestliang.nfcworkflow.ui.worker.ViewOrdersScreen
 import icu.guestliang.nfcworkflow.ui.worker.WorkerHistoryScreen
 import icu.guestliang.nfcworkflow.ui.worker.WorkerScanScreen
+import kotlinx.coroutines.delay
 import androidx.compose.animation.AnimatedContentTransitionScope
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
@@ -24,10 +27,19 @@ import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Nfc
 import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.compositionLocalOf
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
@@ -66,13 +78,50 @@ val items = listOf(
 val LocalNfcViewModel = compositionLocalOf<NfcViewModel> { error("No NfcViewModel found") }
 
 @Composable
-fun NavGraph(navController: NavHostController, modifier: androidx.compose.ui.Modifier) {
+fun NavGraph(
+    navController: NavHostController,
+    modifier: androidx.compose.ui.Modifier,
+    startDestination: String = Screen.Login.route
+) {
     val nfcViewModel: NfcViewModel = viewModel()
+    val context = LocalContext.current
+
+    var showAuthErrorDialog by rememberSaveable { mutableStateOf(false) }
+    var authErrorCountdown by rememberSaveable { mutableIntStateOf(3) }
+
+    LaunchedEffect(Unit) {
+        AuthManager.forceLogoutEvent.collect {
+            // Only show dialog if we are not already on the login screen
+            if (navController.currentDestination?.route != Screen.Login.route && !showAuthErrorDialog) {
+                showAuthErrorDialog = true
+                authErrorCountdown = 3
+                while (authErrorCountdown > 0) {
+                    delay(1000)
+                    authErrorCountdown--
+                }
+                
+                showAuthErrorDialog = false
+                PrefsDataStore.clearAuth(context)
+                navController.navigate(Screen.Login.route) {
+                    popUpTo(0) { inclusive = true }
+                }
+            }
+        }
+    }
+
+    if (showAuthErrorDialog) {
+        AlertDialog(
+            onDismissRequest = { /* Cannot dismiss manually */ },
+            title = { Text(context.getString(R.string.err_not_logged_in) ?: "Login Expired") },
+            text = { Text("Your login session has expired. Redirecting to login in $authErrorCountdown seconds...") },
+            confirmButton = { }
+        )
+    }
 
     CompositionLocalProvider(LocalNfcViewModel provides nfcViewModel) {
         NavHost(
             navController = navController,
-            startDestination = Screen.Login.route,
+            startDestination = startDestination,
             modifier = modifier,
             enterTransition = {
                 slideIntoContainer(

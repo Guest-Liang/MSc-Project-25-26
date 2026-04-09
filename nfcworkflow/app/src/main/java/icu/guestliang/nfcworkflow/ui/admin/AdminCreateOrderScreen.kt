@@ -52,6 +52,7 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -82,18 +83,18 @@ fun AdminCreateOrderScreen(
     val uiState by viewModel.uiState.collectAsState()
     val isLandscape = LocalConfiguration.current.orientation == Configuration.ORIENTATION_LANDSCAPE
 
-    var title by remember { mutableStateOf("") }
-    var description by remember { mutableStateOf("") }
-    var orderType by remember { mutableStateOf("standard") } // "standard" or "sequence"
-    var nfcTag by remember { mutableStateOf("") }
-    var locationCode by remember { mutableStateOf("") }
+    var title by rememberSaveable { mutableStateOf("") }
+    var description by rememberSaveable { mutableStateOf("") }
+    var orderType by rememberSaveable { mutableStateOf("standard") } // "standard" or "sequence"
+    var nfcTag by rememberSaveable { mutableStateOf("") }
+    var locationCode by rememberSaveable { mutableStateOf("") }
     
     // For sequence orders
     var steps by remember { mutableStateOf(listOf(DraftStep())) }
 
     // For NFC scanning
-    var showNfcDialog by remember { mutableStateOf(false) }
-    var scanningForStepIndex by remember { mutableStateOf<Int?>(null) }
+    var showNfcDialog by rememberSaveable { mutableStateOf(false) }
+    var scanningForStepIndex by rememberSaveable { mutableStateOf<Int?>(null) }
 
     val topAppBarState = rememberTopAppBarState()
     val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior(topAppBarState)
