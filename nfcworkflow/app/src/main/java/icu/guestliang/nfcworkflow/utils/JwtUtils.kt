@@ -15,9 +15,12 @@ object JwtUtils {
         if (parts.size < 2) return 0L
 
         return try {
-            val payload = String(Base64.decode(parts[1], Base64.DEFAULT))
+            val payloadBytes = Base64.decode(parts[1], Base64.URL_SAFE)
+            val payload = String(payloadBytes, Charsets.UTF_8)
+            
             val jsonObject = json.parseToJsonElement(payload).jsonObject
             val exp = jsonObject["exp"]?.jsonPrimitive?.longOrNull
+
             // JWT exp 是秒，Java 时间戳是毫秒
             if (exp != null) exp * 1000L else 0L
         } catch (e: Exception) {
