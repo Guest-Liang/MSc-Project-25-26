@@ -17,7 +17,9 @@ import icu.guestliang.nfcworkflow.ui.worker.ViewOrdersScreen
 import icu.guestliang.nfcworkflow.ui.worker.WorkerHistoryScreen
 import icu.guestliang.nfcworkflow.ui.worker.WorkerScanScreen
 import kotlinx.coroutines.delay
-import kotlinx.coroutines.flow.firstOrNull
+import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.map
 import androidx.compose.animation.AnimatedContentTransitionScope
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
@@ -110,17 +112,21 @@ fun NavGraph(
         }
     }
 
-    // Active check: periodically check token expiry
+    // Active check: wait until token expiry instead of polling
     LaunchedEffect(Unit) {
-        while (true) {
-            val prefs = PrefsDataStore.flow(context).firstOrNull()
-            if (prefs?.token != null && prefs.tokenExpiry > 0 && prefs.tokenExpiry < System.currentTimeMillis()) {
-                // Token expired locally
-                AuthManager.emitForceLogout()
-                break // Stop checking once we've triggered logout
+        PrefsDataStore.flow(context)
+            .map { it.token to it.tokenExpiry }
+            .distinctUntilChanged()
+            .collectLatest { (token, expiry) ->
+                if (token != null && expiry > 0) {
+                    val remaining = expiry - System.currentTimeMillis()
+                    if (remaining > 0) {
+                        delay(remaining)
+                    }
+                    // Token has expired or was already expired
+                    AuthManager.emitForceLogout()
+                }
             }
-            delay(10000) // Check every 10 seconds
-        }
     }
 
     if (showAuthErrorDialog) {
