@@ -8,5 +8,6 @@ data class AppPrefs(
     val autoRefreshLogs: Boolean = true,
     val dynamicColor: Boolean = true,
     val token: String? = null,
+    val tokenExpiry: Long = 0L,
     val isWorker: Boolean = false
 )

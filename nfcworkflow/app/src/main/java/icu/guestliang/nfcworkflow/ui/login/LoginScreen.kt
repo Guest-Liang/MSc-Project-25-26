@@ -4,6 +4,7 @@ import dev.chrisbanes.haze.HazeState
 import icu.guestliang.nfcworkflow.R
 import icu.guestliang.nfcworkflow.data.PrefsDataStore
 import icu.guestliang.nfcworkflow.ui.theme.Dimensions
+import icu.guestliang.nfcworkflow.utils.JwtUtils
 import icu.guestliang.nfcworkflow.utils.LocalHazeState
 import icu.guestliang.nfcworkflow.utils.haze
 import icu.guestliang.nfcworkflow.utils.hazeSource
@@ -84,7 +85,17 @@ fun LoginScreen(
     LaunchedEffect(loginState) {
         if (loginState is LoginState.Success) {
             val successState = loginState as LoginState.Success
-            PrefsDataStore.setAuthToken(context, successState.token, successState.isWorker)
+            val token = successState.token
+            
+            // Extract expiry directly from JWT payload
+            val expiryMillis = JwtUtils.getExpiryMillis(token)
+            
+            // If we failed to parse expiry from JWT, fallback to a safe 20-min default
+            val finalExpiryMillis = if (expiryMillis > 0) expiryMillis else (System.currentTimeMillis() + 1200 * 1000L)
+            
+            // Use the updated setAuthToken signature
+            PrefsDataStore.setAuthToken(context, token, successState.isWorker, finalExpiryMillis)
+
             Toast.makeText(context, R.string.login_success, Toast.LENGTH_SHORT).show()
             onLoginSuccess()
             viewModel.resetLoginState()

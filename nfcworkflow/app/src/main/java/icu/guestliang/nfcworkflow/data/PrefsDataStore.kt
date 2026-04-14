@@ -6,6 +6,7 @@ import kotlinx.coroutines.flow.map
 import android.content.Context
 import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.edit
+import androidx.datastore.preferences.core.longPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
 
@@ -17,6 +18,7 @@ object PrefsDataStore {
     private val KEY_LOG_AUTO = booleanPreferencesKey("log_auto_refresh")
     private val KEY_DYNAMIC_COLOR = booleanPreferencesKey("dynamic_color")
     private val KEY_TOKEN = stringPreferencesKey("auth_token")
+    private val KEY_TOKEN_EXPIRY = longPreferencesKey("auth_token_expiry")
     private val KEY_IS_WORKER = booleanPreferencesKey("is_worker")
 
     fun flow(context: Context): Flow<AppPrefs> = context.dataStore.data.map { p ->
@@ -32,6 +34,7 @@ object PrefsDataStore {
             autoRefreshLogs = p[KEY_LOG_AUTO] ?: true,
             dynamicColor = p[KEY_DYNAMIC_COLOR] ?: true,
             token = p[KEY_TOKEN],
+            tokenExpiry = p[KEY_TOKEN_EXPIRY] ?: 0L,
             isWorker = p[KEY_IS_WORKER] ?: false
         )
     }
@@ -44,12 +47,14 @@ object PrefsDataStore {
         context.dataStore.edit { it[KEY_DYNAMIC_COLOR] = enabled }
     }
 
-    suspend fun setAuthToken(context: Context, token: String?, isWorker: Boolean) {
+    suspend fun setAuthToken(context: Context, token: String?, isWorker: Boolean, expiryMillis: Long = 0L) {
         context.dataStore.edit { prefs ->
             if (token != null) {
                 prefs[KEY_TOKEN] = token
+                prefs[KEY_TOKEN_EXPIRY] = expiryMillis
             } else {
                 prefs.remove(KEY_TOKEN)
+                prefs.remove(KEY_TOKEN_EXPIRY)
             }
             prefs[KEY_IS_WORKER] = isWorker
         }
@@ -58,6 +63,7 @@ object PrefsDataStore {
     suspend fun clearAuth(context: Context) {
         context.dataStore.edit { prefs ->
             prefs.remove(KEY_TOKEN)
+            prefs.remove(KEY_TOKEN_EXPIRY)
             prefs.remove(KEY_IS_WORKER)
         }
     }

@@ -17,6 +17,7 @@ import icu.guestliang.nfcworkflow.ui.worker.ViewOrdersScreen
 import icu.guestliang.nfcworkflow.ui.worker.WorkerHistoryScreen
 import icu.guestliang.nfcworkflow.ui.worker.WorkerScanScreen
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.firstOrNull
 import androidx.compose.animation.AnimatedContentTransitionScope
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
@@ -40,6 +41,7 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
@@ -87,14 +89,13 @@ fun NavGraph(
     val context = LocalContext.current
 
     var showAuthErrorDialog by rememberSaveable { mutableStateOf(false) }
-    var authErrorCountdown by rememberSaveable { mutableIntStateOf(3) }
+    var authErrorCountdown by rememberSaveable { mutableIntStateOf(5) }
 
     LaunchedEffect(Unit) {
         AuthManager.forceLogoutEvent.collect {
-            // Only show dialog if we are not already on the login screen
             if (navController.currentDestination?.route != Screen.Login.route && !showAuthErrorDialog) {
                 showAuthErrorDialog = true
-                authErrorCountdown = 3
+                authErrorCountdown = 5
                 while (authErrorCountdown > 0) {
                     delay(1000)
                     authErrorCountdown--
@@ -109,11 +110,26 @@ fun NavGraph(
         }
     }
 
+    // Active check: periodically check token expiry
+    LaunchedEffect(Unit) {
+        while (true) {
+            val prefs = PrefsDataStore.flow(context).firstOrNull()
+            if (prefs?.token != null && prefs.tokenExpiry > 0 && prefs.tokenExpiry < System.currentTimeMillis()) {
+                // Token expired locally
+                AuthManager.emitForceLogout()
+                break // Stop checking once we've triggered logout
+            }
+            delay(10000) // Check every 10 seconds
+        }
+    }
+
     if (showAuthErrorDialog) {
         AlertDialog(
             onDismissRequest = { /* Cannot dismiss manually */ },
-            title = { Text(context.getString(R.string.err_not_logged_in) ?: "Login Expired") },
-            text = { Text("Your login session has expired. Redirecting to login in $authErrorCountdown seconds...") },
+            title = { Text(stringResource(id = R.string.login_expired_title)) },
+            text = { 
+                Text(stringResource(id = R.string.login_expired_msg, authErrorCountdown)) 
+            },
             confirmButton = { }
         )
     }

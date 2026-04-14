@@ -27,7 +27,13 @@ class MainActivity : ComponentActivity() {
             prefs?.let { currentPrefs ->
                 NFCWorkFlowTheme(prefs = currentPrefs) {
                     val navController = rememberNavController()
-                    val startDest = if (!currentPrefs.token.isNullOrEmpty()) Screen.Main.route else Screen.Login.route
+                    
+                    // Check if token exists and is NOT expired
+                    val isTokenValid = !currentPrefs.token.isNullOrEmpty() && 
+                                     currentPrefs.tokenExpiry > System.currentTimeMillis()
+                    
+                    val startDest = if (isTokenValid) Screen.Main.route else Screen.Login.route
+
                     NavGraph(
                         navController = navController,
                         modifier = Modifier.fillMaxSize(),
