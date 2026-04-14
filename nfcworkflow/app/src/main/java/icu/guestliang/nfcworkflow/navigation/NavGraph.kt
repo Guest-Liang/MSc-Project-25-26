@@ -93,21 +93,29 @@ fun NavGraph(
     var showAuthErrorDialog by rememberSaveable { mutableStateOf(false) }
     var authErrorCountdown by rememberSaveable { mutableIntStateOf(5) }
 
+    // Listen for force logout events and trigger the dialog
     LaunchedEffect(Unit) {
         AuthManager.forceLogoutEvent.collect {
             if (navController.currentDestination?.route != Screen.Login.route && !showAuthErrorDialog) {
                 showAuthErrorDialog = true
                 authErrorCountdown = 5
-                while (authErrorCountdown > 0) {
-                    delay(1000)
-                    authErrorCountdown--
-                }
-                
-                showAuthErrorDialog = false
-                PrefsDataStore.clearAuth(context)
-                navController.navigate(Screen.Login.route) {
-                    popUpTo(navController.graph.id) { inclusive = true }
-                }
+            }
+        }
+    }
+
+    // Handle the countdown logic independently of the event collection
+    // This ensures that even if the screen rotates, the countdown continues as long as the dialog is shown.
+    LaunchedEffect(showAuthErrorDialog) {
+        if (showAuthErrorDialog) {
+            while (authErrorCountdown > 0) {
+                delay(1000)
+                authErrorCountdown--
+            }
+            
+            showAuthErrorDialog = false
+            PrefsDataStore.clearAuth(context)
+            navController.navigate(Screen.Login.route) {
+                popUpTo(navController.graph.id) { inclusive = true }
             }
         }
     }
