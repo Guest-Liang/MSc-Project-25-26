@@ -106,7 +106,7 @@ fun NavGraph(
                 showAuthErrorDialog = false
                 PrefsDataStore.clearAuth(context)
                 navController.navigate(Screen.Login.route) {
-                    popUpTo(0) { inclusive = true }
+                    popUpTo(navController.graph.id) { inclusive = true }
                 }
             }
         }
@@ -202,7 +202,7 @@ fun NavGraph(
                     navController = navController,
                     onLogout = {
                         navController.navigate(Screen.Login.route) {
-                            popUpTo(0)
+                            popUpTo(navController.graph.id) { inclusive = true }
                         }
                     }
                 )
