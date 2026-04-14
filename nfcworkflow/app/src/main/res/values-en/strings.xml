@@ -177,6 +177,7 @@
     <string name="login_user_not_exist_prompt">User does not exist, do you want to register?</string>
     <string name="login_wrong_password_prompt">Incorrect password. Do you want to reset your password?</string>
     <string name="login_expired_title">Login expired</string>
+    <string name="login_expired_msg">Your login session has expired. You will be redirected to the login page in %1$d seconds…</string>
     <!-- register / reset password -->
     <string name="register_title">Registration page</string>
     <string name="reset_password_title">Reset Password</string>
