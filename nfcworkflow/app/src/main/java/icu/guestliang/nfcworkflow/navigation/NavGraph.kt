@@ -16,10 +16,14 @@ import icu.guestliang.nfcworkflow.ui.worker.CompleteOrderScreen
 import icu.guestliang.nfcworkflow.ui.worker.ViewOrdersScreen
 import icu.guestliang.nfcworkflow.ui.worker.WorkerHistoryScreen
 import icu.guestliang.nfcworkflow.ui.worker.WorkerScanScreen
+import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import androidx.compose.animation.AnimatedContentTransitionScope
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
@@ -34,16 +38,21 @@ import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.compositionLocalOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
@@ -89,22 +98,48 @@ fun NavGraph(
 ) {
     val nfcViewModel: NfcViewModel = viewModel()
     val context = LocalContext.current
+    val lifecycleOwner = LocalLifecycleOwner.current
+    val scope = rememberCoroutineScope()
 
     var showAuthErrorDialog by rememberSaveable { mutableStateOf(false) }
     var authErrorCountdown by rememberSaveable { mutableIntStateOf(5) }
 
-    // Listen for force logout events and trigger the dialog
-    LaunchedEffect(Unit) {
-        AuthManager.forceLogoutEvent.collect {
-            if (navController.currentDestination?.route != Screen.Login.route && !showAuthErrorDialog) {
-                showAuthErrorDialog = true
-                authErrorCountdown = 5
-            }
+    // 1. Unified trigger logic to avoid double-firing
+    val onTriggerForceLogout = {
+        if (!showAuthErrorDialog && navController.currentDestination?.route != Screen.Login.route) {
+            showAuthErrorDialog = true
+            authErrorCountdown = 5
         }
     }
 
-    // Handle the countdown logic independently of the event collection
-    // This ensures that even if the screen rotates, the countdown continues as long as the dialog is shown.
+    suspend fun checkTokenExpiry() {
+        val prefs = PrefsDataStore.flow(context).firstOrNull()
+        if (prefs?.token != null && prefs.tokenExpiry > 0 && prefs.tokenExpiry < System.currentTimeMillis()) {
+            onTriggerForceLogout()
+        }
+    }
+
+    // 2. Lifecycle awareness
+    DisposableEffect(lifecycleOwner) {
+        val observer = LifecycleEventObserver { _, event ->
+            if (event == Lifecycle.Event.ON_RESUME) {
+                scope.launch { checkTokenExpiry() }
+            }
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose {
+            lifecycleOwner.lifecycle.removeObserver(observer)
+        }
+    }
+
+    // 3. Global event listener
+    LaunchedEffect(Unit) {
+        AuthManager.forceLogoutEvent.collect {
+            onTriggerForceLogout()
+        }
+    }
+
+    // 4. Countdown and CLEAR-STACK Navigation
     LaunchedEffect(showAuthErrorDialog) {
         if (showAuthErrorDialog) {
             while (authErrorCountdown > 0) {
@@ -112,15 +147,20 @@ fun NavGraph(
                 authErrorCountdown--
             }
             
-            showAuthErrorDialog = false
-            PrefsDataStore.clearAuth(context)
-            navController.navigate(Screen.Login.route) {
-                popUpTo(navController.graph.id) { inclusive = true }
+            withContext(NonCancellable) {
+                PrefsDataStore.clearAuth(context)
+
+                navController.navigate(Screen.Login.route) {
+                    popUpTo(navController.graph.id) { inclusive = true }
+                    launchSingleTop = true
+                }
+
+                showAuthErrorDialog = false
             }
         }
     }
 
-    // Active check: wait until token expiry instead of polling
+    // 5. Active token monitoring
     LaunchedEffect(Unit) {
         PrefsDataStore.flow(context)
             .map { it.token to it.tokenExpiry }
@@ -131,8 +171,7 @@ fun NavGraph(
                     if (remaining > 0) {
                         delay(remaining)
                     }
-                    // Token has expired or was already expired
-                    AuthManager.emitForceLogout()
+                    onTriggerForceLogout()
                 }
             }
     }
@@ -211,6 +250,7 @@ fun NavGraph(
                     onLogout = {
                         navController.navigate(Screen.Login.route) {
                             popUpTo(navController.graph.id) { inclusive = true }
+                            launchSingleTop = true
                         }
                     }
                 )

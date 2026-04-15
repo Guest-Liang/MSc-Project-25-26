@@ -1,9 +1,49 @@
 package icu.guestliang.nfcworkflow.network
 
+import kotlinx.serialization.KSerializer
 import kotlinx.serialization.Serializable
+import kotlinx.serialization.descriptors.SerialDescriptor
+import kotlinx.serialization.encoding.Decoder
+import kotlinx.serialization.encoding.Encoder
 import kotlinx.serialization.json.JsonElement
 
+/**
+ * 代理类，用于实际的 JSON 解析，避免循环引用。
+ */
 @Serializable
+private data class ApiResponseSurrogate(
+    val success: Boolean = true,
+    val code: Int = 0,
+    val message: String = "",
+    val data: JsonElement? = null
+)
+
+/**
+ * 自定义序列化器，用于全局处理 1004 (Token 无效) 等业务码。
+ */
+object ApiResponseSerializer : KSerializer<ApiResponse> {
+    // 使用代理类的 descriptor
+    override val descriptor: SerialDescriptor = ApiResponseSurrogate.serializer().descriptor
+
+    override fun serialize(encoder: Encoder, value: ApiResponse) {
+        val surrogate = ApiResponseSurrogate(value.success, value.code, value.message, value.data)
+        encoder.encodeSerializableValue(ApiResponseSurrogate.serializer(), surrogate)
+    }
+
+    override fun deserialize(decoder: Decoder): ApiResponse {
+        // 使用代理类进行实际反序列化
+        val surrogate = decoder.decodeSerializableValue(ApiResponseSurrogate.serializer())
+        
+        // 全局拦截：如果 code 是 1004，触发登出
+        if (surrogate.code == 1004) {
+            AuthManager.emitForceLogout()
+        }
+
+        return ApiResponse(surrogate.success, surrogate.code, surrogate.message, surrogate.data)
+    }
+}
+
+@Serializable(with = ApiResponseSerializer::class)
 data class ApiResponse(
     val success: Boolean = true,
     val code: Int = 0,
@@ -65,7 +105,7 @@ data class ScanResponseData(
     val matched: Boolean,
     val completed: Boolean,
     val scannedUidHex: String,
-    val expectedUidHex: String? = null,
+    val PellHex: String? = null,
     val locationCode: String? = null,
     val displayName: String? = null,
     val sequenceTotalSteps: Int = 0,
