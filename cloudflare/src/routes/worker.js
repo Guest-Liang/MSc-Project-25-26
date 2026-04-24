@@ -328,6 +328,18 @@ workerRoutes.post("/orders/scan", async (c) => {
       })
     }
 
+    const updateResult = await c.env.MScPJ_DB.prepare(
+      `UPDATE orders
+       SET status = 'completed',
+           completed_at = datetime('now'),
+           updated_at = datetime('now')
+       WHERE id = ?
+         AND assigned_to = ?
+         AND status = 'assigned'`
+    ).bind(orderId, user.id).run()
+
+    if (updateResult.meta.changes !== 1) return jsonResponse(null, ERR.ORDER_STATE_CHANGED)
+
     await writeOrderLog(c.env.MScPJ_DB, {
       orderId,
       action: "scan",
@@ -343,10 +355,6 @@ workerRoutes.post("/orders/scan", async (c) => {
         ndefText
       }
     })
-
-    await c.env.MScPJ_DB.prepare(
-      "UPDATE orders SET status = 'completed', completed_at = datetime('now'), updated_at = datetime('now') WHERE id = ?"
-    ).bind(orderId).run()
 
     await writeOrderLog(c.env.MScPJ_DB, {
       orderId,
@@ -444,35 +452,40 @@ workerRoutes.post("/orders/scan", async (c) => {
     })
   }
 
-  await writeOrderLog(c.env.MScPJ_DB, {
-    orderId,
-    action: "scan",
-    operatorId: user.id,
-    result: "sequence_step_completed",
-    stepIndex: nextStepIndex,
-    scanUidHex: uidHex,
-    expectedUidHex: uidHex,
-    locationCode: nextStep.location_code ?? null,
-    displayName: nextStep.display_name ?? null,
-    details: {
-      orderType,
-      rawText,
-      ndefText
-    }
-  })
-
   const isFinalStep = nextStepIndex >= totalSteps
 
   if (isFinalStep) {
-    await c.env.MScPJ_DB.prepare(
+    const updateResult = await c.env.MScPJ_DB.prepare(
       `UPDATE orders
        SET status = 'completed',
            completed_at = datetime('now'),
            updated_at = datetime('now'),
            sequence_total_steps = ?,
            sequence_completed_steps = ?
-       WHERE id = ?`
-    ).bind(totalSteps, totalSteps, orderId).run()
+       WHERE id = ?
+         AND assigned_to = ?
+         AND status = 'assigned'
+         AND sequence_completed_steps = ?`
+    ).bind(totalSteps, totalSteps, orderId, user.id, completedSteps).run()
+
+    if (updateResult.meta.changes !== 1) return jsonResponse(null, ERR.ORDER_STATE_CHANGED)
+
+    await writeOrderLog(c.env.MScPJ_DB, {
+      orderId,
+      action: "scan",
+      operatorId: user.id,
+      result: "sequence_step_completed",
+      stepIndex: nextStepIndex,
+      scanUidHex: uidHex,
+      expectedUidHex: uidHex,
+      locationCode: nextStep.location_code ?? null,
+      displayName: nextStep.display_name ?? null,
+      details: {
+        orderType,
+        rawText,
+        ndefText
+      }
+    })
 
     await writeOrderLog(c.env.MScPJ_DB, {
       orderId,
@@ -510,13 +523,35 @@ workerRoutes.post("/orders/scan", async (c) => {
 
   const nextUpcomingStep = steps.find((step) => Number(step.step_index) === nextStepIndex + 1) ?? null
 
-  await c.env.MScPJ_DB.prepare(
+  const updateResult = await c.env.MScPJ_DB.prepare(
     `UPDATE orders
      SET updated_at = datetime('now'),
          sequence_total_steps = ?,
          sequence_completed_steps = ?
-     WHERE id = ?`
-  ).bind(totalSteps, nextStepIndex, orderId).run()
+     WHERE id = ?
+       AND assigned_to = ?
+       AND status = 'assigned'
+       AND sequence_completed_steps = ?`
+  ).bind(totalSteps, nextStepIndex, orderId, user.id, completedSteps).run()
+
+  if (updateResult.meta.changes !== 1) return jsonResponse(null, ERR.ORDER_STATE_CHANGED)
+
+  await writeOrderLog(c.env.MScPJ_DB, {
+    orderId,
+    action: "scan",
+    operatorId: user.id,
+    result: "sequence_step_completed",
+    stepIndex: nextStepIndex,
+    scanUidHex: uidHex,
+    expectedUidHex: uidHex,
+    locationCode: nextStep.location_code ?? null,
+    displayName: nextStep.display_name ?? null,
+    details: {
+      orderType,
+      rawText,
+      ndefText
+    }
+  })
 
   return jsonResponse({
     ...INFO.ORDER_SCAN_SUCCESS,

@@ -78,6 +78,11 @@ function validateSequenceSteps(rawSteps) {
   return { steps: normalizedSteps }
 }
 
+function isUniqueConstraintError(error) {
+  const message = String(error?.message ?? error ?? "")
+  return message.includes("UNIQUE constraint failed")
+}
+
 adminRoutes.get("/workers", async (c) => {
   const list = await c.env.MScPJ_DB.prepare(
     "SELECT id, username, role, created_at FROM users WHERE role = 'worker' ORDER BY created_at DESC"
@@ -125,33 +130,40 @@ adminRoutes.post("/orders/create", async (c) => {
 
   const finalTargetUidHex = orderType === ORDER_TYPES.STANDARD ? targetUidHex : null
 
-  const result = await c.env.MScPJ_DB.prepare(
-    `INSERT INTO orders (
+  let result
+
+  try {
+    result = await c.env.MScPJ_DB.prepare(
+      `INSERT INTO orders (
+        title,
+        description,
+        nfc_tag,
+        status,
+        assigned_to,
+        created_at,
+        updated_at,
+        order_type,
+        target_uid_hex,
+        location_code,
+        display_name,
+        assigned_at,
+        completed_at,
+        sequence_total_steps,
+        sequence_completed_steps
+      ) VALUES (?, ?, ?, 'created', NULL, datetime('now'), datetime('now'), ?, ?, ?, ?, NULL, NULL, 0, 0)`
+    ).bind(
       title,
       description,
-      nfc_tag,
-      status,
-      assigned_to,
-      created_at,
-      updated_at,
-      order_type,
-      target_uid_hex,
-      location_code,
-      display_name,
-      assigned_at,
-      completed_at,
-      sequence_total_steps,
-      sequence_completed_steps
-    ) VALUES (?, ?, ?, 'created', NULL, datetime('now'), datetime('now'), ?, ?, ?, ?, NULL, NULL, 0, 0)`
-  ).bind(
-    title,
-    description,
-    finalTargetUidHex,
-    orderType,
-    finalTargetUidHex,
-    locationCode,
-    displayName
-  ).run()
+      finalTargetUidHex,
+      orderType,
+      finalTargetUidHex,
+      locationCode,
+      displayName
+    ).run()
+  } catch (error) {
+    if (isUniqueConstraintError(error)) return jsonResponse(null, ERR.ORDER_TITLE_EXISTS)
+    throw error
+  }
 
   const orderId = result.meta.last_row_id
 
@@ -265,9 +277,18 @@ adminRoutes.post("/orders/assign", async (c) => {
       return jsonResponse(null, ERR.ORDER_PROGRESS_LOCKED)
     }
 
-    await c.env.MScPJ_DB.prepare(
-      "UPDATE orders SET assigned_to = NULL, status = 'created', assigned_at = NULL, updated_at = datetime('now') WHERE id = ?"
+    const unassignResult = await c.env.MScPJ_DB.prepare(
+      `UPDATE orders
+       SET assigned_to = NULL,
+           status = 'created',
+           assigned_at = NULL,
+           updated_at = datetime('now')
+       WHERE id = ?
+         AND status <> 'completed'
+         AND sequence_completed_steps = 0`
     ).bind(orderId).run()
+
+    if (unassignResult.meta.changes !== 1) return jsonResponse(null, ERR.ORDER_STATE_CHANGED)
 
     await writeOrderLog(c.env.MScPJ_DB, {
       orderId,
@@ -288,15 +309,21 @@ adminRoutes.post("/orders/assign", async (c) => {
     const stepCount = await countOrderSteps(c.env.MScPJ_DB, orderId)
     if (stepCount < 1) return jsonResponse(null, ERR.ORDER_STEPS_REQUIRED)
 
-    await c.env.MScPJ_DB.prepare(
+    const assignResult = await c.env.MScPJ_DB.prepare(
       `UPDATE orders
        SET assigned_to = ?, status = 'assigned', assigned_at = datetime('now'), updated_at = datetime('now'), sequence_total_steps = ?
-       WHERE id = ?`
+       WHERE id = ? AND status <> 'completed'`
     ).bind(workerId, stepCount, orderId).run()
+
+    if (assignResult.meta.changes !== 1) return jsonResponse(null, ERR.ORDER_STATE_CHANGED)
   } else {
-    await c.env.MScPJ_DB.prepare(
-      "UPDATE orders SET assigned_to = ?, status = 'assigned', assigned_at = datetime('now'), updated_at = datetime('now') WHERE id = ?"
+    const assignResult = await c.env.MScPJ_DB.prepare(
+      `UPDATE orders
+       SET assigned_to = ?, status = 'assigned', assigned_at = datetime('now'), updated_at = datetime('now')
+       WHERE id = ? AND status <> 'completed'`
     ).bind(workerId, orderId).run()
+
+    if (assignResult.meta.changes !== 1) return jsonResponse(null, ERR.ORDER_STATE_CHANGED)
   }
 
   await writeOrderLog(c.env.MScPJ_DB, {

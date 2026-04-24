@@ -41,37 +41,38 @@ Manually create database tables (Cloudflare Dashboard → D1 SQL Database → Co
 CREATE TABLE users (
   id INTEGER PRIMARY KEY,
   username TEXT NOT NULL UNIQUE,
-  password_hash TEXT,
-  role TEXT,
-  created_at TEXT,
-  updated_at TEXT,
+  password_hash TEXT NOT NULL,
+  role TEXT NOT NULL CHECK (role IN ('admin', 'worker')),
+  created_at TEXT NOT NULL,
+  updated_at TEXT NOT NULL,
   token TEXT
 );
 
 CREATE TABLE orders (
   id INTEGER PRIMARY KEY,
-  title TEXT,
-  description TEXT,
+  title TEXT NOT NULL,
+  description TEXT NOT NULL,
   nfc_tag TEXT,
-  status TEXT,
+  status TEXT NOT NULL DEFAULT 'created' CHECK (status IN ('created', 'assigned', 'completed')),
   assigned_to INTEGER,
-  created_at TEXT,
-  updated_at TEXT,
-  order_type TEXT NOT NULL DEFAULT 'standard',
+  created_at TEXT NOT NULL,
+  updated_at TEXT NOT NULL,
+  order_type TEXT NOT NULL DEFAULT 'standard' CHECK (order_type IN ('standard', 'sequence')),
   target_uid_hex TEXT,
   location_code TEXT,
   display_name TEXT,
   assigned_at TEXT,
   completed_at TEXT,
-  sequence_total_steps INTEGER NOT NULL DEFAULT 0,
-  sequence_completed_steps INTEGER NOT NULL DEFAULT 0,
+  sequence_total_steps INTEGER NOT NULL DEFAULT 0 CHECK (sequence_total_steps >= 0),
+  sequence_completed_steps INTEGER NOT NULL DEFAULT 0 CHECK (sequence_completed_steps >= 0),
+  CHECK (sequence_completed_steps <= sequence_total_steps),
   FOREIGN KEY (assigned_to) REFERENCES users(id) ON DELETE SET NULL ON UPDATE CASCADE
 );
 
 CREATE TABLE order_steps (
   id INTEGER PRIMARY KEY,
   order_id INTEGER NOT NULL,
-  step_index INTEGER NOT NULL,
+  step_index INTEGER NOT NULL CHECK (step_index > 0),
   target_uid_hex TEXT NOT NULL,
   location_code TEXT,
   display_name TEXT,
@@ -84,9 +85,9 @@ CREATE TABLE order_steps (
 CREATE TABLE order_logs (
   id INTEGER PRIMARY KEY,
   order_id INTEGER,
-  action TEXT,
+  action TEXT NOT NULL,
   operator_id INTEGER,
-  timestamp TEXT,
+  timestamp TEXT NOT NULL,
   result TEXT,
   step_index INTEGER,
   scan_uid_hex TEXT,
@@ -105,25 +106,30 @@ CREATE TABLE api_logs (
   action TEXT NOT NULL,
   user_id INTEGER,
   user_role TEXT,
-  success INTEGER NOT NULL,
+  success INTEGER NOT NULL CHECK (success IN (0, 1)),
   response_code INTEGER,
   response_message TEXT,
   ip TEXT,
   user_agent TEXT,
   request_meta TEXT,
-  created_at TEXT NOT NULL
+  created_at TEXT NOT NULL,
+  FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE SET NULL ON UPDATE CASCADE
 );
 
 CREATE INDEX idx_orders_order_type ON orders(order_type);
 CREATE INDEX idx_orders_target_uid_hex ON orders(target_uid_hex);
 CREATE INDEX idx_orders_assigned_to_status ON orders(assigned_to, status);
 CREATE INDEX idx_orders_completed_at ON orders(completed_at DESC);
+CREATE INDEX idx_orders_created_at ON orders(created_at DESC);
+CREATE INDEX idx_orders_updated_at ON orders(updated_at DESC);
+CREATE UNIQUE INDEX IF NOT EXISTS idx_orders_title_unique ON orders(title);
 
 CREATE INDEX idx_order_steps_order_id_step_index ON order_steps(order_id, step_index);
 CREATE INDEX idx_order_steps_target_uid_hex ON order_steps(target_uid_hex);
 
 CREATE INDEX idx_order_logs_order_id_timestamp ON order_logs(order_id, timestamp DESC);
 CREATE INDEX idx_order_logs_operator_id_timestamp ON order_logs(operator_id, timestamp DESC);
+CREATE INDEX idx_order_logs_timestamp_id ON order_logs(timestamp DESC, id DESC);
 CREATE INDEX idx_order_logs_action_result ON order_logs(action, result);
 CREATE INDEX idx_order_logs_scan_uid_hex ON order_logs(scan_uid_hex);
 CREATE INDEX idx_order_logs_expected_uid_hex ON order_logs(expected_uid_hex);
@@ -131,6 +137,7 @@ CREATE INDEX idx_order_logs_expected_uid_hex ON order_logs(expected_uid_hex);
 CREATE INDEX idx_api_logs_created_at ON api_logs(created_at DESC);
 CREATE INDEX idx_api_logs_user_id ON api_logs(user_id);
 CREATE INDEX idx_api_logs_path ON api_logs(path);
+CREATE INDEX idx_users_role_created_at ON users(role, created_at DESC);
 ```
 
 > [!WARNING]

@@ -46,6 +46,7 @@ export const ERR = {
   ORDER_TARGET_UID_MISSING: { code: 4025, message: "Order target UID Hex is not configured" },
   INVALID_CURSOR: { code: 4026, message: "Invalid cursor" },
   INVALID_PAGINATION_LIMIT: { code: 4027, message: "Invalid pagination limit" },
+  ORDER_STATE_CHANGED: { code: 4028, message: "Order state changed; please refresh and retry" },
 
   // System (5000–5999)
   DB_ERROR: { code: 5001, message: "Database error" },
