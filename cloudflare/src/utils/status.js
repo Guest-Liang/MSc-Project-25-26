@@ -47,6 +47,8 @@ export const ERR = {
   INVALID_CURSOR: { code: 4026, message: "Invalid cursor" },
   INVALID_PAGINATION_LIMIT: { code: 4027, message: "Invalid pagination limit" },
   ORDER_STATE_CHANGED: { code: 4028, message: "Order state changed; please refresh and retry" },
+  ORDER_TITLE_TOO_LONG: { code: 4029, message: "Order title is too long" },
+  ORDER_DESCRIPTION_TOO_LONG: { code: 4030, message: "Order description is too long" },
 
   // System (5000–5999)
   DB_ERROR: { code: 5001, message: "Database error" },

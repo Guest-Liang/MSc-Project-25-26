@@ -218,6 +218,7 @@
     <!-- Admin New UI Strings -->
     <string name="admin_order_title_hint">工单标题</string>
     <string name="admin_order_desc_hint">工单描述</string>
+    <string name="admin_order_field_counter">%1$d/%2$d</string>
 
     <string name="admin_order_nfc_hint_required">NFC 标签 UID (必填)</string>
     <string name="admin_order_nfc_hint_optional">NFC 标签 UID (可选)</string>
@@ -329,6 +330,8 @@
 
     <!-- Admin ViewModel Error Strings -->
     <string name="err_title_desc_empty">标题和描述不能为空</string>
+    <string name="err_order_title_too_long">标题不能超过 %1$d 个字符</string>
+    <string name="err_order_description_too_long">描述不能超过 %1$d 个字符</string>
     <string name="err_sequence_no_steps">顺序工单必须包含至少一个步骤</string>
     <string name="err_not_logged_in">未登录</string>
     <string name="err_failed_to_save_steps">工单已创建，但保存步骤失败: %1$s</string>

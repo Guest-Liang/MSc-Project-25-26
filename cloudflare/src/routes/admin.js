@@ -18,6 +18,9 @@ export const adminRoutes = new Hono()
 
 adminRoutes.use("*", requireAdmin)
 
+const ORDER_TITLE_MAX_LENGTH = 128
+const ORDER_DESCRIPTION_MAX_LENGTH = 512
+
 function buildInvalidUidHexError(field, receivedValue, extraData = {}) {
   return {
     ...ERR.INVALID_UID_HEX,
@@ -115,6 +118,18 @@ adminRoutes.post("/orders/create", async (c) => {
   const displayName = toOptionalTrimmedString(body?.displayName)
 
   if (!title || !description) return jsonResponse(null, ERR.INVALID_ORDER_PAYLOAD)
+  if (title.length > ORDER_TITLE_MAX_LENGTH) {
+    return jsonResponse(null, {
+      ...ERR.ORDER_TITLE_TOO_LONG,
+      data: { maxLength: ORDER_TITLE_MAX_LENGTH }
+    })
+  }
+  if (description.length > ORDER_DESCRIPTION_MAX_LENGTH) {
+    return jsonResponse(null, {
+      ...ERR.ORDER_DESCRIPTION_TOO_LONG,
+      data: { maxLength: ORDER_DESCRIPTION_MAX_LENGTH }
+    })
+  }
   if (!orderType) return jsonResponse(null, ERR.INVALID_ORDER_TYPE)
   if (rawTargetUidHex != null && !targetUidHex) {
     return jsonResponse(null, buildInvalidUidHexError("targetUidHex", rawTargetUidHex))

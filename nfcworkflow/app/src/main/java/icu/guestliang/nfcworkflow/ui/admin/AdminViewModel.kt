@@ -106,6 +106,8 @@ class AdminViewModel : ViewModel() {
     companion object {
         const val MIN_APPEND_DELAY_MS = 500L
         const val DEFAULT_PAGE_SIZE = 5
+        const val ORDER_TITLE_MAX_LENGTH = 128
+        const val ORDER_DESCRIPTION_MAX_LENGTH = 512
     }
 
     fun clearMessages() {
@@ -131,6 +133,14 @@ class AdminViewModel : ViewModel() {
         return viewModelScope.launch {
             if (title.isBlank() || description.isBlank()) {
                 _uiState.update { it.copy(error = context.getString(R.string.err_title_desc_empty)) }
+                return@launch
+            }
+            if (title.trim().length > ORDER_TITLE_MAX_LENGTH) {
+                _uiState.update { it.copy(error = context.getString(R.string.err_order_title_too_long, ORDER_TITLE_MAX_LENGTH)) }
+                return@launch
+            }
+            if (description.trim().length > ORDER_DESCRIPTION_MAX_LENGTH) {
+                _uiState.update { it.copy(error = context.getString(R.string.err_order_description_too_long, ORDER_DESCRIPTION_MAX_LENGTH)) }
                 return@launch
             }
 

@@ -4,6 +4,8 @@ import dev.chrisbanes.haze.HazeState
 import icu.guestliang.nfcworkflow.R
 import icu.guestliang.nfcworkflow.logging.AppLogger
 import icu.guestliang.nfcworkflow.network.OrderStep
+import icu.guestliang.nfcworkflow.ui.admin.AdminViewModel.Companion.ORDER_DESCRIPTION_MAX_LENGTH
+import icu.guestliang.nfcworkflow.ui.admin.AdminViewModel.Companion.ORDER_TITLE_MAX_LENGTH
 import icu.guestliang.nfcworkflow.ui.components.NfcScannerDialog
 import icu.guestliang.nfcworkflow.ui.components.SplicedColumnGroup
 import icu.guestliang.nfcworkflow.ui.theme.Dimensions
@@ -178,9 +180,9 @@ fun AdminCreateOrderScreen(
                         ) {
                             CreateOrderFormFields(
                                 title = title,
-                                onTitleChange = { title = it },
+                                onTitleChange = { if (it.length <= ORDER_TITLE_MAX_LENGTH) title = it },
                                 description = description,
-                                onDescriptionChange = { description = it },
+                                onDescriptionChange = { if (it.length <= ORDER_DESCRIPTION_MAX_LENGTH) description = it },
                                 orderType = orderType,
                                 onOrderTypeChange = { orderType = it },
                                 nfcTag = nfcTag,
@@ -234,9 +236,9 @@ fun AdminCreateOrderScreen(
                         Spacer(modifier = Modifier.height(Dimensions.SpaceXS))
                         CreateOrderFormFields(
                             title = title,
-                            onTitleChange = { title = it },
+                            onTitleChange = { if (it.length <= ORDER_TITLE_MAX_LENGTH) title = it },
                             description = description,
-                            onDescriptionChange = { description = it },
+                            onDescriptionChange = { if (it.length <= ORDER_DESCRIPTION_MAX_LENGTH) description = it },
                             orderType = orderType,
                             onOrderTypeChange = { orderType = it },
                             nfcTag = nfcTag,
@@ -328,6 +330,7 @@ private fun CreateOrderFormFields(
             value = title,
             onValueChange = onTitleChange,
             label = { Text(stringResource(R.string.admin_order_title_hint)) },
+            supportingText = { Text(stringResource(R.string.admin_order_field_counter, title.length, ORDER_TITLE_MAX_LENGTH)) },
             modifier = Modifier.fillMaxWidth(),
             singleLine = true
         )
@@ -336,6 +339,7 @@ private fun CreateOrderFormFields(
             value = description,
             onValueChange = onDescriptionChange,
             label = { Text(stringResource(R.string.admin_order_desc_hint)) },
+            supportingText = { Text(stringResource(R.string.admin_order_field_counter, description.length, ORDER_DESCRIPTION_MAX_LENGTH)) },
             modifier = Modifier.fillMaxWidth(),
             minLines = Dimensions.App.TextFieldMinLines
         )

@@ -20,10 +20,17 @@ import {
 } from "../utils/order.js"
 
 export const orderRoutes = new Hono()
+
+orderRoutes.use("*", requireAdmin)
+
 const ORDER_SEARCH_DEFAULT_LIMIT = 5
 const ORDER_SEARCH_MAX_LIMIT = 100
 const ORDER_LOGS_DEFAULT_LIMIT = 5
 const ORDER_LOGS_MAX_LIMIT = 100
+
+function escapeLikePattern(value) {
+  return String(value).replace(/[\\%_]/g, "\\$&")
+}
 
 function parsePositiveIntegerList(rawValue, error) {
   const values = parseCsvParam(rawValue)
@@ -102,7 +109,7 @@ async function enrichOrdersWithNextSteps(db, orders) {
   )
 }
 
-orderRoutes.get("/steps", requireAdmin, async (c) => {
+orderRoutes.get("/steps", async (c) => {
   const orderId = parsePositiveInteger(c.req.query("orderId"))
   if (!orderId) return jsonResponse(null, ERR.INVALID_ORDER_ID)
 
@@ -123,7 +130,7 @@ orderRoutes.get("/steps", requireAdmin, async (c) => {
   })
 })
 
-orderRoutes.get("/analysis/summary", requireAdmin, async (c) => {
+orderRoutes.get("/analysis/summary", async (c) => {
   const totalOrders = await c.env.MScPJ_DB.prepare(
     `SELECT
       COUNT(*) AS total_orders,
@@ -220,7 +227,7 @@ orderRoutes.get("/analysis/summary", requireAdmin, async (c) => {
   })
 })
 
-orderRoutes.get("/logs", requireAdmin, async (c) => {
+orderRoutes.get("/logs", async (c) => {
   const params = c.req.query()
   const conditions = []
   const values = []
@@ -340,7 +347,7 @@ orderRoutes.get("/logs", requireAdmin, async (c) => {
   })
 })
 
-orderRoutes.get("/search", requireAdmin, async (c) => {
+orderRoutes.get("/search", async (c) => {
   const params = c.req.query()
   const conditions = []
   const values = []
@@ -376,13 +383,13 @@ orderRoutes.get("/search", requireAdmin, async (c) => {
   }
 
   if (params.title) {
-    conditions.push("title LIKE ?")
-    values.push(`%${params.title}%`)
+    conditions.push("title LIKE ? ESCAPE '\\'")
+    values.push(`%${escapeLikePattern(params.title)}%`)
   }
 
   if (params.description) {
-    conditions.push("description LIKE ?")
-    values.push(`%${params.description}%`)
+    conditions.push("description LIKE ? ESCAPE '\\'")
+    values.push(`%${escapeLikePattern(params.description)}%`)
   }
 
   if (params.targetUidHex) {
@@ -394,8 +401,8 @@ orderRoutes.get("/search", requireAdmin, async (c) => {
       values.push(...targetUidHexValues)
     }
   } else if (params.nfc_tag) {
-    conditions.push("nfc_tag LIKE ?")
-    values.push(`%${params.nfc_tag}%`)
+    conditions.push("nfc_tag LIKE ? ESCAPE '\\'")
+    values.push(`%${escapeLikePattern(params.nfc_tag)}%`)
   }
 
   if (params.orderType) {
