@@ -9,6 +9,7 @@ import icu.guestliang.nfcworkflow.utils.LocalHazeState
 import icu.guestliang.nfcworkflow.utils.findActivity
 import icu.guestliang.nfcworkflow.utils.haze
 import icu.guestliang.nfcworkflow.utils.hazeSource
+import kotlinx.coroutines.delay
 import android.content.Intent
 import android.nfc.NfcAdapter
 import android.provider.Settings
@@ -39,18 +40,21 @@ import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.compose.dropUnlessResumed
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
+
+private const val WORKER_SCAN_TIMEOUT_MS = 60_000L
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -61,57 +65,91 @@ fun WorkerScanScreen(
 ) {
     val context = LocalContext.current
     val activity = context.findActivity()
+    val lifecycleOwner = LocalLifecycleOwner.current
     val topAppBarState = rememberTopAppBarState()
     val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior(topAppBarState)
     val hazeState = remember { HazeState() }
     
     val uiState by viewModel.uiState.collectAsState()
-    
-    var isScanning by remember { mutableStateOf(true) }
+    val isScanning = uiState.isScanActive
     
     val nfcNotSupportedStr = stringResource(id = R.string.nfc_not_supported)
     val nfcDisabledStr = stringResource(id = R.string.nfc_disabled_prompt)
 
-    LaunchedEffect(Unit) {
+    LaunchedEffect(orderId) {
+        viewModel.beginScanSession(orderId)
         val nfcAdapter = activity?.let { NfcAdapter.getDefaultAdapter(it) }
         if (nfcAdapter == null) {
             Toast.makeText(context, nfcNotSupportedStr, Toast.LENGTH_SHORT).show()
-            isScanning = false
+            viewModel.stopScanSession()
         } else if (!nfcAdapter.isEnabled) {
             Toast.makeText(context, nfcDisabledStr, Toast.LENGTH_SHORT).show()
             context.startActivity(Intent(Settings.ACTION_NFC_SETTINGS))
-            isScanning = false
+            viewModel.stopScanSession()
         }
-        viewModel.clearMessages()
     }
 
-    DisposableEffect(isScanning) {
-        val nfcAdapter = activity?.let { NfcAdapter.getDefaultAdapter(it) }
-        
-        if (isScanning && nfcAdapter != null && nfcAdapter.isEnabled) {
-            val flags = NfcAdapter.FLAG_READER_NFC_A or 
-                        NfcAdapter.FLAG_READER_NFC_B or
-                        NfcAdapter.FLAG_READER_NFC_F or 
-                        NfcAdapter.FLAG_READER_NFC_V
-            
-            val readerCallback = NfcAdapter.ReaderCallback { tag ->
-                val parsedData = parseNfcTagData(tag, context)
-                // Need to perform scan request
-                activity.runOnUiThread {
-                    viewModel.scanOrder(
-                        context = context,
-                        orderId = orderId,
-                        uidHex = parsedData.uidHex,
-                        rawText = parsedData.rawText,
-                        ndefText = parsedData.ndefText
-                    )
-                }
+    LaunchedEffect(orderId, isScanning, uiState.isLoading) {
+        if (isScanning && !uiState.isLoading) {
+            delay(WORKER_SCAN_TIMEOUT_MS)
+            if (viewModel.uiState.value.scanOrderId == orderId &&
+                viewModel.uiState.value.isScanActive &&
+                !viewModel.uiState.value.isLoading
+            ) {
+                viewModel.stopScanSession(timedOut = true)
             }
-            nfcAdapter.enableReaderMode(activity, readerCallback, flags, null)
+        }
+    }
+
+    DisposableEffect(activity, lifecycleOwner, isScanning, uiState.isLoading) {
+        val currentActivity = activity
+        val nfcAdapter = currentActivity?.let { NfcAdapter.getDefaultAdapter(it) }
+        val shouldRead = isScanning && !uiState.isLoading && nfcAdapter?.isEnabled == true
+        val flags = NfcAdapter.FLAG_READER_NFC_A or
+                NfcAdapter.FLAG_READER_NFC_B or
+                NfcAdapter.FLAG_READER_NFC_F or
+                NfcAdapter.FLAG_READER_NFC_V
+        val readerCallback = NfcAdapter.ReaderCallback { tag ->
+            val parsedData = parseNfcTagData(tag, context)
+            currentActivity?.runOnUiThread {
+                viewModel.scanOrder(
+                    context = context,
+                    orderId = orderId,
+                    uidHex = parsedData.uidHex,
+                    rawText = parsedData.rawText,
+                    ndefText = parsedData.ndefText
+                )
+            }
+        }
+
+        fun enableReader() {
+            if (shouldRead) {
+                nfcAdapter.enableReaderMode(currentActivity, readerCallback, flags, null)
+            }
+        }
+
+        fun disableReader() {
+            if (currentActivity != null && nfcAdapter != null) {
+                nfcAdapter.disableReaderMode(currentActivity)
+            }
+        }
+
+        val observer = LifecycleEventObserver { _, event ->
+            when (event) {
+                Lifecycle.Event.ON_RESUME -> enableReader()
+                Lifecycle.Event.ON_PAUSE -> disableReader()
+                else -> Unit
+            }
+        }
+
+        lifecycleOwner.lifecycle.addObserver(observer)
+        if (lifecycleOwner.lifecycle.currentState.isAtLeast(Lifecycle.State.RESUMED)) {
+            enableReader()
         }
 
         onDispose {
-            nfcAdapter?.disableReaderMode(activity)
+            lifecycleOwner.lifecycle.removeObserver(observer)
+            disableReader()
         }
     }
 
@@ -156,7 +194,6 @@ fun WorkerScanScreen(
                     ) {
                         item {
                             if (uiState.actionSuccess && uiState.scanResponseData != null) {
-                                isScanning = false
                                 val scanData = uiState.scanResponseData!!
                                 SplicedColumnGroup(title = stringResource(R.string.worker_complete_result_title)) {
                                     item {
@@ -177,7 +214,8 @@ fun WorkerScanScreen(
                                             if (scanData.orderType == "sequence") {
                                                 Text(
                                                     text = stringResource(R.string.worker_scan_success_sequence, scanData.completedStepIndex ?: 0),
-                                                    modifier = Modifier.padding(top = Dimensions.SpaceS)
+                                                    modifier = Modifier.padding(top = Dimensions.SpaceS),
+                                                    color = MaterialTheme.colorScheme.onSurfaceVariant
                                                 )
                                             }
                                         }
@@ -203,23 +241,34 @@ fun WorkerScanScreen(
                                                             errData.expectedDisplayName ?: "",
                                                             errData.scannedStepIndex
                                                         ),
-                                                        modifier = Modifier.padding(top = Dimensions.SpaceS)
+                                                        modifier = Modifier.padding(top = Dimensions.SpaceS),
+                                                        color = MaterialTheme.colorScheme.onSurfaceVariant
                                                     )
                                                 } else {
                                                     Text(
                                                         text = stringResource(R.string.worker_scan_error_mismatch),
-                                                        modifier = Modifier.padding(top = Dimensions.SpaceS)
+                                                        modifier = Modifier.padding(top = Dimensions.SpaceS),
+                                                        color = MaterialTheme.colorScheme.onSurfaceVariant
                                                     )
                                                 }
                                             }
                                         }
                                     }
                                 }
+                            } else if (uiState.scanTimedOut) {
+                                Box(modifier = Modifier.fillMaxWidth().padding(Dimensions.SpaceXXXL), contentAlignment = Alignment.Center) {
+                                    Text(
+                                        text = stringResource(R.string.nfc_scan_timeout),
+                                        style = MaterialTheme.typography.bodyLarge,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                }
                             } else if (isScanning) {
                                 Box(modifier = Modifier.fillMaxWidth().padding(Dimensions.SpaceXXXL), contentAlignment = Alignment.Center) {
                                     Text(
                                         text = stringResource(R.string.nfc_dialog_prompt),
-                                        style = MaterialTheme.typography.bodyLarge
+                                        style = MaterialTheme.typography.bodyLarge,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant
                                     )
                                 }
                             }

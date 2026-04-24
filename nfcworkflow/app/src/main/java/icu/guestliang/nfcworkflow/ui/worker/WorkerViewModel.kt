@@ -66,7 +66,10 @@ data class WorkerUiState(
     val historySummary: WorkerSummary? = null,
     val actionSuccess: Boolean = false,
     val scanResponseData: ScanResponseData? = null,
-    val scanErrorData: ScanErrorData? = null
+    val scanErrorData: ScanErrorData? = null,
+    val scanOrderId: Int? = null,
+    val isScanActive: Boolean = false,
+    val scanTimedOut: Boolean = false
 )
 
 class WorkerViewModel : ViewModel() {
@@ -87,6 +90,28 @@ class WorkerViewModel : ViewModel() {
 
     fun clearAppendError() {
         _uiState.update { it.copy(appendError = null) }
+    }
+
+    fun beginScanSession(orderId: Int) {
+        _uiState.update {
+            if (it.scanOrderId == orderId) {
+                it
+            } else {
+                it.copy(
+                    scanOrderId = orderId,
+                    isScanActive = true,
+                    scanTimedOut = false,
+                    error = null,
+                    actionSuccess = false,
+                    scanResponseData = null,
+                    scanErrorData = null
+                )
+            }
+        }
+    }
+
+    fun stopScanSession(timedOut: Boolean = false) {
+        _uiState.update { it.copy(isScanActive = false, scanTimedOut = timedOut) }
     }
 
     fun fetchMyOrders(context: Context, isAppend: Boolean = false) {
@@ -297,7 +322,7 @@ class WorkerViewModel : ViewModel() {
 
                 if (response.success) {
                     val scanData = response.data?.let { json.decodeFromJsonElement<ScanResponseData>(it) }
-                    _uiState.update { it.copy(isLoading = false, actionSuccess = true, scanResponseData = scanData) }
+                    _uiState.update { it.copy(isLoading = false, actionSuccess = true, scanResponseData = scanData, isScanActive = false, scanTimedOut = false) }
                     fetchMyOrders(context)
                 } else {
                     val errorData = try {
@@ -346,6 +371,6 @@ class WorkerViewModel : ViewModel() {
     }
 
     fun clearMessages() {
-        _uiState.update { it.copy(error = null, actionSuccess = false, scanResponseData = null, scanErrorData = null) }
+        _uiState.update { it.copy(error = null, actionSuccess = false, scanResponseData = null, scanErrorData = null, scanTimedOut = false) }
     }
 }

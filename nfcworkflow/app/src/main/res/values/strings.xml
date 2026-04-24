@@ -103,6 +103,7 @@
     <string name="nfc_dialog_prompt">请将手机靠近 NFC 标签</string>
     <string name="nfc_dialog_result">读取结果：\n%1$s</string>
     <string name="nfc_dialog_close">关闭</string>
+    <string name="nfc_scan_timeout">扫描已超时，请重新扫描</string>
     <string name="nfc_not_supported">当前设备不支持 NFC</string>
     <string name="nfc_disabled_prompt">NFC 未开启，请前往设置开启</string>
 

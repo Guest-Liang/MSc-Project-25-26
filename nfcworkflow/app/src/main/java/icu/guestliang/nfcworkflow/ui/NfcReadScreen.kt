@@ -15,6 +15,7 @@ import icu.guestliang.nfcworkflow.utils.LocalHazeState
 import icu.guestliang.nfcworkflow.utils.findActivity
 import icu.guestliang.nfcworkflow.utils.haze
 import icu.guestliang.nfcworkflow.utils.hazeSource
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -93,8 +94,13 @@ import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
+
+private const val NFC_READ_TIMEOUT_MS = 60_000L
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -535,26 +541,60 @@ fun NfcReaderDialog(
 ) {
     val context = LocalContext.current
     val activity = context.findActivity()
+    val lifecycleOwner = LocalLifecycleOwner.current
+    var timedOut by remember { mutableStateOf(false) }
 
-    DisposableEffect(activity) {
-        val nfcAdapter = activity?.let { NfcAdapter.getDefaultAdapter(it) }
-        
-        if (nfcAdapter != null && nfcAdapter.isEnabled) {
-            val flags = NfcAdapter.FLAG_READER_NFC_A or 
-                        NfcAdapter.FLAG_READER_NFC_B or
-                        NfcAdapter.FLAG_READER_NFC_F or 
-                        NfcAdapter.FLAG_READER_NFC_V
-            
-            val readerCallback = NfcAdapter.ReaderCallback { tag ->
-                val result = parseNfcTag(tag, context)
+    LaunchedEffect(nfcResult) {
+        timedOut = false
+        if (nfcResult == null) {
+            delay(NFC_READ_TIMEOUT_MS)
+            timedOut = true
+        }
+    }
+
+    DisposableEffect(activity, lifecycleOwner, nfcResult, timedOut) {
+        val currentActivity = activity
+        val nfcAdapter = currentActivity?.let { NfcAdapter.getDefaultAdapter(it) }
+        val shouldRead = nfcResult == null && !timedOut && nfcAdapter?.isEnabled == true
+        val flags = NfcAdapter.FLAG_READER_NFC_A or
+                NfcAdapter.FLAG_READER_NFC_B or
+                NfcAdapter.FLAG_READER_NFC_F or
+                NfcAdapter.FLAG_READER_NFC_V
+        val readerCallback = NfcAdapter.ReaderCallback { tag ->
+            val result = parseNfcTag(tag, context)
+            currentActivity?.runOnUiThread {
                 onNfcRead(result)
             }
-            
-            nfcAdapter.enableReaderMode(activity, readerCallback, flags, null)
+        }
+
+        fun enableReader() {
+            if (shouldRead) {
+                nfcAdapter.enableReaderMode(currentActivity, readerCallback, flags, null)
+            }
+        }
+
+        fun disableReader() {
+            if (currentActivity != null && nfcAdapter != null) {
+                nfcAdapter.disableReaderMode(currentActivity)
+            }
+        }
+
+        val observer = LifecycleEventObserver { _, event ->
+            when (event) {
+                Lifecycle.Event.ON_RESUME -> enableReader()
+                Lifecycle.Event.ON_PAUSE -> disableReader()
+                else -> Unit
+            }
+        }
+
+        lifecycleOwner.lifecycle.addObserver(observer)
+        if (lifecycleOwner.lifecycle.currentState.isAtLeast(Lifecycle.State.RESUMED)) {
+            enableReader()
         }
 
         onDispose {
-            nfcAdapter?.disableReaderMode(activity)
+            lifecycleOwner.lifecycle.removeObserver(observer)
+            disableReader()
         }
     }
 
@@ -562,7 +602,9 @@ fun NfcReaderDialog(
         onDismissRequest = onDismiss,
         title = { Text(stringResource(id = R.string.nfc_dialog_title)) },
         text = {
-            if (nfcResult == null) {
+            if (timedOut) {
+                Text(stringResource(id = R.string.nfc_scan_timeout))
+            } else if (nfcResult == null) {
                 Text(stringResource(id = R.string.nfc_dialog_prompt))
             } else {
                 Text(stringResource(id = R.string.nfc_dialog_result, nfcResult))

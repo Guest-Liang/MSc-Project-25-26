@@ -63,6 +63,9 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.core.net.toUri
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 
@@ -318,31 +321,54 @@ fun NfcWriterDialog(
 ) {
     val context = LocalContext.current
     val activity = context.findActivity()
+    val lifecycleOwner = LocalLifecycleOwner.current
     val coroutineScope = rememberCoroutineScope()
 
-    DisposableEffect(activity) {
-        val nfcAdapter = activity?.let { NfcAdapter.getDefaultAdapter(it) }
-        
-        if (nfcAdapter != null && nfcAdapter.isEnabled) {
-            val flags = NfcAdapter.FLAG_READER_NFC_A or 
-                        NfcAdapter.FLAG_READER_NFC_B or
-                        NfcAdapter.FLAG_READER_NFC_F or 
-                        NfcAdapter.FLAG_READER_NFC_V
-            
-            val readerCallback = NfcAdapter.ReaderCallback { tag ->
-                coroutineScope.launch(Dispatchers.IO) {
-                    val result = writeNfcTag(tag, writeBuffer, context)
-                    withContext(Dispatchers.Main) {
-                        onNfcWriteResult(result)
-                    }
+    DisposableEffect(activity, lifecycleOwner, writeResult) {
+        val currentActivity = activity
+        val nfcAdapter = currentActivity?.let { NfcAdapter.getDefaultAdapter(it) }
+        val shouldRead = writeResult == null && nfcAdapter?.isEnabled == true
+        val flags = NfcAdapter.FLAG_READER_NFC_A or
+                NfcAdapter.FLAG_READER_NFC_B or
+                NfcAdapter.FLAG_READER_NFC_F or
+                NfcAdapter.FLAG_READER_NFC_V
+        val readerCallback = NfcAdapter.ReaderCallback { tag ->
+            coroutineScope.launch(Dispatchers.IO) {
+                val result = writeNfcTag(tag, writeBuffer, context)
+                withContext(Dispatchers.Main) {
+                    onNfcWriteResult(result)
                 }
             }
-            
-            nfcAdapter.enableReaderMode(activity, readerCallback, flags, null)
+        }
+
+        fun enableReader() {
+            if (shouldRead) {
+                nfcAdapter.enableReaderMode(currentActivity, readerCallback, flags, null)
+            }
+        }
+
+        fun disableReader() {
+            if (currentActivity != null && nfcAdapter != null) {
+                nfcAdapter.disableReaderMode(currentActivity)
+            }
+        }
+
+        val observer = LifecycleEventObserver { _, event ->
+            when (event) {
+                Lifecycle.Event.ON_RESUME -> enableReader()
+                Lifecycle.Event.ON_PAUSE -> disableReader()
+                else -> Unit
+            }
+        }
+
+        lifecycleOwner.lifecycle.addObserver(observer)
+        if (lifecycleOwner.lifecycle.currentState.isAtLeast(Lifecycle.State.RESUMED)) {
+            enableReader()
         }
 
         onDispose {
-            nfcAdapter?.disableReaderMode(activity)
+            lifecycleOwner.lifecycle.removeObserver(observer)
+            disableReader()
         }
     }
 

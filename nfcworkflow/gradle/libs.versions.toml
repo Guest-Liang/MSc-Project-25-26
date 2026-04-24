@@ -15,7 +15,7 @@ ktorClientCore = "3.4.3"
 ktorSerializationKotlinxJsonVersion = "3.4.3"
 haze = "1.7.2"
 
-app-version = "0.8.3"
+app-version = "0.8.4"
 
 [libraries]
 androidx-activity-compose = { group = "androidx.activity", name = "activity-compose", version = "1.13.0" }
