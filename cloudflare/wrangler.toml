@@ -7,9 +7,6 @@ routes = [
   { pattern = "msc-project-api.guestliang.icu/*", zone_name = "guestliang.icu" }
 ]
 
-[vars]
-JWT_SECRET = "9f5cde2d28f62634a2cd90fa44aa5f83d405bf2a7e53a4090be0dcac9ffd0b6b"
-
 [[d1_databases]]
 binding = "MScPJ_DB"
 database_name = "msc-project-25-26"

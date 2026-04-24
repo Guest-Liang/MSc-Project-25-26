@@ -168,6 +168,21 @@ npx wrangler deploy
 /cloudflare
 ```
 
+### 变量和机密 / Environment variables
+
+> [!WARNING]
+> 需要在 **Workers & Pages → 对应 Worker → Settings → Variables and Secrets** 中配置 JWT 签名密钥。
+> 
+> Before deploying the Cloudflare Worker, configure the JWT signing key in **Workers & Pages → your Worker → Settings → Variables and Secrets**.
+
+| Type | Name | Value |
+|---|---|---|
+| Secret | `JWT_SECRET` | A random 32-byte or longer secret value |
+
+| 类型 | 名称 | 值 |
+|---|---|---|
+| 密钥 | `JWT_SECRET` | 随机生成的 32 字节或更长密钥 |
+
 ## <img src="https://support.crowdin.com/assets/logos/core-logo/svg/crowdin-core-logo-cDark.svg" width="120" alt="Crowdin 标识"> 翻译流程 / Translation Workflow
 
 前往 [Crowdin 项目页面](https://zh.crowdin.com/project/nfcworkflow/integrations/system/github) 检查同步时间，在主页选择英文进行翻译。翻译完成后等待 Crowdin 同步到 `L10n-dev` 分支，再合并到 `dev`。
