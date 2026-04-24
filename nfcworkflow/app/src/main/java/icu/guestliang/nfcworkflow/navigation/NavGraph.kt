@@ -171,7 +171,13 @@ fun NavGraph(
                     if (remaining > 0) {
                         delay(remaining)
                     }
-                    onTriggerForceLogout()
+                    val currentPrefs = PrefsDataStore.flow(context).firstOrNull()
+                    val isSameExpiredToken = currentPrefs?.token == token &&
+                            currentPrefs.tokenExpiry == expiry &&
+                            expiry <= System.currentTimeMillis()
+                    if (isSameExpiredToken) {
+                        onTriggerForceLogout()
+                    }
                 }
             }
     }

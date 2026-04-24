@@ -192,6 +192,7 @@
     <string name="login_skip_button">跳过登录 (仅用于测试)</string>
     <string name="login_error_empty">用户名或密码不能为空</string>
     <string name="login_error_failed">登录失败: %1$s</string>
+    <string name="login_invalid_response">服务器登录响应异常，请稍后再试</string>
     <string name="login_error_title">登录错误</string>
     <string name="login_success">登录成功</string>
     <string name="login_user_not_exist_prompt">用户不存在，是否注册？</string>

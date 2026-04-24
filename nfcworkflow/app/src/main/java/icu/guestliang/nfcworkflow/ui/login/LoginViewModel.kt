@@ -13,6 +13,7 @@ import io.ktor.http.contentType
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
+import kotlinx.serialization.json.contentOrNull
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
 import androidx.lifecycle.ViewModel
@@ -27,8 +28,12 @@ sealed class HealthStatus {
 sealed class LoginState {
     object Idle : LoginState()
     object Loading : LoginState()
-    data class Success(val token: String?, val isWorker: Boolean) : LoginState()
+    data class Success(val token: String, val isWorker: Boolean) : LoginState()
     data class Error(val isEmptyFields: Boolean = false, val code: Int? = null, val errorMessage: String? = null) : LoginState()
+}
+
+object LoginErrorCodes {
+    const val INVALID_LOGIN_RESPONSE = -1
 }
 
 class LoginViewModel : ViewModel() {
@@ -72,18 +77,15 @@ class LoginViewModel : ViewModel() {
                 }.body<ApiResponse>()
 
                 if (response.success) {
-                    val tokenStr = try {
-                        response.data?.jsonObject?.get("token")?.jsonPrimitive?.content
-                    } catch (_: Exception) {
-                        null
+                    val data = runCatching { response.data?.jsonObject }.getOrNull()
+                    val tokenStr = data?.get("token")?.jsonPrimitive?.contentOrNull
+                    val roleStr = data?.get("role")?.jsonPrimitive?.contentOrNull
+
+                    if (tokenStr.isNullOrBlank() || roleStr !in setOf("admin", "worker")) {
+                        _loginState.value = LoginState.Error(code = LoginErrorCodes.INVALID_LOGIN_RESPONSE)
+                    } else {
+                        _loginState.value = LoginState.Success(token = tokenStr, isWorker = roleStr == "worker")
                     }
-                    val roleStr = try {
-                        response.data?.jsonObject?.get("role")?.jsonPrimitive?.content
-                    } catch (_: Exception) {
-                        null
-                    }
-                    val isWorker = roleStr != "admin"
-                    _loginState.value = LoginState.Success(token = tokenStr, isWorker = isWorker)
                 } else {
                     _loginState.value = LoginState.Error(code = response.code, errorMessage = response.message)
                 }

@@ -213,6 +213,8 @@ fun LoginScreen(
         val errorState = loginState as LoginState.Error
         val errorText = if (errorState.isEmptyFields) {
             stringResource(id = R.string.login_error_empty)
+        } else if (errorState.code == LoginErrorCodes.INVALID_LOGIN_RESPONSE) {
+            stringResource(id = R.string.login_invalid_response)
         } else {
             stringResource(id = R.string.login_error_failed, errorState.errorMessage ?: "")
         }
