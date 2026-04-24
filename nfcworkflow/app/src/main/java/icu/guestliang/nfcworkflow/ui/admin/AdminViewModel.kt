@@ -100,6 +100,8 @@ class AdminViewModel : ViewModel() {
     // Track active requests to avoid mixing old paging requests with new ones
     private var fetchOrdersJob: Job? = null
     private var fetchLogsJob: Job? = null
+    private var ordersRequestVersion = 0
+    private var logsRequestVersion = 0
 
     companion object {
         const val MIN_APPEND_DELAY_MS = 500L
@@ -192,14 +194,18 @@ class AdminViewModel : ViewModel() {
     }
 
     fun fetchOrders(context: Context, query: OrderSearchQuery? = null, isAppend: Boolean = false): Job {
-        if (isAppend && (_uiState.value.isAppendingOrders || !_uiState.value.hasMoreOrders)) {
+        if (isAppend && (_uiState.value.isLoading || _uiState.value.isAppendingOrders || !_uiState.value.hasMoreOrders)) {
             return viewModelScope.launch { }
         }
         
         // Cancel previous fetch if we are performing a fresh request
         if (!isAppend) fetchOrdersJob?.cancel()
+
+        val requestVersion = ++ordersRequestVersion
         
         fetchOrdersJob = viewModelScope.launch {
+            fun isCurrentRequest() = requestVersion == ordersRequestVersion
+
             val effectiveQuery = if (isAppend) _uiState.value.currentOrderQuery else query
             
             if (isAppend) {
@@ -208,7 +214,9 @@ class AdminViewModel : ViewModel() {
                 _uiState.update { 
                     it.copy(
                         isLoading = true, 
+                        isAppendingOrders = false,
                         error = null, 
+                        appendError = null,
                         orders = emptyList(), 
                         nextOrdersCursor = null, 
                         hasMoreOrders = true,
@@ -222,6 +230,7 @@ class AdminViewModel : ViewModel() {
             try {
                 val token = getToken(context)
                 if (token == null) {
+                    if (!isCurrentRequest()) return@launch
                     val msg = context.getString(R.string.err_not_logged_in)
                     if (isAppend) _uiState.update { it.copy(isAppendingOrders = false, appendError = msg) }
                     else _uiState.update { it.copy(isLoading = false, error = msg) }
@@ -256,6 +265,8 @@ class AdminViewModel : ViewModel() {
                     if (isAppend && elapsed < MIN_APPEND_DELAY_MS) {
                         delay(MIN_APPEND_DELAY_MS - elapsed)
                     }
+
+                    if (!isCurrentRequest()) return@launch
                     
                     if (isAppend) {
                         _uiState.update { 
@@ -277,11 +288,13 @@ class AdminViewModel : ViewModel() {
                         }
                     }
                 } else {
+                    if (!isCurrentRequest()) return@launch
                     if (isAppend) _uiState.update { it.copy(isAppendingOrders = false, appendError = response.message) }
                     else _uiState.update { it.copy(isLoading = false, error = response.message) }
                 }
             } catch (e: Exception) {
                 if (e is CancellationException) throw e
+                if (!isCurrentRequest()) return@launch
                 AppLogger.error(context, e, "Failed to fetch orders", "AdminViewModel")
                 val msg = e.message ?: context.getString(R.string.err_unknown)
                 if (isAppend) _uiState.update { it.copy(isAppendingOrders = false, appendError = msg) }
@@ -365,14 +378,18 @@ class AdminViewModel : ViewModel() {
     }
 
     fun fetchLogs(context: Context, query: LogSearchQuery? = null, isAppend: Boolean = false): Job {
-        if (isAppend && (_uiState.value.isAppendingLogs || !_uiState.value.hasMoreLogs)) {
+        if (isAppend && (_uiState.value.isLoading || _uiState.value.isAppendingLogs || !_uiState.value.hasMoreLogs)) {
             return viewModelScope.launch { }
         }
         
         // Cancel previous fetch if we are performing a fresh request
         if (!isAppend) fetchLogsJob?.cancel()
+
+        val requestVersion = ++logsRequestVersion
         
         fetchLogsJob = viewModelScope.launch {
+            fun isCurrentRequest() = requestVersion == logsRequestVersion
+
             val effectiveQuery = if (isAppend) _uiState.value.currentLogQuery else query
             
             if (isAppend) {
@@ -381,7 +398,9 @@ class AdminViewModel : ViewModel() {
                 _uiState.update { 
                     it.copy(
                         isLoading = true, 
+                        isAppendingLogs = false,
                         error = null, 
+                        appendError = null,
                         logs = emptyList(), 
                         nextLogsCursor = null, 
                         hasMoreLogs = true,
@@ -395,6 +414,7 @@ class AdminViewModel : ViewModel() {
             try {
                 val token = getToken(context)
                 if (token == null) {
+                    if (!isCurrentRequest()) return@launch
                     val msg = context.getString(R.string.err_not_logged_in)
                     if (isAppend) _uiState.update { it.copy(isAppendingLogs = false, appendError = msg) }
                     else _uiState.update { it.copy(isLoading = false, error = msg) }
@@ -426,6 +446,8 @@ class AdminViewModel : ViewModel() {
                     if (isAppend && elapsed < MIN_APPEND_DELAY_MS) {
                         delay(MIN_APPEND_DELAY_MS - elapsed)
                     }
+
+                    if (!isCurrentRequest()) return@launch
                     
                     if (isAppend) {
                         _uiState.update { 
@@ -447,11 +469,13 @@ class AdminViewModel : ViewModel() {
                         }
                     }
                 } else {
+                    if (!isCurrentRequest()) return@launch
                     if (isAppend) _uiState.update { it.copy(isAppendingLogs = false, appendError = response.message) }
                     else _uiState.update { it.copy(isLoading = false, error = response.message) }
                 }
             } catch (e: Exception) {
                 if (e is CancellationException) throw e
+                if (!isCurrentRequest()) return@launch
                 AppLogger.error(context, e, "Failed to fetch logs", "AdminViewModel")
                 val msg = e.message ?: context.getString(R.string.err_unknown)
                 if (isAppend) _uiState.update { it.copy(isAppendingLogs = false, appendError = msg) }

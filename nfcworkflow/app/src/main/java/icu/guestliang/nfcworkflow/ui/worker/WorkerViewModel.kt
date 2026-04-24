@@ -81,6 +81,8 @@ class WorkerViewModel : ViewModel() {
     // Track active requests to avoid mixing old paging requests with new ones
     private var fetchOrdersJob: Job? = null
     private var fetchHistoryJob: Job? = null
+    private var ordersRequestVersion = 0
+    private var historyRequestVersion = 0
 
     companion object {
         const val MIN_APPEND_DELAY_MS = 500L
@@ -115,16 +117,30 @@ class WorkerViewModel : ViewModel() {
     }
 
     fun fetchMyOrders(context: Context, isAppend: Boolean = false) {
-        if (isAppend && (_uiState.value.isAppendingOrders || !_uiState.value.hasMoreOrders)) return
+        if (isAppend && (_uiState.value.isLoading || _uiState.value.isAppendingOrders || !_uiState.value.hasMoreOrders)) return
         
         // Cancel previous fetch if we are performing a fresh request
         if (!isAppend) fetchOrdersJob?.cancel()
+
+        val requestVersion = ++ordersRequestVersion
         
         fetchOrdersJob = viewModelScope.launch {
+            fun isCurrentRequest() = requestVersion == ordersRequestVersion
+
             if (isAppend) {
                 _uiState.update { it.copy(isAppendingOrders = true, appendError = null) }
             } else {
-                _uiState.update { it.copy(isLoading = true, error = null, orders = emptyList(), nextOrdersCursor = null, hasMoreOrders = true) }
+                _uiState.update {
+                    it.copy(
+                        isLoading = true,
+                        isAppendingOrders = false,
+                        error = null,
+                        appendError = null,
+                        orders = emptyList(),
+                        nextOrdersCursor = null,
+                        hasMoreOrders = true
+                    )
+                }
             }
             
             val startTime = System.currentTimeMillis()
@@ -132,6 +148,7 @@ class WorkerViewModel : ViewModel() {
             try {
                 val token = PrefsDataStore.flow(context).firstOrNull()?.token
                 if (token == null) {
+                    if (!isCurrentRequest()) return@launch
                     val msg = context.getString(R.string.err_not_logged_in)
                     if (isAppend) _uiState.update { it.copy(isAppendingOrders = false, appendError = msg) }
                     else _uiState.update { it.copy(isLoading = false, error = msg) }
@@ -153,6 +170,8 @@ class WorkerViewModel : ViewModel() {
                     if (isAppend && elapsed < MIN_APPEND_DELAY_MS) {
                         delay(MIN_APPEND_DELAY_MS - elapsed) // Wait to show spinner
                     }
+
+                    if (!isCurrentRequest()) return@launch
                     
                     if (isAppend) {
                         _uiState.update { 
@@ -174,11 +193,13 @@ class WorkerViewModel : ViewModel() {
                         }
                     }
                 } else {
+                    if (!isCurrentRequest()) return@launch
                     if (isAppend) _uiState.update { it.copy(isAppendingOrders = false, appendError = response.message) }
                     else _uiState.update { it.copy(isLoading = false, error = response.message) }
                 }
             } catch (e: Exception) {
                 if (e is CancellationException) throw e
+                if (!isCurrentRequest()) return@launch
                 AppLogger.error(context, e, "Failed to fetch orders", "WorkerViewModel")
                 val msg = e.message ?: context.getString(R.string.err_worker_fetch_orders_failed)
                 if (isAppend) _uiState.update { it.copy(isAppendingOrders = false, appendError = msg) }
@@ -188,12 +209,16 @@ class WorkerViewModel : ViewModel() {
     }
 
     fun fetchHistory(context: Context, query: WorkerHistoryQuery? = null, isAppend: Boolean = false) {
-        if (isAppend && (_uiState.value.isAppendingHistory || !_uiState.value.hasMoreHistory)) return
+        if (isAppend && (_uiState.value.isLoading || _uiState.value.isAppendingHistory || !_uiState.value.hasMoreHistory)) return
         
         // Cancel previous fetch if we are performing a fresh request
         if (!isAppend) fetchHistoryJob?.cancel()
 
+        val requestVersion = ++historyRequestVersion
+
         fetchHistoryJob = viewModelScope.launch {
+            fun isCurrentRequest() = requestVersion == historyRequestVersion
+
             val effectiveQuery = if (isAppend) _uiState.value.currentHistoryQuery else query
 
             if (isAppend) {
@@ -202,7 +227,9 @@ class WorkerViewModel : ViewModel() {
                 _uiState.update { 
                     it.copy(
                         isLoading = true, 
+                        isAppendingHistory = false,
                         error = null, 
+                        appendError = null,
                         history = emptyList(), 
                         nextHistoryCursor = null, 
                         hasMoreHistory = true,
@@ -216,6 +243,7 @@ class WorkerViewModel : ViewModel() {
             try {
                 val token = PrefsDataStore.flow(context).firstOrNull()?.token
                 if (token == null) {
+                    if (!isCurrentRequest()) return@launch
                     val msg = context.getString(R.string.err_not_logged_in)
                     if (isAppend) _uiState.update { it.copy(isAppendingHistory = false, appendError = msg) }
                     else _uiState.update { it.copy(isLoading = false, error = msg) }
@@ -269,6 +297,8 @@ class WorkerViewModel : ViewModel() {
                     delay(MIN_APPEND_DELAY_MS - elapsed)
                 }
 
+                if (!isCurrentRequest()) return@launch
+
                 if (errorMsg == null && paginatedData != null) {
                     if (isAppend) {
                         _uiState.update { 
@@ -296,6 +326,7 @@ class WorkerViewModel : ViewModel() {
                 }
             } catch (e: Exception) {
                 if (e is CancellationException) throw e
+                if (!isCurrentRequest()) return@launch
                 AppLogger.error(context, e, "Failed to fetch history", "WorkerViewModel")
                 val msg = e.message ?: context.getString(R.string.err_worker_fetch_history_failed)
                 if (isAppend) _uiState.update { it.copy(isAppendingHistory = false, appendError = msg) }
