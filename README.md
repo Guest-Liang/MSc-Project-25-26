@@ -116,28 +116,29 @@ CREATE TABLE api_logs (
   FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE SET NULL ON UPDATE CASCADE
 );
 
-CREATE INDEX idx_orders_order_type ON orders(order_type);
-CREATE INDEX idx_orders_target_uid_hex ON orders(target_uid_hex);
-CREATE INDEX idx_orders_assigned_to_status ON orders(assigned_to, status);
-CREATE INDEX idx_orders_completed_at ON orders(completed_at DESC);
-CREATE INDEX idx_orders_created_at ON orders(created_at DESC);
-CREATE INDEX idx_orders_updated_at ON orders(updated_at DESC);
+CREATE INDEX IF NOT EXISTS idx_orders_order_type ON orders(order_type);
+CREATE INDEX IF NOT EXISTS idx_orders_target_uid_hex ON orders(target_uid_hex);
+CREATE INDEX IF NOT EXISTS idx_orders_assigned_to_status ON orders(assigned_to, status);
+CREATE INDEX IF NOT EXISTS idx_orders_assigned_to_status_id ON orders(assigned_to, status, id DESC);
+CREATE INDEX IF NOT EXISTS idx_orders_completed_at ON orders(completed_at DESC);
+CREATE INDEX IF NOT EXISTS idx_orders_created_at ON orders(created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_orders_updated_at ON orders(updated_at DESC);
 CREATE UNIQUE INDEX IF NOT EXISTS idx_orders_title_unique ON orders(title);
 
-CREATE INDEX idx_order_steps_order_id_step_index ON order_steps(order_id, step_index);
-CREATE INDEX idx_order_steps_target_uid_hex ON order_steps(target_uid_hex);
+CREATE INDEX IF NOT EXISTS idx_order_steps_order_id_step_index ON order_steps(order_id, step_index);
+CREATE INDEX IF NOT EXISTS idx_order_steps_target_uid_hex ON order_steps(target_uid_hex);
 
-CREATE INDEX idx_order_logs_order_id_timestamp ON order_logs(order_id, timestamp DESC);
-CREATE INDEX idx_order_logs_operator_id_timestamp ON order_logs(operator_id, timestamp DESC);
-CREATE INDEX idx_order_logs_timestamp_id ON order_logs(timestamp DESC, id DESC);
-CREATE INDEX idx_order_logs_action_result ON order_logs(action, result);
-CREATE INDEX idx_order_logs_scan_uid_hex ON order_logs(scan_uid_hex);
-CREATE INDEX idx_order_logs_expected_uid_hex ON order_logs(expected_uid_hex);
+CREATE INDEX IF NOT EXISTS idx_order_logs_order_id_timestamp ON order_logs(order_id, timestamp DESC);
+CREATE INDEX IF NOT EXISTS idx_order_logs_operator_id_timestamp ON order_logs(operator_id, timestamp DESC);
+CREATE INDEX IF NOT EXISTS idx_order_logs_timestamp_id ON order_logs(timestamp DESC, id DESC);
+CREATE INDEX IF NOT EXISTS idx_order_logs_action_result ON order_logs(action, result);
+CREATE INDEX IF NOT EXISTS idx_order_logs_scan_uid_hex ON order_logs(scan_uid_hex);
+CREATE INDEX IF NOT EXISTS idx_order_logs_expected_uid_hex ON order_logs(expected_uid_hex);
 
-CREATE INDEX idx_api_logs_created_at ON api_logs(created_at DESC);
-CREATE INDEX idx_api_logs_user_id ON api_logs(user_id);
-CREATE INDEX idx_api_logs_path ON api_logs(path);
-CREATE INDEX idx_users_role_created_at ON users(role, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_api_logs_created_at ON api_logs(created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_api_logs_user_id ON api_logs(user_id);
+CREATE INDEX IF NOT EXISTS idx_api_logs_path ON api_logs(path);
+CREATE INDEX IF NOT EXISTS idx_users_role_created_at ON users(role, created_at DESC);
 ```
 
 > [!WARNING]

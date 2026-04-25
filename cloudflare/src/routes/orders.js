@@ -9,7 +9,7 @@ import {
   formatOrderLog,
   formatOrderRecord,
   formatOrderStep,
-  getNextSequenceStep,
+  getNextSequenceStepsByOrder,
   getOrderById,
   getOrderSteps,
   normalizeUidHex,
@@ -97,16 +97,8 @@ function appendUidHexLogCondition(uidHexValues, conditions, values) {
 }
 
 async function enrichOrdersWithNextSteps(db, orders) {
-  return Promise.all(
-    orders.map(async (order) => {
-      const orderType = order.order_type ?? ORDER_TYPES.STANDARD
-      const nextStep = orderType === ORDER_TYPES.SEQUENCE && order.status !== "completed"
-        ? await getNextSequenceStep(db, order.id, Number(order.sequence_completed_steps ?? 0) + 1)
-        : null
-
-      return formatOrderRecord(order, nextStep)
-    })
-  )
+  const nextStepsByOrder = await getNextSequenceStepsByOrder(db, orders)
+  return orders.map((order) => formatOrderRecord(order, nextStepsByOrder.get(Number(order.id)) ?? null))
 }
 
 orderRoutes.get("/steps", async (c) => {

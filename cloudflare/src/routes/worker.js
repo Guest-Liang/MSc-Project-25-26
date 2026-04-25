@@ -8,7 +8,7 @@ import {
   encodeCursor,
   formatOrderLog,
   formatOrderRecord,
-  getNextSequenceStep,
+  getNextSequenceStepsByOrder,
   getOrderById,
   getOrderSteps,
   normalizeUidHex,
@@ -28,16 +28,8 @@ const WORKER_HISTORY_MAX_LIMIT = 100
 workerRoutes.use("*", requireWorker)
 
 async function enrichWorkerOrders(db, orders) {
-  return Promise.all(
-    orders.map(async (order) => {
-      const orderType = order.order_type ?? ORDER_TYPES.STANDARD
-      const nextStep = orderType === ORDER_TYPES.SEQUENCE && order.status !== "completed"
-        ? await getNextSequenceStep(db, order.id, Number(order.sequence_completed_steps ?? 0) + 1)
-        : null
-
-      return formatOrderRecord(order, nextStep)
-    })
-  )
+  const nextStepsByOrder = await getNextSequenceStepsByOrder(db, orders)
+  return orders.map((order) => formatOrderRecord(order, nextStepsByOrder.get(Number(order.id)) ?? null))
 }
 
 function buildUidHexCondition(columnA, columnB, uidHexValues, conditions, values) {

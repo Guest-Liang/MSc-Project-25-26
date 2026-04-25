@@ -181,6 +181,26 @@ export async function getNextSequenceStep(db, orderId, nextStepIndex) {
   ).bind(orderId, nextStepIndex).first()
 }
 
+export async function getNextSequenceStepsByOrder(db, orders) {
+  const nextStepTargets = orders
+    .filter((order) => (order.order_type ?? ORDER_TYPES.STANDARD) === ORDER_TYPES.SEQUENCE && order.status !== "completed")
+    .map((order) => ({
+      orderId: order.id,
+      stepIndex: Number(order.sequence_completed_steps ?? 0) + 1
+    }))
+    .filter((target) => target.orderId != null && Number.isFinite(target.stepIndex))
+
+  if (nextStepTargets.length === 0) return new Map()
+
+  const conditions = nextStepTargets.map(() => "(order_id = ? AND step_index = ?)").join(" OR ")
+  const values = nextStepTargets.flatMap((target) => [target.orderId, target.stepIndex])
+  const rows = await db.prepare(
+    `SELECT * FROM order_steps WHERE ${conditions}`
+  ).bind(...values).all()
+
+  return new Map((rows.results ?? []).map((step) => [Number(step.order_id), step]))
+}
+
 export async function countOrderSteps(db, orderId) {
   const row = await db.prepare(
     "SELECT COUNT(*) AS count FROM order_steps WHERE order_id = ?"
