@@ -5,7 +5,7 @@ import dev.chrisbanes.haze.HazeStyle
 import dev.chrisbanes.haze.HazeTint
 import dev.chrisbanes.haze.hazeEffect
 import dev.chrisbanes.haze.hazeSource
-import androidx.compose.foundation.isSystemInDarkTheme
+import icu.guestliang.nfcworkflow.ui.theme.LocalUseDarkTheme
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.compositionLocalOf
@@ -22,7 +22,7 @@ fun Modifier.haze(
     alpha: Float = 1f
 ): Modifier {
     return LocalHazeState.current?.let { hazeState ->
-        val dark = isSystemInDarkTheme() 
+        val dark = LocalUseDarkTheme.current
 
         val hazeStyle = HazeStyle(
             backgroundColor = MaterialTheme.colorScheme.surfaceContainerHigh,

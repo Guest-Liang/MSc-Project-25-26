@@ -2,6 +2,7 @@ package icu.guestliang.nfcworkflow.ui.components
 
 import icu.guestliang.nfcworkflow.R
 import icu.guestliang.nfcworkflow.ui.theme.Dimensions
+import icu.guestliang.nfcworkflow.ui.theme.LocalUseDarkTheme
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateDpAsState
@@ -20,7 +21,6 @@ import androidx.compose.foundation.indication
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.PressInteraction
 import androidx.compose.foundation.interaction.collectIsFocusedAsState
-import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxScope
@@ -634,7 +634,7 @@ fun SplicedColumnGroup(
 
                         val topPadding = if (index == 0) Dimensions.SpaceZero else Dimensions.Divider.Thick
 
-                        val isDark = isSystemInDarkTheme()
+                        val isDark = LocalUseDarkTheme.current
 
                         val cardModifier = Modifier
                             .padding(top = topPadding)
@@ -904,7 +904,7 @@ inline fun <T> LazyListScope.splicedLazyColumnGroup(
             label = "BottomCornerRadius"
         )
 
-        val isDark = isSystemInDarkTheme()
+        val isDark = LocalUseDarkTheme.current
         val surfaceModifier = Modifier
             .padding(horizontal = Dimensions.SpaceL)
             .padding(top = Dimensions.SpaceXXS)
