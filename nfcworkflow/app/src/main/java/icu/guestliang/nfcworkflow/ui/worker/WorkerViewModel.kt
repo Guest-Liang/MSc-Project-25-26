@@ -96,19 +96,15 @@ class WorkerViewModel : ViewModel() {
 
     fun beginScanSession(orderId: Int) {
         _uiState.update {
-            if (it.scanOrderId == orderId) {
-                it
-            } else {
-                it.copy(
-                    scanOrderId = orderId,
-                    isScanActive = true,
-                    scanTimedOut = false,
-                    error = null,
-                    actionSuccess = false,
-                    scanResponseData = null,
-                    scanErrorData = null
-                )
-            }
+            it.copy(
+                scanOrderId = orderId,
+                isScanActive = true,
+                scanTimedOut = false,
+                error = null,
+                actionSuccess = false,
+                scanResponseData = null,
+                scanErrorData = null
+            )
         }
     }
 
