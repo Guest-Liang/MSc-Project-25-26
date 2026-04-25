@@ -420,7 +420,7 @@ fun writeNfcTag(tag: Tag, data: List<WriteData>, context: Context): String {
                 try {
                     ndef.close()
                 } catch (e: Exception) {
-                    // Ignore exception on close
+                    AppLogger.warn(context, "Failed to close NDEF after write: ${e.message}", "NFC")
                 }
             }
         } else {
@@ -434,7 +434,7 @@ fun writeNfcTag(tag: Tag, data: List<WriteData>, context: Context): String {
                     try {
                         format.close()
                     } catch (e: Exception) {
-                        // Ignore exception on close
+                        AppLogger.warn(context, "Failed to close NDEF formatable after write: ${e.message}", "NFC")
                     }
                 }
             } else {

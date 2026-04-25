@@ -1,6 +1,7 @@
 package icu.guestliang.nfcworkflow.nfc
 
 import icu.guestliang.nfcworkflow.R
+import icu.guestliang.nfcworkflow.logging.AppLogger
 import java.nio.charset.Charset
 import android.content.Context
 import android.nfc.NdefRecord
@@ -29,10 +30,35 @@ data class ParsedNfcData(
     val ndefText: String?
 )
 
+private val SUPPORTED_UID_HEX_LENGTHS = setOf(14, 16, 20)
+
+private fun ByteArray.toHexString(): String = joinToString("") { "%02X".format(it) }
+
+private fun parseNdefTextPayload(payload: ByteArray): String? {
+    if (payload.isEmpty()) return null
+
+    val textEncoding = if ((payload[0].toInt() and 0x80) == 0) "UTF-8" else "UTF-16"
+    val languageCodeLength = payload[0].toInt() and 0x3F
+    val textStart = 1 + languageCodeLength
+
+    if (textStart >= payload.size) return null
+
+    return String(
+        payload,
+        textStart,
+        payload.size - textStart,
+        Charset.forName(textEncoding)
+    )
+}
+
 fun parseNfcTagData(tag: Tag, context: Context): ParsedNfcData {
-    val uidHex = tag.id.joinToString("") { "%02X".format(it) }
+    val uidHex = tag.id.toHexString()
     val rawText = parseNfcTag(tag, context)
     var ndefText: String? = null
+
+    if (uidHex.length !in SUPPORTED_UID_HEX_LENGTHS) {
+        AppLogger.warn(context, "Unsupported NFC UID length: ${uidHex.length}", "NFC")
+    }
 
     val ndef = Ndef.get(tag)
     if (ndef != null) {
@@ -44,20 +70,10 @@ fun parseNfcTagData(tag: Tag, context: Context): ParsedNfcData {
                     if (record.tnf == NdefRecord.TNF_WELL_KNOWN && record.type.contentEquals(NdefRecord.RTD_TEXT)) {
                         try {
                             val payload = record.payload
-                            if (payload.isNotEmpty()) {
-                                val textEncoding = if ((payload[0].toInt() and 128) == 0) "UTF-8" else "UTF-16"
-                                // Standard: mask with 0x3F (63) to get language code length from bottom 6 bits
-                                val languageCodeLength = payload[0].toInt() and 63
-                                
-                                if (payload.size > languageCodeLength) {
-                                    ndefText = String(
-                                        payload, 
-                                        languageCodeLength + 1, 
-                                        payload.size - languageCodeLength - 1, 
-                                        Charset.forName(textEncoding)
-                                    )
-                                    break
-                                }
+                            val parsedText = parseNdefTextPayload(payload)
+                            if (parsedText != null) {
+                                ndefText = parsedText
+                                break
                             }
                         } catch (e: Exception) {
                             // Ignore
@@ -68,7 +84,11 @@ fun parseNfcTagData(tag: Tag, context: Context): ParsedNfcData {
         } catch (e: Exception) {
             // Ignore
         } finally {
-            try { ndef.close() } catch (_: Exception) {}
+            try {
+                ndef.close()
+            } catch (e: Exception) {
+                AppLogger.warn(context, "Failed to close NDEF after parsing tag data: ${e.message}", "NFC")
+            }
         }
     }
     return ParsedNfcData(uidHex, rawText, ndefText)
@@ -101,7 +121,7 @@ fun parseNfcTag(tag: Tag, context: Context): String {
         sb.append(context.getString(R.string.nfc_sak, "%02X".format(nfcA.sak))).append("\n")
     }
     
-    val idHex = tag.id.joinToString("") { "%02X".format(it) }
+    val idHex = tag.id.toHexString()
     sb.append(context.getString(R.string.nfc_id, idHex)).append("\n")
 
     val ndef = Ndef.get(tag)
@@ -122,16 +142,11 @@ fun parseNfcTag(tag: Tag, context: Context): String {
                     when (record.tnf) {
                         NdefRecord.TNF_WELL_KNOWN if record.type.contentEquals(NdefRecord.RTD_TEXT) -> {
                             try {
-                                val payload = record.payload
-                                if (payload.isNotEmpty()) {
-                                    val textEncoding = if ((payload[0].toInt() and 128) == 0) "UTF-8" else "UTF-16"
-                                    val languageCodeLength = payload[0].toInt() and 63
-                                    if (payload.size > languageCodeLength) {
-                                        val text = String(payload, languageCodeLength + 1, payload.size - languageCodeLength - 1, Charset.forName(textEncoding))
-                                        sb.append(context.getString(R.string.nfc_record_text, text)).append("\n")
-                                    } else {
-                                        sb.append(context.getString(R.string.nfc_record_text_fail)).append("\n")
-                                    }
+                                val text = parseNdefTextPayload(record.payload)
+                                if (text != null) {
+                                    sb.append(context.getString(R.string.nfc_record_text, text)).append("\n")
+                                } else {
+                                    sb.append(context.getString(R.string.nfc_record_text_fail)).append("\n")
                                 }
                             } catch (_: Exception) {
                                 sb.append(context.getString(R.string.nfc_record_text_fail)).append("\n")
@@ -163,7 +178,11 @@ fun parseNfcTag(tag: Tag, context: Context): String {
         } catch (_: Exception) {
              sb.append(context.getString(R.string.nfc_read_ndef_fail)).append("\n")
         } finally {
-            try { ndef.close() } catch (_: Exception) {}
+            try {
+                ndef.close()
+            } catch (e: Exception) {
+                AppLogger.warn(context, "Failed to close NDEF after parsing tag details: ${e.message}", "NFC")
+            }
         }
     } else {
         val ndefFormatable = NdefFormatable.get(tag)
