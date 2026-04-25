@@ -13,14 +13,18 @@ export function requireAuth(role = null) {
     if (!payload) return jsonResponse(null, ERR.TOKEN_INVALID)
 
     const dbUser = await c.env.MScPJ_DB.prepare(
-      "SELECT token FROM users WHERE id = ?"
-    ).bind(payload.id).first()
+      "SELECT id, username, role FROM users WHERE id = ? AND token = ?"
+    ).bind(payload.id, token).first()
 
-    if (!dbUser || dbUser.token !== token) return jsonResponse(null, ERR.TOKEN_REVOKED)
+    if (!dbUser) return jsonResponse(null, ERR.TOKEN_REVOKED)
 
-    if (role && payload.role !== role) return jsonResponse(null, ERR.NO_PERMISSION)
+    if (role && dbUser.role !== role) return jsonResponse(null, ERR.NO_PERMISSION)
 
-    c.set("user", payload)
+    c.set("user", {
+      id: dbUser.id,
+      username: dbUser.username,
+      role: dbUser.role
+    })
 
     await next()
   }
