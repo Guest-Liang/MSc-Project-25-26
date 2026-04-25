@@ -119,7 +119,7 @@ dependencies {
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.appcompat)
     implementation(libs.material)
-    implementation(libs.androidx.ui)
+    implementation(libs.androidx.compose.ui)
     implementation(libs.androidx.compose.foundation)
     implementation(libs.androidx.compose.ui.graphics)
     testImplementation(libs.junit)
@@ -151,7 +151,7 @@ dependencies {
     implementation(libs.ktor.client.core)
     implementation(libs.ktor.client.android)
     implementation(libs.ktor.client.content.negotiation)
-    implementation(libs.ktor.ktor.serialization.kotlinx.json)
+    implementation(libs.ktor.serialization.kotlinx.json)
 }
 
 fun gitCommitCount(): Int {

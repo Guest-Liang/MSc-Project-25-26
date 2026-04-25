@@ -14,10 +14,19 @@ enum class WriteType(val labelRes: Int) {
     PHONE(R.string.nfc_write_type_phone)
 }
 
-// Updated to use StringRes for type identification
-sealed class WriteData(@StringRes val typeRes: Int) {
-    data class Text(val text: String) : WriteData(R.string.nfc_type_text)
-    data class UriRecord(val uri: String, val display: String) : WriteData(R.string.nfc_type_uri)
+// Use abstract property with @get:StringRes to resolve future behavior warnings 
+// and clarify that typeRes is a constant metadata for each type.
+sealed class WriteData {
+    @get:StringRes
+    abstract val typeRes: Int
+
+    data class Text(val text: String) : WriteData() {
+        override val typeRes: Int = R.string.nfc_type_text
+    }
+
+    data class UriRecord(val uri: String, val display: String) : WriteData() {
+        override val typeRes: Int = R.string.nfc_type_uri
+    }
 }
 
 data class NfcUiState(
