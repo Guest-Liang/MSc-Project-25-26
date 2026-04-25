@@ -91,6 +91,7 @@
     <string name="nfc_dialog_prompt">Please bring your phone close to the NFC tag</string>
     <string name="nfc_dialog_result">Read result:\n%1$s</string>
     <string name="nfc_dialog_close">Close</string>
+    <string name="nfc_scan_timeout">The scan has timed out. Please scan again.</string>
     <string name="nfc_not_supported">The current device does not support NFC.</string>
     <string name="nfc_disabled_prompt">NFC is not enabled. Please go to settings to enable it</string>
     <string name="nfc_write_title">NFC Writing</string>
@@ -172,6 +173,7 @@
     <string name="login_skip_button">Skip login (for testing purposes only)</string>
     <string name="login_error_empty">Username or Password cannot be empty</string>
     <string name="login_error_failed">Login fail: %1$s</string>
+    <string name="login_invalid_response">The server login response failed. Please try again later.</string>
     <string name="login_error_title">Login Error</string>
     <string name="login_success">Login Success</string>
     <string name="login_user_not_exist_prompt">User does not exist, do you want to register?</string>
@@ -193,6 +195,7 @@
     <!-- Admin New UI Strings -->
     <string name="admin_order_title_hint">Order title</string>
     <string name="admin_order_desc_hint">Work order description</string>
+    <string name="admin_order_field_counter">%1$d/%2$d</string>
     <string name="admin_order_nfc_hint_required">NFC tag UID (required)</string>
     <string name="admin_order_nfc_hint_optional">NFC tag UID (optional)</string>
     <string name="admin_order_create_btn">Create Order</string>
@@ -291,6 +294,8 @@
     <string name="status_completed">Completed</string>
     <!-- Admin ViewModel Error Strings -->
     <string name="err_title_desc_empty">Title and description cannot be empty</string>
+    <string name="err_order_title_too_long">The title cannot exceed %1$d characters.</string>
+    <string name="err_order_description_too_long">The description cannot exceed %1$d characters.</string>
     <string name="err_sequence_no_steps">A sequential work order must contain at least one step</string>
     <string name="err_not_logged_in">Not logged in</string>
     <string name="err_failed_to_save_steps">The work order has been created, but saving the steps failed: %1$s</string>
