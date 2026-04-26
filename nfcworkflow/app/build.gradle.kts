@@ -12,13 +12,18 @@ plugins {
 
 configure<ApplicationExtension> {
     namespace = "icu.guestliang.nfcworkflow"
-    compileSdk = 36
-    ndkVersion = "30.0.14518594-beta1"
+    compileSdk {
+        version = release(37) {
+            minorApiLevel = 0
+        }
+    }
+    buildToolsVersion = "36.1.0"
+    ndkVersion = "30.0.14904198 rc1"
 
     defaultConfig {
         applicationId = "icu.guestliang.nfcworkflow"
-        minSdk = 31
-        targetSdk = 36
+        minSdk = 34
+        targetSdk = 37
         versionCode = gitCommitCount()
         versionName = libs.versions.app.version.get()
 
